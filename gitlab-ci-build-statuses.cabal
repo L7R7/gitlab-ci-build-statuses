@@ -1,0 +1,79 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: c95a62455a5754777bb6e3ace52a2cef16ca673620037ffd945f4725b0e6fc1f
+
+name:           gitlab-ci-build-statuses
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/l7r7/gitlab-ci-build-statuses#readme>
+homepage:       https://github.com/l7r7/gitlab-ci-build-statuses#readme
+bug-reports:    https://github.com/l7r7/gitlab-ci-build-statuses/issues
+author:         Leonhard Riedisser
+maintainer:     leo008180@googlemail.com
+copyright:      2020 Leonhard Riedisser
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/l7r7/gitlab-ci-build-statuses
+
+library
+  exposed-modules:
+      Config
+    , Lib
+    , Html
+    , Server
+  other-modules:
+      Paths_gitlab_ci_build_statuses
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >=4.7 && <5
+    , aeson
+    , async
+    , blaze-html
+    , bytestring
+    , containers
+    , http-conduit
+    , lens
+    , scotty
+    , text-show
+    , text
+    , validation
+  default-language: Haskell2010
+
+executable gitlab-ci-build-statuses-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_gitlab_ci_build_statuses
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , gitlab-ci-build-statuses
+    , async
+    , validation
+  default-language: Haskell2010
+
+test-suite gitlab-ci-build-statuses-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_gitlab_ci_build_statuses
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , gitlab-ci-build-statuses
+  default-language: Haskell2010
