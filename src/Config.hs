@@ -4,9 +4,10 @@ module Config
   ( ApiToken(..)
   , BaseUrl(..)
   , Config(..)
+  , ConfigError(..)
   , GroupId(..)
   , ProjectId(..)
-  , ConfigError(..)
+  , UpdateIntervalMins(..)
   , parseConfigFromEnv
   , showErrors
   ) where
@@ -30,11 +31,15 @@ envApiToken = "GITLAB_API_TOKEN"
 envBaseUrl :: String
 envBaseUrl = "GITLAB_BASE_URL"
 
+envUpdateInterval :: String
+envUpdateInterval = "UPDATE_INTERVAL_MINS"
+
 data Config =
   Config
-    { apiToken      :: ApiToken
-    , groupId       :: GroupId
-    , gitlabBaseUrl :: BaseUrl
+    { apiToken           :: ApiToken
+    , groupId            :: GroupId
+    , gitlabBaseUrl      :: BaseUrl
+    , updateIntervalMins :: UpdateIntervalMins
     }
 
 newtype ApiToken =
@@ -49,12 +54,16 @@ newtype GroupId =
 newtype BaseUrl =
   BaseUrl String
 
+newtype UpdateIntervalMins =
+  UpdateIntervalMins Int
+
 parseConfigFromEnv :: IO (Validation (NonEmpty ConfigError) Config)
 parseConfigFromEnv = do
   token <- readApiTokenFromEnv
   group <- readGroupIdFromEnv
   baseUrl <- readBaseUrlFromEnv
-  pure $ Config <$> token <*> group <*> baseUrl
+  updateInterval <- readUpdateIntervalFromEnv
+  pure $ Config <$> token <*> group <*> baseUrl <*> pure updateInterval
 
 data ConfigError
   = ApiTokenMissing
@@ -93,6 +102,17 @@ readBaseUrlFromEnv = do
     if urlValid
       then maybe (_Failure # single GitlabBaseUrlMissing) (\s -> _Success # BaseUrl s) maybeBaseUrl
       else maybe (_Failure # single GitlabBaseUrlMissing) (\s -> _Failure # single (GitlabBaseUrlInvalid s)) maybeBaseUrl
+
+readUpdateIntervalFromEnv :: IO UpdateIntervalMins
+readUpdateIntervalFromEnv = do
+  maybeGroupIdString <- lookupEnv envUpdateInterval
+  let maybeGroupId = maybeGroupIdString >>= readMaybe >>= filterUpdateInterval
+  pure $ UpdateIntervalMins $ fromMaybe 5 maybeGroupId
+
+filterUpdateInterval :: Int -> Maybe Int
+filterUpdateInterval i
+  | i < 1 = Nothing
+  | otherwise = Just i
 
 single :: a -> NonEmpty a
 single a = a :| []

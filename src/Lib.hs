@@ -15,6 +15,7 @@ import           Data.Aeson          hiding (Result)
 import           Data.IORef
 import           Data.List
 import qualified Data.Text           as T hiding (partition)
+import qualified Data.Text.IO        as TIO
 import           Network.HTTP.Simple
 import           Prelude             hiding (id)
 import           TextShow
@@ -25,10 +26,10 @@ updateStatusesRegularly config ioref =
     putStrLn "updating build statuses"
     results <- updateStatuses config ioref
     putStrLn $ unwords ["Done updating.", show $ length results, "results"]
-    threadDelay updateInterval
+    threadDelay $ calculateDelay (updateIntervalMins config)
 
-updateInterval :: Int
-updateInterval = 5 * 60 * 1000000
+calculateDelay :: UpdateIntervalMins -> Int
+calculateDelay (UpdateIntervalMins mins) = mins * 60 * 1000000
 
 updateStatuses :: Config -> IORef [Result] -> IO [Result]
 updateStatuses config ioref = do
@@ -41,13 +42,14 @@ currentKnownBuildStatuses config = do
   pure $ filter (\r -> buildStatus r /= Unknown) statuses
 
 currentBuildStatuses :: Config -> IO [Result]
-currentBuildStatuses (Config apiToken groupId baseUrl) = do
+currentBuildStatuses (Config apiToken groupId baseUrl _) = do
   projects <- findProjects apiToken baseUrl groupId
   statuses <- traverse (evalProject apiToken baseUrl) projects
   pure $ sortOn (T.toLower . name) statuses
 
 evalProject :: ApiToken -> BaseUrl -> Project -> IO Result
 evalProject apiToken baseUrl (Project id name _) = do
+  TIO.putStrLn $ T.unwords ["Getting build status for project", showt id, "-", name]
   maybeBuildStatus <- findBuildStatus apiToken baseUrl (ProjectId id)
   let status = maybe Unknown toBuildStatus maybeBuildStatus
   pure $ Result name status
