@@ -6,7 +6,7 @@ module Html
 
 import           Lib
 import           Text.Blaze.Html5            as H
-import           Text.Blaze.Html5.Attributes as A
+import           Text.Blaze.Html5.Attributes as A hiding (name)
 
 template :: [Result] -> Html
 template results =
@@ -20,9 +20,9 @@ template results =
       ".status {padding: 1em;text-align: center;background: white;justify-content: center;} .successful {background-color: green;} .failed {background-color: red;} .running {background-color: blue;} .cancelled {background-color: orange;} .statuses {width: 100%;display: grid;grid-column-gap: 0.4em;grid-row-gap: 0.4em;grid-template-columns: repeat(auto-fit, minmax(11em, 10fr));} html {height: 100%;font-family: Noto Sans, Arial, sans-serif;background: black;} body {min-height: 100%}"
 
 resultToHtml :: Result -> Html
-resultToHtml (Result name status) =
+resultToHtml (Result projectName status) =
   H.div ! classesForStatus status $ do
-    h3 (toHtml name)
+    h3 (toHtml projectName)
     p (toHtml status)
   where
     classesForStatus Unknown    = class_ "status unknown"
