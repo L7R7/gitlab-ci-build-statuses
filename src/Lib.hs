@@ -73,7 +73,7 @@ fetchData (ApiToken apiToken) request = do
 
 projectsRequest :: BaseUrl -> GroupId -> Request
 projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
-  parseRequest_ $ mconcat [baseUrl, "/api/v4/groups/", show groupId, "/projects?per_page=100&include_subgroups=true"]
+  parseRequest_ $ mconcat [baseUrl, "/api/v4/groups/", show groupId, "/projects?per_page=100&simple=true&include_subgroups=true"]
 
 -- TODO: lriedisser 2020-03-06 order by updated_at?
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
