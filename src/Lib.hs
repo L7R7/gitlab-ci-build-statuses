@@ -33,7 +33,7 @@ updateInterval = 5 * 60 * 1000000
 updateStatuses :: Config -> IORef [Result] -> IO [Result]
 updateStatuses config ioref = do
   results <- currentKnownBuildStatuses config
-  atomicModifyIORef ioref (const (results, results))
+  atomicModifyIORef' ioref (const (results, results))
 
 currentKnownBuildStatuses :: Config -> IO [Result]
 currentKnownBuildStatuses config = do
