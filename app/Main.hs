@@ -13,5 +13,5 @@ main = do
   case configFromEnv of
     Success config -> do
       statuses <- newIORef []
-      concurrently_ (updateStatusesRegularly config statuses) (runServer statuses)
+      concurrently_ (updateStatusesRegularly config statuses) (runServer config statuses)
     Failure errors -> putStrLn $ showErrors errors

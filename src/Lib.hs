@@ -26,10 +26,10 @@ updateStatusesRegularly config ioref =
     putStrLn "updating build statuses"
     results <- updateStatuses config ioref
     putStrLn $ unwords ["Done updating.", show $ length results, "results"]
-    threadDelay $ calculateDelay (updateIntervalMins config)
+    threadDelay $ calculateDelay (dataUpdateIntervalMins config)
 
-calculateDelay :: UpdateIntervalMins -> Int
-calculateDelay (UpdateIntervalMins mins) = mins * 60 * 1000000
+calculateDelay :: DataUpdateIntervalMinutes -> Int
+calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * 1000000
 
 updateStatuses :: Config -> IORef [Result] -> IO [Result]
 updateStatuses config ioref = do
@@ -42,7 +42,7 @@ currentKnownBuildStatuses config = do
   pure $ filter (\r -> buildStatus r /= Unknown) statuses
 
 currentBuildStatuses :: Config -> IO [Result]
-currentBuildStatuses (Config apiToken groupId baseUrl _) = do
+currentBuildStatuses (Config apiToken groupId baseUrl _ _) = do
   projects <- findProjects apiToken baseUrl groupId
   statuses <- traverse (evalProject apiToken baseUrl) projects
   pure $ sortOn (T.toLower . name) statuses

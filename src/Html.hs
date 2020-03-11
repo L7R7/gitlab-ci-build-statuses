@@ -4,16 +4,17 @@ module Html
   ( template
   ) where
 
+import           Config
 import           Lib
 import           Text.Blaze.Html5            as H
 import           Text.Blaze.Html5.Attributes as A hiding (name)
 
-template :: [Result] -> Html
-template results =
+template :: UiUpdateIntervalSeconds -> [Result] -> Html
+template (UiUpdateIntervalSeconds updateInterval) results =
   docTypeHtml ! lang "en" $ do
     H.head $ do
       meta ! charset "UTF-8"
-      meta ! httpEquiv "Refresh" ! content "300"
+      meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
       H.title "Build Statuses"
     H.body $ section ! class_ "statuses" $ toHtml (resultToHtml <$> results)
     H.style

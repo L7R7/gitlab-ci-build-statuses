@@ -5,9 +5,10 @@ module Config
   , BaseUrl(..)
   , Config(..)
   , ConfigError(..)
+  , DataUpdateIntervalMinutes(..)
   , GroupId(..)
   , ProjectId(..)
-  , UpdateIntervalMins(..)
+  , UiUpdateIntervalSeconds(..)
   , parseConfigFromEnv
   , showErrors
   ) where
@@ -31,15 +32,19 @@ envApiToken = "GITLAB_API_TOKEN"
 envBaseUrl :: String
 envBaseUrl = "GITLAB_BASE_URL"
 
-envUpdateInterval :: String
-envUpdateInterval = "UPDATE_INTERVAL_MINS"
+envDataUpdateInterval :: String
+envDataUpdateInterval = "DATA_UPDATE_INTERVAL_MINS"
+
+envUiUpdateInterval :: String
+envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
 data Config =
   Config
-    { apiToken           :: ApiToken
-    , groupId            :: GroupId
-    , gitlabBaseUrl      :: BaseUrl
-    , updateIntervalMins :: UpdateIntervalMins
+    { apiToken               :: ApiToken
+    , groupId                :: GroupId
+    , gitlabBaseUrl          :: BaseUrl
+    , dataUpdateIntervalMins :: DataUpdateIntervalMinutes
+    , uiUpdateIntervalSecs   :: UiUpdateIntervalSeconds
     }
 
 newtype ApiToken =
@@ -54,16 +59,20 @@ newtype GroupId =
 newtype BaseUrl =
   BaseUrl String
 
-newtype UpdateIntervalMins =
-  UpdateIntervalMins Int
+newtype DataUpdateIntervalMinutes =
+  DataUpdateIntervalMinutes Int
+
+newtype UiUpdateIntervalSeconds =
+  UiUpdateIntervalSeconds Int
 
 parseConfigFromEnv :: IO (Validation (NonEmpty ConfigError) Config)
 parseConfigFromEnv = do
   token <- readApiTokenFromEnv
   group <- readGroupIdFromEnv
   baseUrl <- readBaseUrlFromEnv
-  updateInterval <- readUpdateIntervalFromEnv
-  pure $ Config <$> token <*> group <*> baseUrl <*> pure updateInterval
+  dataUpdateInterval <- readDataUpdateIntervalFromEnv
+  uiUpdateInterval <- readUiUpdateIntervalFromEnv
+  pure $ Config <$> token <*> group <*> baseUrl <*> pure dataUpdateInterval <*> pure uiUpdateInterval
 
 data ConfigError
   = ApiTokenMissing
@@ -80,19 +89,13 @@ instance Show ConfigError where
 readApiTokenFromEnv :: IO (Validation (NonEmpty ConfigError) ApiToken)
 readApiTokenFromEnv = do
   maybeGroupId <- lookupEnv envApiToken
-  pure $
-    case maybeGroupId of
-      Nothing    -> _Failure # single ApiTokenMissing
-      Just token -> _Success # (ApiToken $ pack token)
+  pure $ maybe (_Failure # single ApiTokenMissing) (\token -> _Success # (ApiToken $ pack token)) maybeGroupId
 
 readGroupIdFromEnv :: IO (Validation (NonEmpty ConfigError) GroupId)
 readGroupIdFromEnv = do
   maybeGroupIdString <- lookupEnv envGroupId
   let maybeGroupId = maybeGroupIdString >>= readMaybe
-  pure $
-    case maybeGroupId of
-      Nothing      -> _Failure # single GroupIdMissing
-      Just groupId -> _Success # GroupId groupId
+  pure $ maybe (_Failure # single GroupIdMissing) (\gId -> _Success # GroupId gId) maybeGroupId
 
 readBaseUrlFromEnv :: IO (Validation (NonEmpty ConfigError) BaseUrl)
 readBaseUrlFromEnv = do
@@ -100,14 +103,22 @@ readBaseUrlFromEnv = do
   let urlValid = isJust $ maybeBaseUrl >>= parseRequest
   pure $
     if urlValid
-      then maybe (_Failure # single GitlabBaseUrlMissing) (\s -> _Success # BaseUrl s) maybeBaseUrl
-      else maybe (_Failure # single GitlabBaseUrlMissing) (\s -> _Failure # single (GitlabBaseUrlInvalid s)) maybeBaseUrl
+      then maybe urlMissing (\s -> _Success # BaseUrl s) maybeBaseUrl
+      else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) maybeBaseUrl
+  where
+    urlMissing = _Failure # single GitlabBaseUrlMissing
 
-readUpdateIntervalFromEnv :: IO UpdateIntervalMins
-readUpdateIntervalFromEnv = do
-  maybeGroupIdString <- lookupEnv envUpdateInterval
-  let maybeGroupId = maybeGroupIdString >>= readMaybe >>= filterUpdateInterval
-  pure $ UpdateIntervalMins $ fromMaybe 5 maybeGroupId
+readDataUpdateIntervalFromEnv :: IO DataUpdateIntervalMinutes
+readDataUpdateIntervalFromEnv = do
+  maybeUpdateIntervalString <- lookupEnv envDataUpdateInterval
+  let maybeUpdateInterval = maybeUpdateIntervalString >>= readMaybe >>= filterUpdateInterval
+  pure $ DataUpdateIntervalMinutes $ fromMaybe 5 maybeUpdateInterval
+
+readUiUpdateIntervalFromEnv :: IO UiUpdateIntervalSeconds
+readUiUpdateIntervalFromEnv = do
+  maybeUpdateIntervalString <- lookupEnv envUiUpdateInterval
+  let maybeUpdateInterval = maybeUpdateIntervalString >>= readMaybe >>= filterUpdateInterval
+  pure $ UiUpdateIntervalSeconds $ fromMaybe 60 maybeUpdateInterval
 
 filterUpdateInterval :: Int -> Maybe Int
 filterUpdateInterval i
@@ -118,4 +129,4 @@ single :: a -> NonEmpty a
 single a = a :| []
 
 showErrors :: NonEmpty ConfigError -> String
-showErrors errs = unwords $ fmap show (toList errs)
+showErrors errs = unlines $ fmap show (toList errs)
