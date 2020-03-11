@@ -29,6 +29,7 @@ library
   exposed-modules:
       Config
     , Lib
+    , Metrics
     , Html
     , Server
   other-modules:
@@ -45,6 +46,7 @@ library
     , containers
     , http-conduit
     , lens
+    , prometheus
     , scotty
     , text-show
     , text
