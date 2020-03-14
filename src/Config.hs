@@ -112,6 +112,7 @@ instance Show ConfigError where
   show (GitlabBaseUrlInvalid url) = unwords ["Gitlab base URL set via", envBaseUrl, "is invalid. The value is:", url]
   show UiUpdateIntervalInvalid = "update interval for updating the UI must be positive and non-zero"
   show DataUpdateIntervalInvalid = "update interval for updating the UI must be positive and non-zero"
+  show (EnvError err) = show err
 
 parseDataUpdateInterval :: String -> Either ConfigError DataUpdateIntervalMinutes
 parseDataUpdateInterval = auto >=> filterNonPositive >=> (Right . DataUpdateIntervalMinutes)
