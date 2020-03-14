@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
-  ( updateStatuses
+  ( toMetricValue
+  , updateStatuses
   , updateStatusesRegularly
   , BuildStatus(..)
   , Result(..)
@@ -116,7 +117,7 @@ data BuildStatus
   | Pending
   | Skipped
   | Successful
-  deriving (Eq, Show, Ord, Enum)
+  deriving (Eq, Show, Ord)
 
 instance TextShow BuildStatus where
   showb = showb . show
@@ -129,6 +130,15 @@ toBuildStatus "canceled" = Cancelled
 toBuildStatus "pending"  = Pending
 toBuildStatus "skipped"  = Skipped
 toBuildStatus _          = Unknown
+
+toMetricValue :: BuildStatus -> Float
+toMetricValue Unknown    = 0
+toMetricValue Running    = 1
+toMetricValue Failed     = 2
+toMetricValue Cancelled  = 3
+toMetricValue Pending    = 4
+toMetricValue Skipped    = 5
+toMetricValue Successful = 6
 
 data Result =
   Result

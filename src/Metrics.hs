@@ -3,7 +3,7 @@
 module Metrics where
 
 import qualified Data.Text as T
-import           Lib
+import           Lib       hiding (name)
 import           TextShow  (showt)
 
 createMetrics :: [Result] -> T.Text
@@ -13,7 +13,7 @@ createMetrics rs = T.unlines (header <> content)
     content = convertMetric <$> rs
 
 convertMetric :: Result -> T.Text
-convertMetric (Result name status) = mconcat ["build_status_gauge{repository=\"", name, "\"} ", (showt . fromEnum) status]
+convertMetric (Result name status) = mconcat ["build_status_gauge{repository=\"", name, "\"} ", (showt . toMetricValue) status]
 -- # HELP build_status_gauge committed offsets
 -- # TYPE build_status_gauge gauge
 -- build_status_gauge{repository="dead.letter",partition="4",} 323.0
