@@ -9,19 +9,14 @@ module Config
   , GroupId(..)
   , ProjectId(..)
   , UiUpdateIntervalSeconds(..)
-  , parseConfigFromEnv
-  , showErrors
+  , parseConfig
   ) where
 
-import           Control.Lens
-import qualified Data.ByteString       as B hiding (pack)
-import           Data.ByteString.Char8 (pack)
-import           Data.List.NonEmpty    hiding (group)
+import qualified Data.ByteString         as B hiding (pack)
+import           Data.Either.Combinators
 import           Data.Maybe
-import           Data.Validation
-import           Network.HTTP.Simple   (parseRequest)
-import           System.Environment
-import           Text.Read
+import           Env
+import           Network.HTTP.Simple     (parseRequest)
 
 envGroupId :: String
 envGroupId = "GITLAB_GROUP_ID"
@@ -37,6 +32,42 @@ envDataUpdateInterval = "DATA_UPDATE_INTERVAL_MINS"
 
 envUiUpdateInterval :: String
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
+
+parseConfig :: IO Config
+parseConfig =
+  Env.parse (header "config parser" . handleError configErrorHandler) $
+  Config <$> var ((Right . ApiToken) <=< str <=< nonempty) envApiToken (help "gitlab api token") <*>
+  var (parseGroupId <=< auto) envGroupId (help "gitlab group id") <*>
+  var parseBaseUrl envBaseUrl (help "base url") <*>
+  var parseDataUpdateInterval envDataUpdateInterval (help "data update interval") <*>
+  var parseUiUpdateInterval envUiUpdateInterval (help "ui update interval")
+
+configErrorHandler :: ErrorHandler ConfigError
+--  case err of
+--    NonPositive n -> Just (printf "  %s must be > 0, but is %d" name n)
+--    _             -> defaultErrorHandler name err
+configErrorHandler name err = Just $ show err -- TODO: lriedisser 2020-03-11 was ist name?
+
+instance AsUnset ConfigError where
+  unset = EnvError unset
+  tryUnset err =
+    case err of
+      EnvError err' -> tryUnset err'
+      _             -> Nothing
+
+instance AsEmpty ConfigError where
+  empty = EnvError empty
+  tryEmpty err =
+    case err of
+      EnvError err' -> tryEmpty err'
+      _             -> Nothing
+
+instance AsUnread ConfigError where
+  unread = EnvError . unread
+  tryUnread err =
+    case err of
+      EnvError err' -> tryUnread err'
+      _             -> Nothing
 
 data Config =
   Config
@@ -65,68 +96,44 @@ newtype DataUpdateIntervalMinutes =
 newtype UiUpdateIntervalSeconds =
   UiUpdateIntervalSeconds Int
 
-parseConfigFromEnv :: IO (Validation (NonEmpty ConfigError) Config)
-parseConfigFromEnv = do
-  token <- readApiTokenFromEnv
-  group <- readGroupIdFromEnv
-  baseUrl <- readBaseUrlFromEnv
-  dataUpdateInterval <- readDataUpdateIntervalFromEnv
-  uiUpdateInterval <- readUiUpdateIntervalFromEnv
-  pure $ Config <$> token <*> group <*> baseUrl <*> pure dataUpdateInterval <*> pure uiUpdateInterval
-
 data ConfigError
   = ApiTokenMissing
-  | GroupIdMissing
+  | GroupIdInvalid
   | GitlabBaseUrlMissing
   | GitlabBaseUrlInvalid String
+  | UiUpdateIntervalInvalid
+  | DataUpdateIntervalInvalid
+  | EnvError Error
 
 instance Show ConfigError where
   show ApiTokenMissing = unwords ["API Token is missing. Set it via", envApiToken]
-  show GroupIdMissing = unwords ["Group ID is missing. Set it via", envGroupId]
+  show GroupIdInvalid = unwords ["Group ID is missing. Set it via", envGroupId]
   show GitlabBaseUrlMissing = unwords ["Gitlab base URL is missing. Set it via", envBaseUrl]
   show (GitlabBaseUrlInvalid url) = unwords ["Gitlab base URL set via", envBaseUrl, "is invalid. The value is:", url]
+  show UiUpdateIntervalInvalid = "update interval for updating the UI must be positive and non-zero"
+  show DataUpdateIntervalInvalid = "update interval for updating the UI must be positive and non-zero"
 
-readApiTokenFromEnv :: IO (Validation (NonEmpty ConfigError) ApiToken)
-readApiTokenFromEnv = do
-  maybeGroupId <- lookupEnv envApiToken
-  pure $ maybe (_Failure # single ApiTokenMissing) (\token -> _Success # (ApiToken $ pack token)) maybeGroupId
-
-readGroupIdFromEnv :: IO (Validation (NonEmpty ConfigError) GroupId)
-readGroupIdFromEnv = do
-  maybeGroupIdString <- lookupEnv envGroupId
-  let maybeGroupId = maybeGroupIdString >>= readMaybe
-  pure $ maybe (_Failure # single GroupIdMissing) (\gId -> _Success # GroupId gId) maybeGroupId
-
-readBaseUrlFromEnv :: IO (Validation (NonEmpty ConfigError) BaseUrl)
-readBaseUrlFromEnv = do
-  maybeBaseUrl <- lookupEnv envBaseUrl
-  let urlValid = isJust $ maybeBaseUrl >>= parseRequest
-  pure $
-    if urlValid
-      then maybe urlMissing (\s -> _Success # BaseUrl s) maybeBaseUrl
-      else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) maybeBaseUrl
+parseDataUpdateInterval :: String -> Either ConfigError DataUpdateIntervalMinutes
+parseDataUpdateInterval = auto >=> filterNonPositive >=> (Right . DataUpdateIntervalMinutes)
   where
-    urlMissing = _Failure # single GitlabBaseUrlMissing
+    filterNonPositive i = maybeToRight DataUpdateIntervalInvalid (positive i)
 
-readDataUpdateIntervalFromEnv :: IO DataUpdateIntervalMinutes
-readDataUpdateIntervalFromEnv = do
-  maybeUpdateIntervalString <- lookupEnv envDataUpdateInterval
-  let maybeUpdateInterval = maybeUpdateIntervalString >>= readMaybe >>= filterUpdateInterval
-  pure $ DataUpdateIntervalMinutes $ fromMaybe 5 maybeUpdateInterval
+parseUiUpdateInterval :: String -> Either ConfigError UiUpdateIntervalSeconds
+parseUiUpdateInterval = auto >=> filterNonPositive >=> (Right . UiUpdateIntervalSeconds)
+  where
+    filterNonPositive i = maybeToRight UiUpdateIntervalInvalid (positive i)
 
-readUiUpdateIntervalFromEnv :: IO UiUpdateIntervalSeconds
-readUiUpdateIntervalFromEnv = do
-  maybeUpdateIntervalString <- lookupEnv envUiUpdateInterval
-  let maybeUpdateInterval = maybeUpdateIntervalString >>= readMaybe >>= filterUpdateInterval
-  pure $ UiUpdateIntervalSeconds $ fromMaybe 60 maybeUpdateInterval
+parseGroupId :: Int -> Either ConfigError GroupId
+parseGroupId i = GroupId <$> maybeToRight GroupIdInvalid (positive i)
 
-filterUpdateInterval :: Int -> Maybe Int
-filterUpdateInterval i
-  | i < 1 = Nothing
-  | otherwise = Just i
+parseBaseUrl :: String -> Either ConfigError BaseUrl
+parseBaseUrl = nonempty >=> isValidUrl
+  where
+    isValidUrl s
+      | isJust (parseRequest s) = (Right . BaseUrl) s
+      | otherwise = Left (GitlabBaseUrlInvalid s)
 
-single :: a -> NonEmpty a
-single a = a :| []
-
-showErrors :: NonEmpty ConfigError -> String
-showErrors errs = unlines $ fmap show (toList errs)
+positive :: Int -> Maybe Int
+positive n
+  | n <= 0 = Nothing
+  | otherwise = return n
