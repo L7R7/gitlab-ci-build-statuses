@@ -7,12 +7,17 @@ import           Control.Monad.IO.Class        (liftIO)
 import           Data.IORef
 import           Html
 import           Lib
+import           Metrics
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
+import           TextShow                      (fromText, toLazyText)
 import           Web.Scotty                    hiding (status)
 
 runServer :: Config -> IORef [Result] -> IO ()
 runServer (Config _ _ _ _ uiUpdateInterval) ioref =
-  scotty 8080 $
-  get "/" $ do
-    results <- liftIO $ readIORef ioref
-    html . renderHtml $ template uiUpdateInterval results
+  scotty 8080 $ do
+    get "/metrics" $ do
+      results <- liftIO $ readIORef ioref
+      text $ toLazyText . fromText $ createMetrics results
+    get "/" $ do
+      results <- liftIO $ readIORef ioref
+      html . renderHtml $ template uiUpdateInterval results

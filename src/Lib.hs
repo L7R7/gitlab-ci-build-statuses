@@ -116,7 +116,7 @@ data BuildStatus
   | Pending
   | Skipped
   | Successful
-  deriving (Eq, Show, Ord)
+  deriving (Eq, Show, Ord, Enum)
 
 instance TextShow BuildStatus where
   showb = showb . show
