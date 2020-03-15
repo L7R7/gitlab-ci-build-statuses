@@ -1,4 +1,4 @@
-FROM ubuntu 19:10
+FROM ubuntu:19.10
 USER root
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y \
