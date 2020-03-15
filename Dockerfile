@@ -14,7 +14,7 @@ WORKDIR /service
 
 COPY /opt/build/.out/gitlab-ci-build-statuses-exe .
 CMD chmod +x /service/gitlab-ci-build-statuses-exe
-EXPOSE 8080
+EXPOSE 8282
 
 # USER service
 ENTRYPOINT /service/gitlab-ci-build-statuses-exe
