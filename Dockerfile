@@ -1,8 +1,8 @@
-FROM ubuntu:19.10
+FROM debian:stretch
 USER root
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y \
-        ca-certificates \
+        ca-certificates
 #         libgmp-dev
 
 RUN groupadd service
