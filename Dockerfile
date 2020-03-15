@@ -3,7 +3,7 @@ USER root
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y \
         ca-certificates \
-        libgmp-dev
+#         libgmp-dev
 
 RUN groupadd service
 RUN mkdir /service
