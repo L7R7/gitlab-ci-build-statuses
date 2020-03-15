@@ -6,9 +6,12 @@ import           Data.IORef
 import           Data.Validation
 import           Lib
 import           Server
+import           System.Environment
 
 main :: IO ()
 main = do
+  env <- getEnvironment
+  _ <- putStrLn $ unlines $ show <$> env
   configFromEnv <- parseConfigFromEnv
   case configFromEnv of
     Success config -> do
