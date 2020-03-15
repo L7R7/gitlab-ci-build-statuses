@@ -14,14 +14,12 @@ module Config
   ) where
 
 import           Control.Lens
-import qualified Data.ByteString         as B hiding (pack)
-import           Data.ByteString.Char8   (pack)
-import           Data.Either.Combinators
-import           Data.List.NonEmpty      hiding (group)
+import qualified Data.ByteString       as B hiding (pack)
+import           Data.ByteString.Char8 (pack)
+import           Data.List.NonEmpty    hiding (group)
 import           Data.Maybe
 import           Data.Validation
-import           Env
-import           Network.HTTP.Simple     (parseRequest)
+import           Network.HTTP.Simple   (parseRequest)
 import           System.Environment
 import           Text.Read
 
