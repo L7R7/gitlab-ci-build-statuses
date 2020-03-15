@@ -13,11 +13,12 @@ import           TextShow                      (fromText, toLazyText)
 import           Web.Scotty                    hiding (status)
 
 runServer :: Config -> IORef [Result] -> IO ()
-runServer (Config _ _ _ _ uiUpdateInterval) ioref =
+runServer config ioref =
   scotty 8080 $ do
+    get "/" $ do
+      results <- liftIO $ readIORef ioref
+      html . renderHtml $ template (uiUpdateIntervalSecs config) results
     get "/metrics" $ do
       results <- liftIO $ readIORef ioref
       text $ toLazyText . fromText $ createMetrics results
-    get "/" $ do
-      results <- liftIO $ readIORef ioref
-      html . renderHtml $ template uiUpdateInterval results
+    get "/health" $ text "UP"
