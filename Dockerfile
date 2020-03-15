@@ -1,9 +1,9 @@
-FROM debian:stretch
+FROM ubuntu 19:10
 USER root
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y \
+        ca-certificates \
         libgmp-dev
-#         ca-certificates \
 
 RUN groupadd service
 RUN mkdir /service
