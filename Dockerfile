@@ -2,7 +2,7 @@ FROM debian:stretch
 USER root
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y ca-certificates
-RUN apt-get install -y libgmp-dev
+RUN apt-get install -y libgmp-dev libgmp10
 
 RUN groupadd service
 RUN mkdir /service
