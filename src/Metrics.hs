@@ -13,7 +13,7 @@ createMetrics rs = T.unlines (header <> content)
     content = convertMetric <$> rs
 
 convertMetric :: Result -> T.Text
-convertMetric (Result name status) = mconcat ["build_status_gauge{repository=\"", name, "\"} ", (showt . toMetricValue) status]
+convertMetric (Result name status _) = mconcat ["build_status_gauge{repository=\"", name, "\"} ", (showt . toMetricValue) status]
 -- # HELP build_status_gauge committed offsets
 -- # TYPE build_status_gauge gauge
 -- build_status_gauge{repository="dead.letter",partition="4",} 323.0

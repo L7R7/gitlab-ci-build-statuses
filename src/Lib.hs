@@ -51,11 +51,11 @@ currentBuildStatuses (Config apiToken groupId baseUrl _ _) = do
   pure $ sortOn (T.toLower . name) statuses
 
 evalProject :: ApiToken -> BaseUrl -> Project -> IO Result
-evalProject apiToken baseUrl (Project id name _) = do
+evalProject apiToken baseUrl (Project id name pUrl) = do
   TIO.putStrLn $ T.unwords ["Getting build status for project", showt id, "-", name]
   maybeBuildStatus <- findBuildStatus apiToken baseUrl (ProjectId id)
   let status = maybe Unknown toBuildStatus maybeBuildStatus
-  pure $ Result name status
+  pure $ Result name status pUrl
 
 findBuildStatus :: ApiToken -> BaseUrl -> ProjectId -> IO (Maybe T.Text)
 findBuildStatus apiToken baseUrl id = do
@@ -135,21 +135,28 @@ toBuildStatus "pending"  = Pending
 toBuildStatus "skipped"  = Skipped
 toBuildStatus _          = Unknown
 
+-- | map a build status to a float value that's suitable for displaying it on Grafana dashboard.
+-- Suggested colors are:
+-- 0 -> green
+-- 1 -> red
+-- >1 -> blue
+--
 toMetricValue :: BuildStatus -> Float
-toMetricValue Unknown    = 0
-toMetricValue Running    = 1
-toMetricValue Failed     = 2
-toMetricValue Cancelled  = 3
-toMetricValue Pending    = 4
-toMetricValue Skipped    = 5
-toMetricValue Successful = 6
+toMetricValue Successful = 0
+toMetricValue Failed     = 1
+toMetricValue Unknown    = 2
+toMetricValue Running    = 3
+toMetricValue Cancelled  = 4
+toMetricValue Pending    = 5
+toMetricValue Skipped    = 6
 
 data Result =
   Result
     { name        :: T.Text
     , buildStatus :: BuildStatus
+    , url         :: T.Text
     }
   deriving (Show)
 
 instance TextShow Result where
-  showb (Result n bs) = showb n <> showbCommaSpace <> showb bs
+  showb (Result n bs _) = showb n <> showbCommaSpace <> showb bs
