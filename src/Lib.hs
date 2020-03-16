@@ -9,16 +9,18 @@ module Lib
   , GroupId(..)
   ) where
 
-import           Config              hiding (apiToken, groupId)
+import           Config                      hiding (apiToken, groupId)
 import           Control.Concurrent
 import           Control.Monad
-import           Data.Aeson          hiding (Result)
+import           Data.Aeson                  hiding (Result)
 import           Data.IORef
 import           Data.List
-import qualified Data.Text           as T hiding (partition)
-import qualified Data.Text.IO        as TIO
+import qualified Data.Text                   as T hiding (partition)
+import qualified Data.Text.IO                as TIO
+import           Network.HTTP.Client.Conduit (responseTimeout,
+                                              responseTimeoutMicro)
 import           Network.HTTP.Simple
-import           Prelude             hiding (id)
+import           Prelude                     hiding (id)
 import           TextShow
 
 updateStatusesRegularly :: Config -> IORef [Result] -> IO ()
@@ -69,7 +71,9 @@ maxByPipelineId pipelines = Just $ maximum pipelines
 
 fetchData :: FromJSON a => ApiToken -> Request -> IO [a]
 fetchData (ApiToken apiToken) request = do
-  response <- httpJSON $ setRequestHeader "PRIVATE-TOKEN" [apiToken] request
+  let timeout = 120000000 -- Microseconds --> 120 secs
+  let req' = request {responseTimeout = responseTimeoutMicro timeout}
+  response <- httpJSON $ setRequestHeader "PRIVATE-TOKEN" [apiToken] req'
   pure $ getResponseBody response
 
 projectsRequest :: BaseUrl -> GroupId -> Request
