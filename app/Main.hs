@@ -6,14 +6,11 @@ import           Data.IORef
 import           Data.Validation
 import           Lib
 import           Server
-import           System.Environment
 import           System.IO
 
 main :: IO ()
 main = do
   _ <- hSetBuffering stdout LineBuffering
-  env <- getEnvironment
-  _ <- putStrLn $ unlines $ show <$> env
   configFromEnv <- parseConfigFromEnv
   case configFromEnv of
     Success config -> do

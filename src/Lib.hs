@@ -11,8 +11,10 @@ module Lib
 
 import           Config                      hiding (apiToken, groupId)
 import           Control.Concurrent
+import           Control.Exception
 import           Control.Monad
 import           Data.Aeson                  hiding (Result)
+import           Data.Either.Combinators
 import           Data.IORef
 import           Data.List
 import qualified Data.Text                   as T hiding (partition)
@@ -22,6 +24,11 @@ import           Network.HTTP.Client.Conduit (responseTimeout,
 import           Network.HTTP.Simple
 import           Prelude                     hiding (id)
 import           TextShow
+
+data UpdateError
+  = HttpError HttpException
+  | EmptyPipelinesResult
+  deriving (Show)
 
 updateStatusesRegularly :: Config -> IORef [Result] -> IO ()
 updateStatusesRegularly config ioref =
@@ -54,27 +61,38 @@ evalProject :: ApiToken -> BaseUrl -> Project -> IO Result
 evalProject apiToken baseUrl (Project id name pUrl) = do
   TIO.putStrLn $ T.unwords ["Getting build status for project", showt id, "-", name]
   maybeBuildStatus <- findBuildStatus apiToken baseUrl (ProjectId id)
-  let status = maybe Unknown toBuildStatus maybeBuildStatus
+  status <-
+    case maybeBuildStatus of
+      Left uError -> do
+        putStrLn $ unwords ["Couldn't eval project with id", show id, "- error was", show uError]
+        pure Unknown
+      Right st -> pure $ toBuildStatus st
   pure $ Result name status pUrl
 
-findBuildStatus :: ApiToken -> BaseUrl -> ProjectId -> IO (Maybe T.Text)
+findBuildStatus :: ApiToken -> BaseUrl -> ProjectId -> IO (Either UpdateError T.Text)
 findBuildStatus apiToken baseUrl id = do
   pipelines <- fetchData apiToken $ pipelinesRequest baseUrl id
-  pure $ pipelineStatus <$> maxByPipelineId pipelines
+  pure $ pipelineStatus <$> (pipelines >>= maxByPipelineId)
 
 findProjects :: ApiToken -> BaseUrl -> GroupId -> IO [Project]
-findProjects apiToken baseUrl groupId = fetchData apiToken $ projectsRequest baseUrl groupId
+findProjects apiToken baseUrl groupId = do
+  result <- fetchData apiToken $ projectsRequest baseUrl groupId
+  case result of
+    Left err -> do
+      putStrLn $ unwords ["Couldn't load projects. Error was", show err]
+      pure []
+    Right ps -> pure ps
 
-maxByPipelineId :: [Pipeline] -> Maybe Pipeline
-maxByPipelineId []        = Nothing
-maxByPipelineId pipelines = Just $ maximum pipelines
+maxByPipelineId :: [Pipeline] -> Either UpdateError Pipeline
+maxByPipelineId []        = Left EmptyPipelinesResult
+maxByPipelineId pipelines = Right $ maximum pipelines
 
-fetchData :: FromJSON a => ApiToken -> Request -> IO [a]
+fetchData :: FromJSON a => ApiToken -> Request -> IO (Either UpdateError [a])
 fetchData (ApiToken apiToken) request = do
-  let timeout = 120000000 -- Microseconds --> 120 secs
+  let timeout = 120000000
   let req' = request {responseTimeout = responseTimeoutMicro timeout}
-  response <- httpJSON $ setRequestHeader "PRIVATE-TOKEN" [apiToken] req'
-  pure $ getResponseBody response
+  result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [apiToken] req'))
+  pure $ mapLeft HttpError result
 
 projectsRequest :: BaseUrl -> GroupId -> Request
 projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
