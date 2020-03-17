@@ -61,6 +61,9 @@ evalProject apiToken baseUrl (Project id name pUrl) = do
   maybeBuildStatus <- findBuildStatus apiToken baseUrl (ProjectId id)
   status <-
     case maybeBuildStatus of
+      Left EmptyPipelinesResult -> do
+        putStrLn $ unwords ["No pipelines found for project", show id]
+        pure Unknown
       Left uError -> do
         putStrLn $ unwords ["Couldn't eval project with id", show id, "- error was", show uError]
         pure Unknown
