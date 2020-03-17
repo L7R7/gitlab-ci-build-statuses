@@ -9,20 +9,18 @@ module Lib
   , GroupId(..)
   ) where
 
-import           Config                      hiding (apiToken, groupId)
+import           Config                  hiding (apiToken, groupId)
 import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad
-import           Data.Aeson                  hiding (Result)
+import           Data.Aeson              hiding (Result)
 import           Data.Either.Combinators
 import           Data.IORef
 import           Data.List
-import qualified Data.Text                   as T hiding (partition)
-import qualified Data.Text.IO                as TIO
-import           Network.HTTP.Client.Conduit (responseTimeout,
-                                              responseTimeoutMicro)
+import qualified Data.Text               as T hiding (partition)
+import qualified Data.Text.IO            as TIO
 import           Network.HTTP.Simple
-import           Prelude                     hiding (id)
+import           Prelude                 hiding (id)
 import           TextShow
 
 data UpdateError
@@ -89,9 +87,7 @@ maxByPipelineId pipelines = Right $ maximum pipelines
 
 fetchData :: FromJSON a => ApiToken -> Request -> IO (Either UpdateError [a])
 fetchData (ApiToken apiToken) request = do
-  let timeout = 120000000
-  let req' = request {responseTimeout = responseTimeoutMicro timeout}
-  result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [apiToken] req'))
+  result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [apiToken] request))
   pure $ mapLeft HttpError result
 
 projectsRequest :: BaseUrl -> GroupId -> Request
