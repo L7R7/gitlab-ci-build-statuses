@@ -19,6 +19,7 @@ import           Data.IORef
 import           Data.List
 import qualified Data.Text               as T hiding (partition)
 import qualified Data.Text.IO            as TIO
+import           Data.Time
 import           Network.HTTP.Simple
 import           Prelude                 hiding (id)
 import           TextShow
@@ -33,7 +34,8 @@ updateStatusesRegularly config ioref =
   forever $ do
     putStrLn "updating build statuses"
     results <- updateStatuses config ioref
-    putStrLn $ unwords ["Done updating.", show $ length results, "results"]
+    currentTime <- getCurrentTime
+    putStrLn $ unwords ["Done updating.", show $ length results, "results. Update finished at", show currentTime]
     threadDelay $ calculateDelay (dataUpdateIntervalMins config)
 
 calculateDelay :: DataUpdateIntervalMinutes -> Int
