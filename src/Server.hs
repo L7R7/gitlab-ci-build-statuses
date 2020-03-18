@@ -6,6 +6,7 @@ module Server where
 
 import           Config
 import           Control.Monad.IO.Class   (liftIO)
+import           Control.Monad.Logger
 import           Data.IORef
 import qualified Data.Text                as T
 import           Html
@@ -22,16 +23,18 @@ api :: Proxy API
 api = Proxy
 
 server :: Config -> IORef [Result] -> Server API
-server config ioref = return "UP" :<|> liftIO metrics :<|> liftIO htmlUi
+server config ioref = return "UP" :<|> metrics :<|> htmlUi
   where
-    metrics :: IO T.Text
-    metrics = do
-      results <- readIORef ioref
-      pure $ createMetrics results
-    htmlUi :: IO H.Html
-    htmlUi = do
-      results <- readIORef ioref
-      pure $ template (uiUpdateIntervalSecs config) results
+    metrics :: Handler T.Text
+    metrics =
+      liftIO $ do
+        results <- readIORef ioref
+        pure $ createMetrics results
+    htmlUi :: Handler H.Html
+    htmlUi =
+      liftIO $ do
+        results <- readIORef ioref
+        pure $ template (uiUpdateIntervalSecs config) results
 
-runServer :: Config -> IORef [Result] -> IO ()
-runServer config ioref = run 8282 . serve api $ server config ioref
+runServer :: Config -> IORef [Result] -> LoggingT IO ()
+runServer config ioref = liftIO $ run 8282 . serve api $ server config ioref
