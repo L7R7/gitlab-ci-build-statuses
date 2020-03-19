@@ -14,6 +14,8 @@ import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad
 import           Control.Monad.IO.Class  (liftIO)
+import           Control.Monad.Log
+import           Control.Monad.Log.Label
 import           Control.Monad.Logger
 import           Data.Aeson              hiding (Result)
 import           Data.Either.Combinators
@@ -23,6 +25,7 @@ import qualified Data.Text               as T hiding (partition)
 import           Data.Time
 import           Network.HTTP.Simple
 import           Prelude                 hiding (id)
+import           System.Log.FastLogger
 import           TextShow
 
 data UpdateError
@@ -30,60 +33,60 @@ data UpdateError
   | EmptyPipelinesResult
   deriving (Show)
 
-updateStatusesRegularly :: Config -> IORef [Result] -> LoggingT IO ()
+updateStatusesRegularly :: Config -> IORef [Result] -> LogT Label IO ()
 updateStatusesRegularly config ioref =
   forever $ do
-    logInfoN "updating build statuses"
+    info "updating build statuses"
     results <- updateStatuses config ioref
     currentTime <- liftIO getCurrentTime
-    logInfoN $ T.unwords ["Done updating.", showt $ length results, "results. Update finished at", (T.pack . show) currentTime]
+    info $ T.unwords ["Done updating.", showt $ length results, "results. Update finished at", (T.pack . show) currentTime]
     liftIO . threadDelay $ calculateDelay (dataUpdateIntervalMins config)
 
 calculateDelay :: DataUpdateIntervalMinutes -> Int
 calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * 1000000
 
-updateStatuses :: Config -> IORef [Result] -> LoggingT IO [Result]
+updateStatuses :: Config -> IORef [Result] -> LogT Label IO [Result]
 updateStatuses config ioref = do
   results <- currentKnownBuildStatuses config
   liftIO $ atomicModifyIORef' ioref (const (results, results))
 
-currentKnownBuildStatuses :: Config -> LoggingT IO [Result]
+currentKnownBuildStatuses :: Config -> LogT Label IO [Result]
 currentKnownBuildStatuses config = do
   statuses <- currentBuildStatuses config
   pure $ filter (\r -> buildStatus r /= Unknown) statuses
 
-currentBuildStatuses :: Config -> LoggingT IO [Result]
+currentBuildStatuses :: Config -> LogT Label IO [Result]
 currentBuildStatuses (Config apiToken groupId baseUrl _ _) = do
   projects <- findProjects apiToken baseUrl groupId
   statuses <- traverse (evalProject apiToken baseUrl) projects
   pure $ sortOn (T.toLower . name) statuses
 
-evalProject :: ApiToken -> BaseUrl -> Project -> LoggingT IO Result
+evalProject :: ApiToken -> BaseUrl -> Project -> LogT Label IO Result
 evalProject apiToken baseUrl (Project id name pUrl) = do
-  logInfoN $ T.unwords ["Getting build status for project", showt id, "-", name]
+  info $ T.unwords ["Getting build status for project", showt id, "-", name]
   maybeBuildStatus <- findBuildStatus apiToken baseUrl (ProjectId id)
   status <-
     case maybeBuildStatus of
       Left EmptyPipelinesResult -> do
-        logInfoN $ T.unwords ["No pipelines found for project", showt id]
+        info $ T.unwords ["No pipelines found for project", showt id]
         pure Unknown
       Left uError -> do
-        logInfoN $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
+        info $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
         pure Unknown
       Right st -> pure $ toBuildStatus st
   pure $ Result name status pUrl
 
-findBuildStatus :: ApiToken -> BaseUrl -> ProjectId -> LoggingT IO (Either UpdateError T.Text)
+findBuildStatus :: ApiToken -> BaseUrl -> ProjectId -> LogT Label IO (Either UpdateError T.Text)
 findBuildStatus apiToken baseUrl id = do
   pipelines <- liftIO $ fetchData apiToken $ pipelinesRequest baseUrl id
   pure $ pipelineStatus <$> (pipelines >>= maxByPipelineId)
 
-findProjects :: ApiToken -> BaseUrl -> GroupId -> LoggingT IO [Project]
+findProjects :: ApiToken -> BaseUrl -> GroupId -> LogT Label IO [Project]
 findProjects apiToken baseUrl groupId = do
   result <- liftIO $ fetchData apiToken $ projectsRequest baseUrl groupId
   case result of
     Left err -> do
-      logInfoN $ T.unwords ["Couldn't load projects. Error was", (T.pack . show) err]
+      info $ T.unwords ["Couldn't load projects. Error was", (T.pack . show) err]
       pure []
     Right ps -> pure ps
 

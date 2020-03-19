@@ -46,9 +46,11 @@ library
     , containers
     , either
     , extra
+    , fast-logger
     , http-conduit
     , lens
     , monad-logger
+    , monadlog
     , servant
     , servant-blaze
     , servant-server
@@ -70,7 +72,8 @@ executable gitlab-ci-build-statuses-exe
       base >=4.7 && <5
     , gitlab-ci-build-statuses
     , async
-    , monad-logger
+    , fast-logger
+    , monadlog
     , monad-unlift
     , validation
   default-language: Haskell2010
