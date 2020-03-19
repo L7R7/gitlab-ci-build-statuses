@@ -6,6 +6,7 @@ module Server where
 
 import           Config
 import           Control.Monad.IO.Class   (liftIO)
+import           Control.Monad.Logger
 import           Data.IORef
 import qualified Data.Text                as T
 import           Html
@@ -15,8 +16,6 @@ import           Network.Wai.Handler.Warp
 import           Servant
 import           Servant.HTML.Blaze
 import qualified Text.Blaze.Html5         as H
-import           Control.Monad.Log
-import           Control.Monad.Log.Label
 
 type API = "health" :> Get '[ PlainText] T.Text :<|> "metrics" :> Get '[ PlainText] T.Text :<|> Get '[ HTML] H.Html
 
@@ -37,5 +36,5 @@ server config ioref = return "UP" :<|> metrics :<|> htmlUi
         results <- readIORef ioref
         pure $ template (uiUpdateIntervalSecs config) results
 
-runServer :: Config -> IORef [Result] -> LogT Label IO ()
+runServer :: Config -> IORef [Result] -> LoggingT IO ()
 runServer config ioref = liftIO $ run 8282 . serve api $ server config ioref
