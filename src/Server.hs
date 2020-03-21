@@ -6,7 +6,7 @@ module Server where
 
 import           Config
 import           Control.Monad.IO.Class   (liftIO)
-import           Control.Monad.Logger
+import           Colog
 import           Data.IORef
 import qualified Data.Text                as T
 import           Html
@@ -36,5 +36,5 @@ server config ioref = return "UP" :<|> metrics :<|> htmlUi
         results <- readIORef ioref
         pure $ template (uiUpdateIntervalSecs config) results
 
-runServer :: Config -> IORef [Result] -> LoggingT IO ()
+runServer :: Config -> IORef [Result] -> LoggerT Message IO ()
 runServer config ioref = liftIO $ run 8282 . serve api $ server config ioref

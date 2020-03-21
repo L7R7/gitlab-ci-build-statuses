@@ -43,6 +43,7 @@ library
     , async
     , blaze-html
     , bytestring
+    , co-log
     , containers
     , either
     , extra
@@ -70,6 +71,7 @@ executable gitlab-ci-build-statuses-exe
       base >=4.7 && <5
     , gitlab-ci-build-statuses
     , async
+    , co-log
     , monad-logger
     , monad-unlift
     , validation

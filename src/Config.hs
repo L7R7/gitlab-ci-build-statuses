@@ -13,9 +13,9 @@ module Config
   , showErrors
   ) where
 
+import           Colog                  (LoggerT, Message, logError, logInfo)
 import           Control.Lens
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Logger
 import qualified Data.ByteString        as B hiding (pack)
 import           Data.ByteString.Char8  (pack)
 import           Data.List.NonEmpty     hiding (group)
@@ -42,12 +42,12 @@ envDataUpdateInterval = "DATA_UPDATE_INTERVAL_MINS"
 envUiUpdateInterval :: String
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
-parseConfigFromEnv :: LoggingT IO (Validation (NonEmpty ConfigError) Config)
+parseConfigFromEnv :: LoggerT Message IO (Validation (NonEmpty ConfigError) Config)
 parseConfigFromEnv = do
   config <- liftIO parseConfig
   case config of
-    Failure errs -> logErrorN $ "Failed to parse config: " <> showErrors errs
-    Success conf -> logInfoN $ "Parsed config: " <> showt conf
+    Failure errs -> logError $ "Failed to parse config: " <> showErrors errs
+    Success conf -> logInfo $ "Parsed config: " <> showt conf
   liftIO $ pure config
 
 parseConfig :: IO (Validation (NonEmpty ConfigError) Config)
