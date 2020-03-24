@@ -1,29 +1,30 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
-  ( toMetricValue
-  , updateStatuses
-  , updateStatusesRegularly
-  , BuildStatus(..)
-  , Result(..)
-  , GroupId(..)
-  ) where
+  ( toMetricValue,
+    updateStatuses,
+    updateStatusesRegularly,
+    BuildStatus (..),
+    Result (..),
+    GroupId (..),
+  )
+where
 
-import           Colog
-import           Config                  hiding (apiToken, groupId)
-import           Control.Concurrent
-import           Control.Exception
-import           Control.Monad
-import           Control.Monad.IO.Class  (liftIO)
-import           Data.Aeson              hiding (Result)
-import           Data.Either.Combinators
-import           Data.IORef
-import           Data.List
-import qualified Data.Text               as T hiding (partition)
-import           Data.Time
-import           Network.HTTP.Simple
-import           Prelude                 hiding (id)
-import           TextShow
+import Colog
+import Config hiding (apiToken, groupId)
+import Control.Concurrent
+import Control.Exception
+import Control.Monad
+import Control.Monad.IO.Class (liftIO)
+import Data.Aeson hiding (Result)
+import Data.Either.Combinators
+import Data.IORef
+import Data.List
+import qualified Data.Text as T hiding (partition)
+import Data.Time
+import Network.HTTP.Simple
+import TextShow
+import Prelude hiding (id)
 
 data UpdateError
   = HttpError HttpException
@@ -63,7 +64,7 @@ currentBuildStatuses (Config apiToken groupId baseUrl _ _) = do
 
 evalProject :: ApiToken -> BaseUrl -> Project -> LoggerT Message IO Result
 evalProject apiToken baseUrl (Project id name pUrl) = do
-  logInfo $ T.unwords ["Getting build status for project", showt id, "-", name]
+  --  logInfo $ T.unwords ["Getting build status for project", showt id, "-", name]
   maybeBuildStatus <- findBuildStatus apiToken baseUrl (ProjectId id)
   status <-
     case maybeBuildStatus of
@@ -91,7 +92,7 @@ findProjects apiToken baseUrl groupId = do
     Right ps -> pure ps
 
 maxByPipelineId :: [Pipeline] -> Either UpdateError Pipeline
-maxByPipelineId []        = Left EmptyPipelinesResult
+maxByPipelineId [] = Left EmptyPipelinesResult
 maxByPipelineId pipelines = Right $ maximum pipelines
 
 fetchData :: FromJSON a => ApiToken -> Request -> IO (Either UpdateError [a])
@@ -107,24 +108,24 @@ projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
 pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?ref=master"]
 
-data Project =
-  Project
-    { projectId   :: Int
-    , projectName :: T.Text
-    , projectUrl  :: T.Text
-    }
+data Project
+  = Project
+      { projectId :: Int,
+        projectName :: T.Text,
+        projectUrl :: T.Text
+      }
   deriving (Show)
 
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \p -> Project <$> p .: "id" <*> p .: "name" <*> p .: "web_url"
 
-data Pipeline =
-  Pipeline
-    { pipelineId     :: Int
-    , ref            :: T.Text
-    , pipelineStatus :: T.Text
-    , pipelineUrl    :: T.Text
-    }
+data Pipeline
+  = Pipeline
+      { pipelineId :: Int,
+        ref :: T.Text,
+        pipelineStatus :: T.Text,
+        pipelineUrl :: T.Text
+      }
   deriving (Show)
 
 instance Eq Pipeline where
@@ -150,35 +151,33 @@ instance TextShow BuildStatus where
   showb = showb . show
 
 toBuildStatus :: T.Text -> BuildStatus
-toBuildStatus "success"  = Successful
-toBuildStatus "running"  = Running
-toBuildStatus "failed"   = Failed
+toBuildStatus "success" = Successful
+toBuildStatus "running" = Running
+toBuildStatus "failed" = Failed
 toBuildStatus "canceled" = Cancelled
-toBuildStatus "pending"  = Pending
-toBuildStatus "skipped"  = Skipped
-toBuildStatus _          = Unknown
+toBuildStatus "pending" = Pending
+toBuildStatus "skipped" = Skipped
+toBuildStatus _ = Unknown
 
 -- | map a build status to a float value that's suitable for displaying it on Grafana dashboard.
 -- Suggested colors are:
 -- 0 -> green
 -- 1 -> red
 -- >1 -> blue
---
 toMetricValue :: BuildStatus -> Float
 toMetricValue Successful = 0
-toMetricValue Failed     = 1
-toMetricValue Unknown    = 2
-toMetricValue Running    = 3
-toMetricValue Cancelled  = 4
-toMetricValue Pending    = 5
-toMetricValue Skipped    = 6
+toMetricValue Failed = 1
+toMetricValue Unknown = 2
+toMetricValue Running = 3
+toMetricValue Cancelled = 4
+toMetricValue Pending = 5
+toMetricValue Skipped = 6
 
-data Result =
-  Result
-    { name        :: T.Text
-    , buildStatus :: BuildStatus
-    , url         :: T.Text
-    }
+data Result = Result
+      { name :: T.Text,
+        buildStatus :: BuildStatus,
+        url :: T.Text
+      }
   deriving (Show)
 
 instance TextShow Result where
