@@ -12,7 +12,7 @@ services: docker
 # Caching so the next build will be fast too.
 cache:
   directories:
-    - $HOME/.stack
+    - "$HOME/.stack"
 
 # Ensure necessary system libraries are present
 addons:
@@ -25,7 +25,7 @@ before_install:
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
   - travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - mkdir -p ~/build/.out
+  - mkdir -p ~/opt/build/.out
 
 install:
   # Build dependencies
@@ -34,3 +34,12 @@ install:
 script:
   - stack build --copy-bins --local-bin-path ~/opt/build/.out
   - docker build -t l7r7/gitlab-ci-build-statuses .
+
+after_success:
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker push l7r7/gitlab-ci-build-statuses
+
+env:
+  global:
+    - secure: Vr2xOYxrXR+eEisAMU9Ke8ZFCIe0S8hFK0HKRD+E3YgD4PraurKbFSr0G48t9Heu6cNWJAagliv4Q2GTuI7fGn7Hod7lBe50FDPhhB7je0qjxE0Hee+S/vaNayGCa/WWdgd6NcYGhfD7XYnRtYc1d0Jg+7395IFK41NJ3WwHaDAIqqhWy/udNMxwAol09RwUVyoff4T4s+gZBnAhvfnf1OQmyTpazEB4jjY5LlLWnKmN/M98moVe96qEBusXd2XHNTLZQiVkdkcJXjr3V5W/a7fcLFG8J5KOmDQ0GiMorh3itdtLnXaqoznUT+aT7/GJOX5wkVx+Lur2G92KOfiPUXgA4h10AxmD1n4HwOTtazxEesA0u0mhnd6YPQf+3rbRehBUC6wJ5dN2ndUOa5626cr3ZHQEcvv6f50ZTCX/LuivKwVOgS+DCkjKlkqzzNn4+J1/HYsbEuEXWC6b06/9pRFdIFFDbRehdUnJ3yXhQqgjqOsMRSc7PZMHMhf2yE3fecLpyE+feaaNaT3OEJjgYTRqdPQE54YwBNYFU2sJO6VtVnexJ2cYd5Tkrh0iSUV/9M0YpXj0iAjgPUI/PZ1gXi9ij0Q3TbAupucyyR/YDIjbhrF+uYDWWWOTXZybQqmC0wiM3zjfJKO9ko0gztO8tx6KveJgWAy1bu0+njChbwk=
+    - secure: djoddihZW8dSW0uwuRjsJeUd2LLfdSr3LNrK8h63Pb2gKMee+8F+y/+C1hG6dEX9W0ZrsEHmjkCP+Y1ezStfqFqDmyAV48ngQqqT4mNGOKMy81Ds8Cde5uD5pe1xRIpyxW04yrbFkDTz+DAliSUICfqhlhIhN7Yt8uPHq2YuzQLKmAgZOzSsiXiEACxpj0slF5iPLhcSq3RH9aM/DiMbcyy3QO8y2Lh5sdhAlCongOd6HMZxj/Weapr4g9Keyt2EuIfqMzys9IHGcma/dSL28LxKTuoIIVIOXY5VUC8LuS1+5KRDDoLG/KgHo+3VbRFJwwma4leSrLP/UY+ClYOnGuJRiwu1DORFfOHoVOx0UVf7wegtQicckPUbMK67wVwA3sYyFlXkJ1Q04qWWL5l07HmpCbYwZgCk3eEvaVywHDAU8athw2uUWeTGyreVbbungTHhBPdW51YVG+Fa6ty4+kRn+ikaRDsMuZk7CXehPyPG518NAlY0RuLHIXSHs0rDgbMgm6y80AHPygvP00EISiHU/jxuSLApW86TLQVHeb/ykkTjqZron37Dm2Rol8cMBJdVDgi4jJDvMnOqBxVQVQ1HQ+F0uX2KXqndVSi5kx2wHv7XMlMmJ9JkFQ+u14iaIM4ACVrRdCS5gpzvC/lh62b5LS4ynxCEONqcILE8/sU=
