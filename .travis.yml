@@ -32,7 +32,7 @@ install:
   - stack --no-terminal --install-ghc test --only-dependencies
 
 script:
-  - stack build --copy-bins --local-bin-path /opt/build/.out
+  - stack build --copy-bins --local-bin-path .
   - docker build --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" .
 
 before_deploy:
