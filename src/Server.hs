@@ -1,23 +1,24 @@
-{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Server where
 
-import           Config
-import           Control.Monad.IO.Class   (liftIO)
-import           Colog
-import           Data.IORef
-import qualified Data.Text                as T
-import           Html
-import           Lib
-import           Metrics
-import           Network.Wai.Handler.Warp
-import           Servant
-import           Servant.HTML.Blaze
-import qualified Text.Blaze.Html5         as H
+import Colog
+import Config
+import Control.Monad.IO.Class (liftIO)
+import Data.IORef
+import qualified Data.Text as T
+import Html
+import Lib
+import Metrics
+import Network.Wai.Handler.Warp
+import Servant
+import Servant.HTML.Blaze
+import System.Remote.Monitoring (forkServer)
+import qualified Text.Blaze.Html5 as H
 
-type API = "health" :> Get '[ PlainText] T.Text :<|> "metrics" :> Get '[ PlainText] T.Text :<|> Get '[ HTML] H.Html
+type API = "health" :> Get '[PlainText] T.Text :<|> "metrics" :> Get '[PlainText] T.Text :<|> Get '[HTML] H.Html
 
 api :: Proxy API
 api = Proxy
@@ -37,4 +38,7 @@ server config ioref = return "UP" :<|> metrics :<|> htmlUi
         pure $ template (uiUpdateIntervalSecs config) results
 
 runServer :: Config -> IORef [Result] -> LoggerT Message IO ()
-runServer config ioref = liftIO $ run 8282 . serve api $ server config ioref
+runServer config ioref = liftIO $ do
+  _ <- forkServer "localhost" 8000
+  _ <- run 8282 . serve api $ server config ioref
+  pure ()

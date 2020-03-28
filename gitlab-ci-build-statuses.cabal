@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Config
+    , Foo
     , Lib
     , Metrics
     , Html
@@ -46,16 +47,22 @@ library
     , co-log
     , containers
     , either
+    , ekg
+    , ekg-core
+    , ekg-prometheus-adapter
     , extra
     , http-conduit
     , lens
     , monad-logger
+    , prometheus
     , servant
     , servant-blaze
+    , servant-ekg
     , servant-server
     , text-show
     , text
     , time
+    , transformers
     , validation
     , warp
   default-language: Haskell2010
@@ -66,7 +73,7 @@ executable gitlab-ci-build-statuses-exe
       Paths_gitlab_ci_build_statuses
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-T
   build-depends:
       base >=4.7 && <5
     , gitlab-ci-build-statuses
@@ -75,6 +82,9 @@ executable gitlab-ci-build-statuses-exe
     , monad-logger
     , monad-unlift
     , validation
+    , prometheus-metrics-ghc
+    , wai-middleware-prometheus
+    , prometheus-client
   default-language: Haskell2010
 
 test-suite gitlab-ci-build-statuses-test
