@@ -31,8 +31,8 @@ install:
   - stack --no-terminal --install-ghc test --only-dependencies
 
 script:
-  - stack build --copy-bins --local-bin-path "$TRAVIS_BUILD_DIR"
-  - docker build --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" "$TRAVIS_BUILD_DIR"
+  - stack build --copy-bins --local-bin-path . || travis_terminate 1
+  - docker build --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" . || travis_terminate 1
 
 before_deploy:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
