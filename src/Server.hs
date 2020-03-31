@@ -13,9 +13,9 @@ import Html
 import Lib
 import Metrics
 import Network.Wai.Handler.Warp
+import Network.Wai.Metrics
 import Servant
 import Servant.HTML.Blaze
-import System.Remote.Monitoring (forkServer)
 import qualified Text.Blaze.Html5 as H
 
 type API = "health" :> Get '[PlainText] T.Text :<|> "metrics" :> Get '[PlainText] T.Text :<|> Get '[HTML] H.Html
@@ -39,6 +39,6 @@ server config ioref = return "UP" :<|> metrics :<|> htmlUi
 
 runServer :: Config -> IORef [Result] -> LoggerT Message IO ()
 runServer config ioref = liftIO $ do
-  _ <- forkServer "localhost" 8000
-  _ <- run 8282 . serve api $ server config ioref
-  pure ()
+  ridleyWaiMetrics <- initializeMetricsMiddleware ioref
+  let metricsMiddleware = maybe id metrics ridleyWaiMetrics
+  run 8282 . metricsMiddleware . serve api $ server config ioref

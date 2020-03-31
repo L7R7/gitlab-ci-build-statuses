@@ -51,9 +51,12 @@ library
     , ekg-prometheus-adapter
     , extra
     , http-conduit
+    , katip
     , lens
+    , microlens
     , monad-logger
     , prometheus
+    , ridley
     , servant
     , servant-blaze
     , servant-ekg
@@ -63,6 +66,7 @@ library
     , time
     , transformers
     , validation
+    , wai-middleware-metrics
     , warp
   default-language: Haskell2010
 
