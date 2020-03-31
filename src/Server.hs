@@ -18,24 +18,16 @@ import Servant
 import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H
 
-type API = "health" :> Get '[PlainText] T.Text :<|> "metrics" :> Get '[PlainText] T.Text :<|> Get '[HTML] H.Html
+type API = "health" :> Get '[PlainText] T.Text :<|> Get '[HTML] H.Html
 
 api :: Proxy API
 api = Proxy
 
 server :: Config -> IORef [Result] -> Server API
-server config ioref = return "UP" :<|> metrics :<|> htmlUi
+server config ioref = return "UP" :<|> htmlUi
   where
-    metrics :: Handler T.Text
-    metrics =
-      liftIO $ do
-        results <- readIORef ioref
-        pure $ createMetrics results
     htmlUi :: Handler H.Html
-    htmlUi =
-      liftIO $ do
-        results <- readIORef ioref
-        pure $ template (uiUpdateIntervalSecs config) results
+    htmlUi = liftIO $ template (uiUpdateIntervalSecs config) <$> readIORef ioref
 
 runServer :: Config -> IORef [Result] -> LoggerT Message IO ()
 runServer config ioref = liftIO $ do
