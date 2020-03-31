@@ -2,7 +2,7 @@
 # https://docs.haskellstack.org/en/stable/travis_ci/
 
 # Choose a build environment
-dist: xenial
+dist: bionic
 
 # Do not choose a language; we provide our own build tools.
 language: generic

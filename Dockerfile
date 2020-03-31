@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM ubuntu:18.04
 USER root
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y ca-certificates
