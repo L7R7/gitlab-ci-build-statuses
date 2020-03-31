@@ -2,6 +2,7 @@
 
 module Metrics where
 
+import Control.Monad.IO.Class (MonadIO)
 import Data.IORef (IORef, readIORef)
 import qualified Data.Text as T
 import Katip
@@ -14,7 +15,6 @@ import qualified System.Metrics.Prometheus.RegistryT as P
 import System.Metrics.Prometheus.Ridley
 import System.Metrics.Prometheus.Ridley.Types
 import TextShow (showt)
-import Control.Monad.IO.Class (MonadIO)
 
 createMetrics :: [Result] -> T.Text
 createMetrics rs = T.unlines (header <> content)
@@ -54,5 +54,4 @@ updateBrokenBuilds :: IORef [Result] -> P.Gauge -> Bool -> IO ()
 updateBrokenBuilds ioref gauge _ = do
   results <- readIORef ioref
   let numBroken = length $ filter (\res -> buildStatus res == Failed) results
-  putStrLn $"numBroken is" ++ show numBroken
   P.set (fromIntegral numBroken) gauge

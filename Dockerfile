@@ -13,6 +13,7 @@ WORKDIR /service
 COPY gitlab-ci-build-statuses-exe .
 CMD chmod +x /service/gitlab-ci-build-statuses-exe
 EXPOSE 8282
+EXPOSE 8181
 
 USER service
 ENTRYPOINT /service/gitlab-ci-build-statuses-exe
