@@ -60,7 +60,7 @@ parseConfig = do
   pure $ Config <$> token <*> group <*> baseUrl <*> pure dataUpdateInterval <*> pure uiUpdateInterval
 
 showErrors :: NonEmpty ConfigError -> T.Text
-showErrors errs = T.unlines $ fmap showt (toList errs)
+showErrors errs = T.intercalate ", " $ fmap showt (toList errs)
 
 data Config =
   Config
@@ -84,7 +84,7 @@ instance TextShow Config where
     showb ("Data Update interval(mins)" :: String) <>
     showbSpace <>
     (showb . show) dataUpdate <>
-    showbSpace <> (showb . show) baseUrl <> showbSpace <> showb ("UI interval(secs)" :: String) <> showbSpace <> (showb . show) uiUpdate
+    showbSpace <> showbSpace <> showb ("UI interval(secs)" :: String) <> showbSpace <> (showb . show) uiUpdate
 
 newtype ApiToken =
   ApiToken B.ByteString
@@ -125,7 +125,7 @@ instance TextShow ConfigError where
 readApiTokenFromEnv :: IO (Validation (NonEmpty ConfigError) ApiToken)
 readApiTokenFromEnv = do
   maybeGroupId <- lookupEnv envApiToken
-  pure $ maybe (_Failure # single ApiTokenMissing) (\token -> _Success # (ApiToken $ pack token)) maybeGroupId
+  pure $ maybe (_Failure # single ApiTokenMissing) (\token -> _Success # ApiToken (pack token)) maybeGroupId
 
 readGroupIdFromEnv :: IO (Validation (NonEmpty ConfigError) GroupId)
 readGroupIdFromEnv = do
