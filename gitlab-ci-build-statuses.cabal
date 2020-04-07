@@ -63,9 +63,9 @@ library
     , servant-server
     , text-show
     , text
-    , time
     , transformers
     , validation
+    , wai
     , wai-middleware-metrics
     , warp
   default-language: Haskell2010

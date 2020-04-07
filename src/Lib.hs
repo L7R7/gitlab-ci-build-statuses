@@ -21,23 +21,18 @@ import Data.Either.Combinators
 import Data.IORef
 import Data.List
 import qualified Data.Text as T hiding (partition)
-import Data.Time
 import Network.HTTP.Simple
 import TextShow
 import Prelude hiding (id)
 
-data UpdateError
-  = HttpError HttpException
-  | EmptyPipelinesResult
-  deriving (Show)
+data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoMasterRef deriving (Show)
 
 updateStatusesRegularly :: Config -> IORef [Result] -> LoggerT Message IO ()
 updateStatusesRegularly config ioref =
   forever $ do
     logInfo "updating build statuses"
     results <- updateStatuses config ioref
-    currentTime <- liftIO getCurrentTime
-    logInfo $ T.unwords ["Done updating.", showt $ length results, "results. Update finished at", (T.pack . show) currentTime]
+    logInfo $ T.unwords ["Done updating.", showt $ length results, "results"]
     liftIO . threadDelay $ calculateDelay (dataUpdateIntervalMins config)
 
 calculateDelay :: DataUpdateIntervalMinutes -> Int
@@ -66,31 +61,30 @@ currentBuildStatuses (Config apiToken groupId baseUrl _ _) = do
 logCurrentBuildStatuses :: [Result] -> LoggerT Message IO ()
 logCurrentBuildStatuses results = do
   let (unknown, known) = partition (\r -> buildStatus r == Unknown) results
-  unless (null unknown) (logInfo $ "No pipelines found for projects " <> concatNames unknown)
-  unless (null known) (logInfo $ "Pipeline status found for projects " <> concatNames known)
+  if null known
+    then logWarning "No valid Pipeline statuses found"
+    else logInfo $ "Pipeline status found for projects " <> concatIds known
+  unless (null unknown) (logInfo $ "No pipelines found for projects " <> concatIds unknown)
   where
-    concatNames :: [Result] -> T.Text
-    concatNames rs = T.intercalate ", " (name <$> rs)
+    concatIds :: [Result] -> T.Text
+    concatIds rs = T.intercalate ", " (showt . projId <$> rs)
 
 evalProject :: ApiToken -> BaseUrl -> Project -> LoggerT Message IO Result
 evalProject apiToken baseUrl (Project id name pUrl) = do
-  --  logInfo $ T.unwords ["Getting build status for project", showt id, "-", name]
-  maybeBuildStatus <- findBuildStatus apiToken baseUrl (ProjectId id)
+  buildStatusOrUpdateError <- findBuildStatus apiToken baseUrl (ProjectId id)
   status <-
-    case maybeBuildStatus of
-      Left EmptyPipelinesResult -> do
-        --        logInfo $ T.unwords ["No pipelines found for project", showt id]
-        pure Unknown
+    case buildStatusOrUpdateError of
+      Left EmptyPipelinesResult -> pure Unknown
       Left uError -> do
         logInfo $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
         pure Unknown
       Right st -> pure $ toBuildStatus st
-  pure $ Result name status pUrl
+  pure $ Result id name status pUrl
 
 findBuildStatus :: ApiToken -> BaseUrl -> ProjectId -> LoggerT Message IO (Either UpdateError T.Text)
 findBuildStatus apiToken baseUrl id = do
   pipelines <- liftIO $ fetchData apiToken $ pipelinesRequest baseUrl id
-  pure $ pipelineStatus <$> (pipelines >>= maxByPipelineId)
+  pure $ pipelineStatus <$> (pipelines >>= pipelineForMaster)
 
 findProjects :: ApiToken -> BaseUrl -> GroupId -> LoggerT Message IO [Project]
 findProjects apiToken baseUrl groupId = do
@@ -101,9 +95,9 @@ findProjects apiToken baseUrl groupId = do
       pure []
     Right ps -> pure ps
 
-maxByPipelineId :: [Pipeline] -> Either UpdateError Pipeline
-maxByPipelineId [] = Left EmptyPipelinesResult
-maxByPipelineId pipelines = Right $ maximum pipelines
+pipelineForMaster :: [Pipeline] -> Either UpdateError Pipeline
+pipelineForMaster [] = Left EmptyPipelinesResult
+pipelineForMaster pipelines = maybeToRight NoMasterRef (find (\p -> ref p == "master") pipelines)
 
 fetchData :: FromJSON a => ApiToken -> Request -> IO (Either UpdateError [a])
 fetchData (ApiToken apiToken) request = do
@@ -114,16 +108,15 @@ projectsRequest :: BaseUrl -> GroupId -> Request
 projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
   parseRequest_ $ mconcat [baseUrl, "/api/v4/groups/", show groupId, "/projects?per_page=100&simple=true&include_subgroups=true"]
 
--- TODO: lriedisser 2020-03-06 order by updated_at?
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
-pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?ref=master"]
+pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
 
 data Project = Project {projectId :: Int, projectName :: T.Text, projectUrl :: T.Text} deriving (Show)
 
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \p -> Project <$> p .: "id" <*> p .: "name" <*> p .: "web_url"
 
-data Pipeline = Pipeline {pipelineId :: Int, ref :: T.Text, pipelineStatus :: T.Text, pipelineUrl :: T.Text} deriving (Show)
+data Pipeline = Pipeline {pipelineId :: Int, ref :: T.Text, pipelineStatus :: T.Text, pipelineUrl :: T.Text, pipelineRef :: T.Text} deriving (Show)
 
 instance Eq Pipeline where
   (==) p1 p2 = pipelineId p1 == pipelineId p2
@@ -132,7 +125,7 @@ instance Ord Pipeline where
   (<=) p1 p2 = pipelineId p1 <= pipelineId p2
 
 instance FromJSON Pipeline where
-  parseJSON = withObject "Pipeline" $ \p -> Pipeline <$> p .: "id" <*> p .: "ref" <*> p .: "status" <*> p .: "web_url"
+  parseJSON = withObject "Pipeline" $ \p -> Pipeline <$> p .: "id" <*> p .: "ref" <*> p .: "status" <*> p .: "web_url" <*> p .: "ref"
 
 data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful deriving (Eq, Show, Ord)
 
@@ -162,7 +155,7 @@ toMetricValue Cancelled = 4
 toMetricValue Pending = 5
 toMetricValue Skipped = 6
 
-data Result = Result {name :: T.Text, buildStatus :: BuildStatus, url :: T.Text} deriving (Show)
+data Result = Result {projId :: Int, name :: T.Text, buildStatus :: BuildStatus, url :: T.Text} deriving (Show)
 
 instance TextShow Result where
-  showb (Result n bs _) = showb n <> showbCommaSpace <> showb bs
+  showb (Result i n bs _) = showb i <> showbCommaSpace <> showb n <> showbCommaSpace <> showb bs
