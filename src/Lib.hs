@@ -59,8 +59,18 @@ currentKnownBuildStatuses config = do
 currentBuildStatuses :: Config -> LoggerT Message IO [Result]
 currentBuildStatuses (Config apiToken groupId baseUrl _ _) = do
   projects <- findProjects apiToken baseUrl groupId
-  statuses <- traverse (evalProject apiToken baseUrl) projects
-  pure $ sortOn (T.toLower . name) statuses
+  results <- traverse (evalProject apiToken baseUrl) projects
+  logCurrentBuildStatuses results
+  pure $ sortOn (T.toLower . name) results
+
+logCurrentBuildStatuses :: [Result] -> LoggerT Message IO ()
+logCurrentBuildStatuses results = do
+  let (unknown, known) = partition (\r -> buildStatus r == Unknown) results
+  unless (null unknown) (logInfo $ "No pipelines found for projects " <> concatNames unknown)
+  unless (null known) (logInfo $ "Pipeline status found for projects " <> concatNames known)
+  where
+    concatNames :: [Result] -> T.Text
+    concatNames rs = T.intercalate ", " (name <$> rs)
 
 evalProject :: ApiToken -> BaseUrl -> Project -> LoggerT Message IO Result
 evalProject apiToken baseUrl (Project id name pUrl) = do
@@ -69,7 +79,7 @@ evalProject apiToken baseUrl (Project id name pUrl) = do
   status <-
     case maybeBuildStatus of
       Left EmptyPipelinesResult -> do
-        logInfo $ T.unwords ["No pipelines found for project", showt id]
+        --        logInfo $ T.unwords ["No pipelines found for project", showt id]
         pure Unknown
       Left uError -> do
         logInfo $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
@@ -108,25 +118,12 @@ projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
 pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?ref=master"]
 
-data Project
-  = Project
-      { projectId :: Int,
-        projectName :: T.Text,
-        projectUrl :: T.Text
-      }
-  deriving (Show)
+data Project = Project {projectId :: Int, projectName :: T.Text, projectUrl :: T.Text} deriving (Show)
 
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \p -> Project <$> p .: "id" <*> p .: "name" <*> p .: "web_url"
 
-data Pipeline
-  = Pipeline
-      { pipelineId :: Int,
-        ref :: T.Text,
-        pipelineStatus :: T.Text,
-        pipelineUrl :: T.Text
-      }
-  deriving (Show)
+data Pipeline = Pipeline {pipelineId :: Int, ref :: T.Text, pipelineStatus :: T.Text, pipelineUrl :: T.Text} deriving (Show)
 
 instance Eq Pipeline where
   (==) p1 p2 = pipelineId p1 == pipelineId p2
@@ -137,15 +134,7 @@ instance Ord Pipeline where
 instance FromJSON Pipeline where
   parseJSON = withObject "Pipeline" $ \p -> Pipeline <$> p .: "id" <*> p .: "ref" <*> p .: "status" <*> p .: "web_url"
 
-data BuildStatus
-  = Unknown
-  | Running
-  | Failed
-  | Cancelled
-  | Pending
-  | Skipped
-  | Successful
-  deriving (Eq, Show, Ord)
+data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful deriving (Eq, Show, Ord)
 
 instance TextShow BuildStatus where
   showb = showb . show
@@ -173,12 +162,7 @@ toMetricValue Cancelled = 4
 toMetricValue Pending = 5
 toMetricValue Skipped = 6
 
-data Result = Result
-      { name :: T.Text,
-        buildStatus :: BuildStatus,
-        url :: T.Text
-      }
-  deriving (Show)
+data Result = Result {name :: T.Text, buildStatus :: BuildStatus, url :: T.Text} deriving (Show)
 
 instance TextShow Result where
   showb (Result n bs _) = showb n <> showbCommaSpace <> showb bs
