@@ -18,7 +18,7 @@ template (UiUpdateIntervalSeconds updateInterval) results =
       H.title "Build Statuses"
     H.body $ section ! class_ "statuses" $ toHtml (resultToHtml <$> results)
     H.style
-      ".status {padding: 1em;text-align: center;background: white;justify-content: center;} .successful {background-color: green;} .failed {background-color: red;} .running {background-color: blue;} .cancelled {background-color: orange;} .statuses {width: 100%;display: grid;grid-column-gap: 0.4em;grid-row-gap: 0.4em;grid-template-columns: repeat(auto-fit, minmax(11em, 10fr));} a {text-decoration: none;color: black;} html {height: 100%;font-family: Noto Sans, Arial, sans-serif;background: black;} body {min-height: 100%}"
+      ".status {padding: 1em;text-align: center;background: white;justify-content: center;} .successful {background-color: green;} .failed {background-color: red;} .running {background-color: blue;} .cancelled {background-color: orange;} .statuses {width: 100%;display: grid;grid-column-gap: 0.4em;grid-row-gap: 0.4em;grid-template-columns: repeat(auto-fit, minmax(11em, 10fr));} a {text-decoration: none;color: black;} html {height: 100%;font-family: Noto Sans, Arial, sans-serif;background: black;} body {margin: 0;padding: 8px;min-height: 100%}"
 
 resultToHtml :: Result -> Html
 resultToHtml (Result _ projectName status url) =
