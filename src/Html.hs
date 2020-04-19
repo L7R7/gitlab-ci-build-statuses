@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Html
   ( template,
@@ -7,6 +8,7 @@ where
 
 import Config
 import Lib hiding (url)
+import RIO
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (name)
 

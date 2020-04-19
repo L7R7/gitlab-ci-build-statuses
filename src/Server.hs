@@ -1,17 +1,17 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Server where
 
 import Colog
 import Config
-import Control.Monad.IO.Class (liftIO)
-import Data.IORef
 import qualified Data.Text as T
 import Html
 import Lib
 import Network.Wai.Handler.Warp
+import RIO hiding (Handler)
 import Servant
 import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H

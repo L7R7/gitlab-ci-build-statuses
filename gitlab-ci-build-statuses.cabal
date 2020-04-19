@@ -52,6 +52,7 @@ library
     , lens
     , microlens
     , monad-logger
+    , rio
     , servant
     , servant-blaze
     , servant-server
@@ -77,6 +78,7 @@ executable gitlab-ci-build-statuses-exe
     , co-log
     , monad-logger
     , monad-unlift
+    , rio
     , validation
   default-language: Haskell2010
 

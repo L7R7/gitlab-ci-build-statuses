@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Lib
   ( toMetricValue,
@@ -12,18 +13,16 @@ where
 
 import Colog
 import Config hiding (apiToken, groupId)
-import Control.Concurrent
-import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Result)
-import Data.Either.Combinators
-import Data.IORef
 import Data.List
 import qualified Data.Text as T hiding (partition)
 import Network.HTTP.Simple
+import RIO hiding (logError, logInfo)
 import TextShow
 import Prelude hiding (id)
+import Data.Either.Combinators (maybeToRight)
 
 data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoMasterRef deriving (Show)
 

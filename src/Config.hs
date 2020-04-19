@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Config
   ( ApiToken (..),
@@ -19,11 +20,12 @@ import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString as B hiding (pack)
 import Data.ByteString.Char8 (pack)
-import Data.List.NonEmpty hiding (group)
+import Data.List.NonEmpty hiding (group, toList)
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Validation
 import Network.HTTP.Simple (parseRequest)
+import RIO hiding (logError, logInfo)
 import System.Environment
 import Text.Read
 import TextShow
