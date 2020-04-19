@@ -11,9 +11,7 @@ import Data.IORef
 import qualified Data.Text as T
 import Html
 import Lib
-import Metrics
 import Network.Wai.Handler.Warp
-import Network.Wai.Metrics
 import Servant
 import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H
@@ -30,7 +28,4 @@ server config ioref = return "UP" :<|> htmlUi
     htmlUi = liftIO $ template (uiUpdateIntervalSecs config) <$> readIORef ioref
 
 runServer :: Config -> IORef [Result] -> LoggerT Message IO ()
-runServer config ioref = liftIO $ do
-  ridleyWaiMetrics <- initializeMetricsMiddleware ioref
-  let metricsMiddleware = maybe id metrics ridleyWaiMetrics
-  run 8282 . metricsMiddleware . serve api $ server config ioref
+runServer config ioref = liftIO $ run 8282 . serve api $ server config ioref

@@ -1,31 +1,32 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Config
-  ( ApiToken(..)
-  , BaseUrl(..)
-  , Config(..)
-  , ConfigError(..)
-  , DataUpdateIntervalMinutes(..)
-  , GroupId(..)
-  , ProjectId(..)
-  , UiUpdateIntervalSeconds(..)
-  , parseConfigFromEnv
-  , showErrors
-  ) where
+  ( ApiToken (..),
+    BaseUrl (..),
+    Config (..),
+    ConfigError (..),
+    DataUpdateIntervalMinutes (..),
+    GroupId (..),
+    ProjectId (..),
+    UiUpdateIntervalSeconds (..),
+    parseConfigFromEnv,
+    showErrors,
+  )
+where
 
-import           Colog                  (LoggerT, Message, logError, logInfo)
-import           Control.Lens
-import           Control.Monad.IO.Class (liftIO)
-import qualified Data.ByteString        as B hiding (pack)
-import           Data.ByteString.Char8  (pack)
-import           Data.List.NonEmpty     hiding (group)
-import           Data.Maybe
-import qualified Data.Text              as T
-import           Data.Validation
-import           Network.HTTP.Simple    (parseRequest)
-import           System.Environment
-import           Text.Read
-import           TextShow
+import Colog (LoggerT, Message, logError, logInfo)
+import Control.Lens
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString as B hiding (pack)
+import Data.ByteString.Char8 (pack)
+import Data.List.NonEmpty hiding (group)
+import Data.Maybe
+import qualified Data.Text as T
+import Data.Validation
+import Network.HTTP.Simple (parseRequest)
+import System.Environment
+import Text.Read
+import TextShow
 
 envGroupId :: String
 envGroupId = "GITLAB_GROUP_ID"
@@ -62,65 +63,53 @@ parseConfig = do
 showErrors :: NonEmpty ConfigError -> T.Text
 showErrors errs = T.intercalate ", " $ fmap showt (toList errs)
 
-data Config =
-  Config
-    { apiToken               :: ApiToken
-    , groupId                :: GroupId
-    , gitlabBaseUrl          :: BaseUrl
-    , dataUpdateIntervalMins :: DataUpdateIntervalMinutes
-    , uiUpdateIntervalSecs   :: UiUpdateIntervalSeconds
-    }
+data Config
+  = Config
+      { apiToken :: ApiToken,
+        groupId :: GroupId,
+        gitlabBaseUrl :: BaseUrl,
+        dataUpdateIntervalMins :: DataUpdateIntervalMinutes,
+        uiUpdateIntervalSecs :: UiUpdateIntervalSeconds
+      }
 
 instance TextShow Config where
   showb (Config _ group baseUrl dataUpdate uiUpdate) =
-    showb ("Config: GroupId" :: String) <>
-    showbSpace <>
-    (showb . show) group <>
-    showbCommaSpace <>
-    showb ("Base URL" :: String) <>
-    showbSpace <>
-    (showb . show) baseUrl <>
-    showbSpace <>
-    showb ("Data Update interval(mins)" :: String) <>
-    showbSpace <>
-    (showb . show) dataUpdate <>
-    showbSpace <> showbSpace <> showb ("UI interval(secs)" :: String) <> showbSpace <> (showb . show) uiUpdate
+    showb ("Config: GroupId" :: String)
+      <> showbSpace
+      <> (showb . show) group
+      <> showbCommaSpace
+      <> showb ("Base URL" :: String)
+      <> showbSpace
+      <> (showb . show) baseUrl
+      <> showbSpace
+      <> showb ("Data Update interval(mins)" :: String)
+      <> showbSpace
+      <> (showb . show) dataUpdate
+      <> showbSpace
+      <> showbSpace
+      <> showb ("UI interval(secs)" :: String)
+      <> showbSpace
+      <> (showb . show) uiUpdate
 
-newtype ApiToken =
-  ApiToken B.ByteString
+newtype ApiToken = ApiToken B.ByteString
 
-newtype ProjectId =
-  ProjectId Int
-  deriving (Show)
+newtype ProjectId = ProjectId Int deriving (Show)
 
-newtype GroupId =
-  GroupId Int
-  deriving (Show)
+newtype GroupId = GroupId Int deriving (Show)
 
-newtype BaseUrl =
-  BaseUrl String
-  deriving (Show)
+newtype BaseUrl = BaseUrl String deriving (Show)
 
-newtype DataUpdateIntervalMinutes =
-  DataUpdateIntervalMinutes Int
-  deriving (Show)
+newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show)
 
-newtype UiUpdateIntervalSeconds =
-  UiUpdateIntervalSeconds Int
-  deriving (Show)
+newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 
-data ConfigError
-  = ApiTokenMissing
-  | GroupIdMissing
-  | GitlabBaseUrlMissing
-  | GitlabBaseUrlInvalid String
+data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid String
 
 instance TextShow ConfigError where
   showb ApiTokenMissing = showb ("API Token is missing. Set it via" :: String) <> showbSpace <> showb envApiToken
   showb GroupIdMissing = showb ("Group ID is missing. Set it via" :: String) <> showbSpace <> showb envGroupId
   showb GitlabBaseUrlMissing = showb ("Gitlab base URL is missing. Set it via" :: String) <> showbSpace <> showb envBaseUrl
-  showb (GitlabBaseUrlInvalid url) =
-    showb ("Gitlab base URL set via" :: String) <> showbSpace <> showb envBaseUrl <> showb ("is invalid. The value is:" :: String) <> showb url
+  showb (GitlabBaseUrlInvalid url) = showb ("Gitlab base URL set via" :: String) <> showbSpace <> showb envBaseUrl <> showb ("is invalid. The value is:" :: String) <> showb url
 
 readApiTokenFromEnv :: IO (Validation (NonEmpty ConfigError) ApiToken)
 readApiTokenFromEnv = do
