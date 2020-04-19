@@ -46,27 +46,20 @@ library
     , co-log
     , containers
     , either
-    , ekg
-    , ekg-core
-    , ekg-prometheus-adapter
     , extra
     , http-conduit
     , katip
     , lens
     , microlens
     , monad-logger
-    , prometheus
-    , ridley
     , servant
     , servant-blaze
-    , servant-ekg
     , servant-server
     , text-show
     , text
     , transformers
     , validation
     , wai
-    , wai-middleware-metrics
     , warp
   default-language: Haskell2010
 
@@ -85,9 +78,6 @@ executable gitlab-ci-build-statuses-exe
     , monad-logger
     , monad-unlift
     , validation
-    , prometheus-metrics-ghc
-    , wai-middleware-prometheus
-    , prometheus-client
   default-language: Haskell2010
 
 test-suite gitlab-ci-build-statuses-test

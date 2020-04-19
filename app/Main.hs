@@ -17,8 +17,6 @@ import Control.Monad.Trans.Unlift
 import Data.IORef
 import Data.Validation
 import Lib
-import Prometheus
-import Prometheus.Metric.GHC
 import Server
 import System.IO
 
