@@ -7,13 +7,21 @@ module Html
 where
 
 import Config
-import Lib hiding (url)
+import Env
 import RIO
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (name)
 
-template :: UiUpdateIntervalSeconds -> [Result] -> Html
-template (UiUpdateIntervalSeconds updateInterval) results =
+template :: (HasConfig env, HasStatuses env) => RIO env Html
+template = do
+  cfg <- view configL
+  let updateInterval = uiUpdateIntervalSecs cfg
+  resultsIO <- view statusesL
+  results <- readIORef resultsIO
+  pure $ template' updateInterval results
+
+template' :: UiUpdateIntervalSeconds -> [Result] -> Html
+template' (UiUpdateIntervalSeconds updateInterval) results =
   docTypeHtml ! lang "en" $ do
     H.head $ do
       meta ! charset "UTF-8"

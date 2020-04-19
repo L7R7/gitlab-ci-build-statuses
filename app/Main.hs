@@ -3,27 +3,25 @@
 
 module Main where
 
-import Colog
-  ( logError,
-    richMessageAction,
-    usingLoggerT,
-  )
 import Config
 import Data.Validation
+import Env
+import Katip
 import Lib
 import RIO hiding (logError)
+import RIO.Process (mkDefaultProcessContext)
 import Server
 
 main :: IO ()
-main =
-  usingLoggerT richMessageAction $ do
-    _ <- liftIO $ hSetBuffering stdout LineBuffering
-    configFromEnv <- parseConfigFromEnv
+main = do
+  handleScribe <- mkHandleScribeWithFormatter jsonFormat ColorIfTerminal stdout (permitItem InfoS) V2
+  let mkLogEnv = registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "gitlab-ci-build-statuses" "production"
+  bracket mkLogEnv closeScribes $ \le -> do
+    pc <- mkDefaultProcessContext
+    let configFromEnv = parseConfigFromEnv pc
     case configFromEnv of
       Success config -> do
         statuses <- liftIO (newIORef [])
-        liftIO $
-          concurrently_ -- TODO: lriedisser 2020-03-21 Can something like monad-unlift do better than this?
-            (usingLoggerT richMessageAction $ updateStatusesRegularly config statuses)
-            (usingLoggerT richMessageAction $ runServer config statuses)
-      Failure _ -> logError "Failed to parse config. Exiting now"
+        let app = App statuses config mempty mempty le
+        runRIO app (concurrently_ updateStatusesRegularly startServer)
+      Failure errs -> runKatipContextT le () mempty $ logLocM ErrorS . ls $ "Failed to parse config. Exiting now. Errors were: " <> showErrors errs

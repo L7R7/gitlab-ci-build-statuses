@@ -1,0 +1,51 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+
+module Env where
+
+import Config
+import qualified Data.Text as T
+import Katip
+import RIO
+import TextShow (TextShow (..), showbCommaSpace)
+
+data App
+  = App
+      { statuses :: !(IORef [Result]),
+        config :: !Config,
+        logNamespace :: !Namespace,
+        logContext :: !LogContexts,
+        logEnv :: !LogEnv
+      }
+
+instance Katip (RIO App) where
+  getLogEnv = asks logEnv
+  localLogEnv f (RIO a) = RIO (local (\s -> s {logEnv = f (logEnv s)}) a)
+
+instance KatipContext (RIO App) where
+  getKatipContext = asks logContext
+  localKatipContext f (RIO app) = RIO (local (\s -> s {logContext = f (logContext s)}) app)
+  getKatipNamespace = asks logNamespace
+  localKatipNamespace f (RIO app) = RIO (local (\s -> s {logNamespace = f (logNamespace s)}) app)
+
+class HasConfig env where
+  configL :: Lens' env Config
+
+instance HasConfig App where
+  configL = lens config (\app iJC -> app {config = iJC})
+
+class HasStatuses env where
+  statusesL :: Lens' env (IORef [Result])
+
+instance HasStatuses App where
+  statusesL = lens statuses (\app st -> app {statuses = st})
+
+data Result = Result {projId :: Int, name :: T.Text, buildStatus :: BuildStatus, url :: T.Text} deriving (Show)
+
+instance TextShow Result where
+  showb (Result i n bs _) = showb i <> showbCommaSpace <> showb n <> showbCommaSpace <> showb bs
+
+data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful deriving (Eq, Show, Ord)
+
+instance TextShow BuildStatus where
+  showb = showb . show

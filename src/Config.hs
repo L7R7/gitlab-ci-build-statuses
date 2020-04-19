@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -15,52 +16,35 @@ module Config
   )
 where
 
-import Colog (LoggerT, Message, logError, logInfo)
 import Control.Lens
-import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString as B hiding (pack)
-import Data.ByteString.Char8 (pack)
 import Data.List.NonEmpty hiding (group, toList)
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Validation
 import Network.HTTP.Simple (parseRequest)
 import RIO hiding (logError, logInfo)
-import System.Environment
-import Text.Read
+import qualified RIO.Map as Map
+import RIO.Process
 import TextShow
 
-envGroupId :: String
+envGroupId :: T.Text
 envGroupId = "GITLAB_GROUP_ID"
 
-envApiToken :: String
+envApiToken :: T.Text
 envApiToken = "GITLAB_API_TOKEN"
 
-envBaseUrl :: String
+envBaseUrl :: T.Text
 envBaseUrl = "GITLAB_BASE_URL"
 
-envDataUpdateInterval :: String
+envDataUpdateInterval :: T.Text
 envDataUpdateInterval = "DATA_UPDATE_INTERVAL_MINS"
 
-envUiUpdateInterval :: String
+envUiUpdateInterval :: T.Text
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
-parseConfigFromEnv :: LoggerT Message IO (Validation (NonEmpty ConfigError) Config)
-parseConfigFromEnv = do
-  config <- liftIO parseConfig
-  case config of
-    Failure errs -> logError $ "Failed to parse config: " <> showErrors errs
-    Success conf -> logInfo $ "Parsed config: " <> showt conf
-  liftIO $ pure config
-
-parseConfig :: IO (Validation (NonEmpty ConfigError) Config)
-parseConfig = do
-  token <- readApiTokenFromEnv
-  group <- readGroupIdFromEnv
-  baseUrl <- readBaseUrlFromEnv
-  dataUpdateInterval <- readDataUpdateIntervalFromEnv
-  uiUpdateInterval <- readUiUpdateIntervalFromEnv
-  pure $ Config <$> token <*> group <*> baseUrl <*> pure dataUpdateInterval <*> pure uiUpdateInterval
+parseConfigFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) Config
+parseConfigFromEnv pc = Config <$> readApiTokenFromEnv pc <*> readGroupIdFromEnv pc <*> readBaseUrlFromEnv pc <*> pure (readDataUpdateIntervalFromEnv pc) <*> pure (readUiUpdateIntervalFromEnv pc)
 
 showErrors :: NonEmpty ConfigError -> T.Text
 showErrors errs = T.intercalate ", " $ fmap showt (toList errs)
@@ -105,7 +89,7 @@ newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 
-data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid String
+data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid T.Text
 
 instance TextShow ConfigError where
   showb ApiTokenMissing = showb ("API Token is missing. Set it via" :: String) <> showbSpace <> showb envApiToken
@@ -113,39 +97,36 @@ instance TextShow ConfigError where
   showb GitlabBaseUrlMissing = showb ("Gitlab base URL is missing. Set it via" :: String) <> showbSpace <> showb envBaseUrl
   showb (GitlabBaseUrlInvalid url) = showb ("Gitlab base URL set via" :: String) <> showbSpace <> showb envBaseUrl <> showb ("is invalid. The value is:" :: String) <> showb url
 
-readApiTokenFromEnv :: IO (Validation (NonEmpty ConfigError) ApiToken)
-readApiTokenFromEnv = do
-  maybeGroupId <- lookupEnv envApiToken
-  pure $ maybe (_Failure # single ApiTokenMissing) (\token -> _Success # ApiToken (pack token)) maybeGroupId
+readApiTokenFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) ApiToken
+readApiTokenFromEnv pc = do
+  let maybeGroupId = encodeUtf8 <$> envFromPC pc envApiToken
+  maybe (_Failure # single ApiTokenMissing) (\token -> _Success # ApiToken token) maybeGroupId
 
-readGroupIdFromEnv :: IO (Validation (NonEmpty ConfigError) GroupId)
-readGroupIdFromEnv = do
-  maybeGroupIdString <- lookupEnv envGroupId
+readGroupIdFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) GroupId
+readGroupIdFromEnv pc = do
+  let maybeGroupIdString = T.unpack <$> envFromPC pc envGroupId
   let maybeGroupId = maybeGroupIdString >>= readMaybe
-  pure $ maybe (_Failure # single GroupIdMissing) (\gId -> _Success # GroupId gId) maybeGroupId
+  maybe (_Failure # single GroupIdMissing) (\gId -> _Success # GroupId gId) maybeGroupId
 
-readBaseUrlFromEnv :: IO (Validation (NonEmpty ConfigError) BaseUrl)
-readBaseUrlFromEnv = do
-  maybeBaseUrl <- lookupEnv envBaseUrl
-  let urlValid = isJust $ maybeBaseUrl >>= parseRequest
-  pure $
-    if urlValid
-      then maybe urlMissing (\s -> _Success # BaseUrl s) maybeBaseUrl
-      else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) maybeBaseUrl
+readBaseUrlFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) BaseUrl
+readBaseUrlFromEnv pc = do
+  let maybeBaseUrl = envFromPC pc envBaseUrl
+  let urlValid = isJust $ maybeBaseUrl >>= (parseRequest . T.unpack)
+  if urlValid
+    then maybe urlMissing (\s -> _Success # BaseUrl (T.unpack s)) maybeBaseUrl
+    else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) maybeBaseUrl
   where
     urlMissing = _Failure # single GitlabBaseUrlMissing
 
-readDataUpdateIntervalFromEnv :: IO DataUpdateIntervalMinutes
-readDataUpdateIntervalFromEnv = do
-  maybeUpdateIntervalString <- lookupEnv envDataUpdateInterval
-  let maybeUpdateInterval = maybeUpdateIntervalString >>= readMaybe >>= filterUpdateInterval
-  pure $ DataUpdateIntervalMinutes $ fromMaybe 5 maybeUpdateInterval
+readDataUpdateIntervalFromEnv :: ProcessContext -> DataUpdateIntervalMinutes
+readDataUpdateIntervalFromEnv pc = DataUpdateIntervalMinutes $ fromMaybe 5 maybeUpdateInterval
+  where
+    maybeUpdateInterval = envFromPC pc envDataUpdateInterval >>= (readMaybe . T.unpack) >>= filterUpdateInterval
 
-readUiUpdateIntervalFromEnv :: IO UiUpdateIntervalSeconds
-readUiUpdateIntervalFromEnv = do
-  maybeUpdateIntervalString <- lookupEnv envUiUpdateInterval
-  let maybeUpdateInterval = maybeUpdateIntervalString >>= readMaybe >>= filterUpdateInterval
-  pure $ UiUpdateIntervalSeconds $ fromMaybe 60 maybeUpdateInterval
+readUiUpdateIntervalFromEnv :: ProcessContext -> UiUpdateIntervalSeconds
+readUiUpdateIntervalFromEnv pc = UiUpdateIntervalSeconds $ fromMaybe 60 maybeUpdateInterval
+  where
+    maybeUpdateInterval = envFromPC pc envUiUpdateInterval >>= (readMaybe . T.unpack) >>= filterUpdateInterval
 
 filterUpdateInterval :: Int -> Maybe Int
 filterUpdateInterval i
@@ -154,3 +135,8 @@ filterUpdateInterval i
 
 single :: a -> NonEmpty a
 single a = a :| []
+
+envFromPC :: ProcessContext -> Text -> Maybe Text
+envFromPC pc key = Map.lookup key envVars
+  where
+    envVars = RIO.view envVarsL pc
