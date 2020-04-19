@@ -43,7 +43,6 @@ library
     , async
     , blaze-html
     , bytestring
-    , co-log
     , containers
     , either
     , extra
@@ -51,7 +50,6 @@ library
     , katip
     , lens
     , microlens
-    , monad-logger
     , mtl
     , rio
     , servant
@@ -76,9 +74,7 @@ executable gitlab-ci-build-statuses-exe
       base >=4.7 && <5
     , gitlab-ci-build-statuses
     , async
-    , co-log
     , katip
-    , monad-logger
     , monad-unlift
     , rio
     , validation
