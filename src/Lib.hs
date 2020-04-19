@@ -28,7 +28,7 @@ import Prelude hiding (id)
 
 data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoMasterRef deriving (Show)
 
-updateStatusesRegularly :: (HasConfig env, HasStatuses env, KatipContext (RIO env)) => RIO env ()
+updateStatusesRegularly :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasDataUpdateInterval env, HasStatuses env, KatipContext (RIO env)) => RIO env ()
 updateStatusesRegularly =
   katipAddNamespace "update"
     $ forever
@@ -36,8 +36,8 @@ updateStatusesRegularly =
       logLocM InfoS "updating build statuses"
       results <- updateStatuses
       katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
-      cfg <- view configL
-      threadDelay $ calculateDelay (dataUpdateIntervalMins cfg)
+      dataUpdateInterval <- view dataUpdateIntervalL
+      threadDelay $ calculateDelay dataUpdateInterval
 
 calculateDelay :: DataUpdateIntervalMinutes -> Int
 calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * oneSecond
@@ -45,16 +45,16 @@ calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * oneSecond
 oneSecond :: Int
 oneSecond = 1000000
 
-updateStatuses :: (HasConfig env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
+updateStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
 updateStatuses = do
   results <- currentKnownBuildStatuses
   ioref <- view statusesL
   liftIO $ atomicModifyIORef' ioref (const (results, results))
 
-currentKnownBuildStatuses :: (HasConfig env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
+currentKnownBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
 currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses
 
-currentBuildStatuses :: (HasConfig env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
+currentBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
 currentBuildStatuses = do
   projects <- findProjects
   results <- traverse evalProject projects
@@ -74,7 +74,7 @@ logCurrentBuildStatuses = do
     concatIds :: [Result] -> T.Text
     concatIds rs = T.intercalate ", " (showt . projId <$> rs)
 
-evalProject :: (HasConfig env, KatipContext (RIO env)) => Project -> RIO env Result
+evalProject :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => Project -> RIO env Result
 evalProject (Project id name pUrl) = do
   buildStatusOrUpdateError <- findBuildStatus (ProjectId id)
   status <-
@@ -86,15 +86,16 @@ evalProject (Project id name pUrl) = do
       Right st -> pure $ toBuildStatus st
   pure $ Result id name status pUrl
 
-findBuildStatus :: (HasConfig env, KatipContext (RIO env)) => ProjectId -> RIO env (Either UpdateError T.Text)
+findBuildStatus :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => ProjectId -> RIO env (Either UpdateError T.Text)
 findBuildStatus id = do
-  (Config _ _ baseUrl _ _) <- view configL
+  baseUrl <- view baseUrlL
   pipelines <- fetchData $ pipelinesRequest baseUrl id
   pure $ pipelineStatus <$> (pipelines >>= pipelineForMaster)
 
-findProjects :: (HasConfig env, KatipContext (RIO env)) => RIO env [Project]
+findProjects :: (HasApiToken env, HasBaseUrl env, HasGroupId env, KatipContext (RIO env)) => RIO env [Project]
 findProjects = do
-  (Config _ groupId baseUrl _ _) <- view configL
+  baseUrl <- view baseUrlL
+  groupId <- view groupIdL
   result <- fetchData $ projectsRequest baseUrl groupId
   case result of
     Left err -> do

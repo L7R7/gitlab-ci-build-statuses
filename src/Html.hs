@@ -12,10 +12,9 @@ import RIO
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (name)
 
-template :: (HasConfig env, HasStatuses env) => RIO env Html
+template :: (HasUiUpdateInterval env, HasStatuses env) => RIO env Html
 template = do
-  cfg <- view configL
-  let updateInterval = uiUpdateIntervalSecs cfg
+  updateInterval <- view uiUpdateIntervalL
   resultsIO <- view statusesL
   results <- readIORef resultsIO
   pure $ template' updateInterval results

@@ -28,7 +28,7 @@ instance KatipContext (RIO App) where
   getKatipNamespace = asks logNamespace
   localKatipNamespace f (RIO app) = RIO (local (\s -> s {logNamespace = f (logNamespace s)}) app)
 
-class HasApiToken env => HasConfig env where
+class (HasApiToken env, HasBaseUrl env, HasGroupId env, HasDataUpdateInterval env, HasUiUpdateInterval env) => HasConfig env where
   configL :: Lens' env Config
 
 instance HasConfig App where
@@ -39,6 +39,30 @@ class HasApiToken env where
 
 instance HasApiToken App where
   apiTokenL = lens (apiToken . config) (\app token -> app {config = (config app) {apiToken = token}})
+
+class HasBaseUrl env where
+  baseUrlL :: Lens' env BaseUrl
+
+instance HasBaseUrl App where
+  baseUrlL = lens (gitlabBaseUrl . config) (\app u -> app {config = (config app) {gitlabBaseUrl = u}})
+
+class HasGroupId env where
+  groupIdL :: Lens' env GroupId
+
+instance HasGroupId App where
+  groupIdL = lens (groupId . config) (\app g -> app {config = (config app) {groupId = g}})
+
+class HasDataUpdateInterval env where
+  dataUpdateIntervalL :: Lens' env DataUpdateIntervalMinutes
+
+instance HasDataUpdateInterval App where
+  dataUpdateIntervalL = lens (dataUpdateIntervalMins . config) (\app d -> app {config = (config app) {dataUpdateIntervalMins = d}})
+
+class HasUiUpdateInterval env where
+  uiUpdateIntervalL :: Lens' env UiUpdateIntervalSeconds
+
+instance HasUiUpdateInterval App where
+  uiUpdateIntervalL = lens (uiUpdateIntervalSecs . config) (\app u -> app {config = (config app) {uiUpdateIntervalSecs = u}})
 
 class HasStatuses env where
   statusesL :: Lens' env (IORef [Result])
