@@ -106,9 +106,9 @@ pipelineForMaster :: [Pipeline] -> Either UpdateError Pipeline
 pipelineForMaster [] = Left EmptyPipelinesResult
 pipelineForMaster pipelines = maybeToRight NoMasterRef (find (\p -> ref p == "master") pipelines)
 
-fetchData :: (HasConfig env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
+fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
 fetchData request = do
-  (Config (ApiToken apiToken) _ _ _ _) <- view configL
+  (ApiToken apiToken) <- view apiTokenL
   result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [apiToken] request))
   pure $ mapLeft HttpError result
 

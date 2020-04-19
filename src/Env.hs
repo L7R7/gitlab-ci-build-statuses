@@ -28,11 +28,17 @@ instance KatipContext (RIO App) where
   getKatipNamespace = asks logNamespace
   localKatipNamespace f (RIO app) = RIO (local (\s -> s {logNamespace = f (logNamespace s)}) app)
 
-class HasConfig env where
+class HasApiToken env => HasConfig env where
   configL :: Lens' env Config
 
 instance HasConfig App where
   configL = lens config (\app iJC -> app {config = iJC})
+
+class HasApiToken env where
+  apiTokenL :: Lens' env ApiToken
+
+instance HasApiToken App where
+  apiTokenL = lens (apiToken . config) (\app token -> app {config = (config app) {apiToken = token}})
 
 class HasStatuses env where
   statusesL :: Lens' env (IORef [Result])
