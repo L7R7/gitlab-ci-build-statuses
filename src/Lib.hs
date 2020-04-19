@@ -30,12 +30,14 @@ data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoMasterRef 
 
 updateStatusesRegularly :: (HasConfig env, HasStatuses env, KatipContext (RIO env)) => RIO env ()
 updateStatusesRegularly =
-  forever $ do
-    logLocM InfoS "updating build statuses"
-    results <- updateStatuses
-    logLocM InfoS . ls $ T.unwords ["Done updating.", showt $ length results, "results"]
-    cfg <- view configL
-    threadDelay $ calculateDelay (dataUpdateIntervalMins cfg)
+  katipAddNamespace "update"
+    $ forever
+    $ do
+      logLocM InfoS "updating build statuses"
+      results <- updateStatuses
+      katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
+      cfg <- view configL
+      threadDelay $ calculateDelay (dataUpdateIntervalMins cfg)
 
 calculateDelay :: DataUpdateIntervalMinutes -> Int
 calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * oneSecond
