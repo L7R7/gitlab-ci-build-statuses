@@ -6,7 +6,6 @@ module Metrics
   )
 where
 
-import Control.Monad.Except (MonadIO)
 import GHC.Conc (getNumCapabilities, getNumProcessors, numSparks)
 import Network.Wai.Handler.Warp (Port)
 import RIO
