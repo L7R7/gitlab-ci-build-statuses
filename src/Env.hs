@@ -7,12 +7,14 @@ import Config
 import qualified Data.Text as T
 import Katip
 import RIO
+import System.Metrics
 import TextShow (TextShow (..), showbCommaSpace)
 
 data App
   = App
       { statuses :: !(IORef [Result]),
         config :: !Config,
+        ekgStore :: !Store,
         logNamespace :: !Namespace,
         logContext :: !LogContexts,
         logEnv :: !LogEnv
@@ -33,6 +35,12 @@ class (HasApiToken env, HasBaseUrl env, HasGroupId env, HasDataUpdateInterval en
 
 instance HasConfig App where
   configL = lens config (\app iJC -> app {config = iJC})
+
+class HasStore env where
+  storeL :: Lens' env Store
+
+instance HasStore App where
+  storeL = lens ekgStore (\app st -> app {ekgStore = st})
 
 class HasApiToken env where
   apiTokenL :: Lens' env ApiToken

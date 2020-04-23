@@ -3,14 +3,17 @@
 
 module Main where
 
-import Config
-import Data.Validation
-import Env
+import Config (Config, parseConfigFromEnv, showErrors)
+import Control.Concurrent (forkIO)
+import Data.Validation (Validation (Failure, Success))
+import Env (App (App))
 import Katip
-import Lib
+import Lib (updateStatusesRegularly)
+import Metrics
 import RIO hiding (logError)
 import RIO.Process (mkDefaultProcessContext)
-import Server
+import Server (startServer)
+import System.Metrics
 
 main :: IO ()
 main = do
@@ -18,10 +21,16 @@ main = do
   let mkLogEnv = registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "gitlab-ci-build-statuses" "production"
   bracket mkLogEnv closeScribes $ \le -> do
     pc <- mkDefaultProcessContext
-    let configFromEnv = parseConfigFromEnv pc
-    case configFromEnv of
-      Success config -> do
-        statuses <- liftIO (newIORef [])
-        let app = App statuses config mempty mempty le
-        runRIO app (concurrently_ updateStatusesRegularly startServer)
+    case parseConfigFromEnv pc of
+      Success config -> start config le
       Failure errs -> runKatipContextT le () mempty $ logLocM ErrorS . ls $ "Failed to parse config. Exiting now. Errors were: " <> showErrors errs
+
+start :: Config -> LogEnv -> IO ()
+start config le = do
+  statuses <- newIORef []
+  store <- newStore
+  let app = App statuses config store mempty mempty le
+  _ <- forkIO $ runRIO app startServer
+  _ <- forkIO $ runRIO app updateStatusesRegularly
+  initPrometheusMetrics store
+  pure ()

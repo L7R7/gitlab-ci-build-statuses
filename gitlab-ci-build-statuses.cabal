@@ -31,6 +31,7 @@ library
     , Env
     , Html
     , Lib
+    , Metrics
     , Server
   other-modules:
       Paths_gitlab_ci_build_statuses
@@ -45,21 +46,27 @@ library
     , bytestring
     , containers
     , either
+    , ekg
+    , ekg-core
+    , ekg-prometheus-adapter
     , extra
     , http-conduit
     , katip
     , lens
     , microlens
     , mtl
+    , prometheus
     , rio
     , servant
     , servant-blaze
+    , servant-ekg
     , servant-server
     , text-show
     , text
     , transformers
     , validation
     , wai
+    , wai-middleware-metrics
     , warp
   default-language: Haskell2010
 
@@ -74,6 +81,7 @@ executable gitlab-ci-build-statuses-exe
       base >=4.7 && <5
     , gitlab-ci-build-statuses
     , async
+    , ekg-core
     , katip
     , monad-unlift
     , rio
