@@ -60,20 +60,19 @@ data Config
 
 instance TextShow Config where
   showb (Config _ group baseUrl dataUpdate uiUpdate) =
-    showb ("Config: GroupId" :: String)
+    "Config: GroupId"
       <> showbSpace
       <> (showb . show) group
       <> showbCommaSpace
-      <> showb ("Base URL" :: String)
+      <> "Base URL"
       <> showbSpace
       <> (showb . show) baseUrl
-      <> showbSpace
-      <> showb ("Data Update interval(mins)" :: String)
+      <> showbCommaSpace
+      <> "Data Update interval(mins)"
       <> showbSpace
       <> (showb . show) dataUpdate
-      <> showbSpace
-      <> showbSpace
-      <> showb ("UI interval(secs)" :: String)
+      <> showbCommaSpace
+      <> "UI interval(secs)"
       <> showbSpace
       <> (showb . show) uiUpdate
 
@@ -92,10 +91,10 @@ newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid T.Text
 
 instance TextShow ConfigError where
-  showb ApiTokenMissing = showb ("API Token is missing. Set it via" :: String) <> showbSpace <> showb envApiToken
-  showb GroupIdMissing = showb ("Group ID is missing. Set it via" :: String) <> showbSpace <> showb envGroupId
-  showb GitlabBaseUrlMissing = showb ("Gitlab base URL is missing. Set it via" :: String) <> showbSpace <> showb envBaseUrl
-  showb (GitlabBaseUrlInvalid url) = showb ("Gitlab base URL set via" :: String) <> showbSpace <> showb envBaseUrl <> showb ("is invalid. The value is:" :: String) <> showb url
+  showb ApiTokenMissing = "API Token is missing. Set it via" <> showbSpace <> showb envApiToken
+  showb GroupIdMissing = "Group ID is missing. Set it via" <> showbSpace <> showb envGroupId
+  showb GitlabBaseUrlMissing = "Gitlab base URL is missing. Set it via" <> showbSpace <> showb envBaseUrl
+  showb (GitlabBaseUrlInvalid url) = "Gitlab base URL set via" <> showbSpace <> showb envBaseUrl <> "is invalid. The value is:" <> showb url
 
 readApiTokenFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) ApiToken
 readApiTokenFromEnv pc = do
