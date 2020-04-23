@@ -17,7 +17,7 @@ import System.Metrics
 
 main :: IO ()
 main = do
-  handleScribe <- mkHandleScribeWithFormatter jsonFormat ColorIfTerminal stdout (permitItem InfoS) V2
+  handleScribe <- mkHandleScribeWithFormatter jsonFormat (ColorLog False) stdout (permitItem InfoS) V2
   let mkLogEnv = registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "gitlab-ci-build-statuses" "production"
   bracket mkLogEnv closeScribes $ \le -> do
     pc <- mkDefaultProcessContext
