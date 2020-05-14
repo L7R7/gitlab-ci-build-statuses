@@ -55,6 +55,7 @@ library
     , lens
     , microlens
     , mtl
+    , network-uri
     , prometheus
     , rio
     , servant

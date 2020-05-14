@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -14,7 +16,6 @@ where
 
 import Config hiding (apiToken, groupId)
 import Control.Monad
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson hiding (Result)
 import Data.Either.Combinators (maybeToRight)
 import Data.List
@@ -22,6 +23,7 @@ import qualified Data.Text as T hiding (partition)
 import Env
 import Katip
 import Network.HTTP.Simple
+import Network.URI
 import RIO hiding (logError, logInfo)
 import TextShow
 import Prelude hiding (id)
@@ -83,10 +85,10 @@ evalProject (Project id name pUrl) = do
       Left uError -> do
         logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
         pure Unknown
-      Right st -> pure $ toBuildStatus st
+      Right st -> pure st
   pure $ Result id name status pUrl
 
-findBuildStatus :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => ProjectId -> RIO env (Either UpdateError T.Text)
+findBuildStatus :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => ProjectId -> RIO env (Either UpdateError BuildStatus)
 findBuildStatus id = do
   baseUrl <- view baseUrlL
   pipelines <- fetchData $ pipelinesRequest baseUrl id
@@ -105,7 +107,7 @@ findProjects = do
 
 pipelineForMaster :: [Pipeline] -> Either UpdateError Pipeline
 pipelineForMaster [] = Left EmptyPipelinesResult
-pipelineForMaster pipelines = maybeToRight NoMasterRef (find (\p -> ref p == "master") pipelines)
+pipelineForMaster pipelines = maybeToRight NoMasterRef (find (\p -> ref p == Master) pipelines)
 
 fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
 fetchData request = do
@@ -125,7 +127,20 @@ data Project = Project {projectId :: Int, projectName :: T.Text, projectUrl :: T
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \p -> Project <$> p .: "id" <*> p .: "name" <*> p .: "web_url"
 
-data Pipeline = Pipeline {pipelineId :: Int, ref :: T.Text, pipelineStatus :: T.Text, pipelineUrl :: T.Text, pipelineRef :: T.Text} deriving (Show)
+data Pipeline = Pipeline {pipelineId :: PipelineId, ref :: Ref, pipelineStatus :: BuildStatus, pipelineUrl :: URI} deriving (Show)
+
+newtype PipelineId = PipelineId Int deriving (Eq, FromJSON, Ord, Show)
+
+data Ref = Master | Ref T.Text deriving (Eq)
+
+instance Show Ref where
+  show Master = "master"
+  show (Ref r) = show r
+
+instance FromJSON Ref where
+  parseJSON = withText "Ref" $ \case
+    "master" -> pure Master
+    t -> (pure . Ref) t
 
 instance Eq Pipeline where
   (==) p1 p2 = pipelineId p1 == pipelineId p2
@@ -134,16 +149,19 @@ instance Ord Pipeline where
   (<=) p1 p2 = pipelineId p1 <= pipelineId p2
 
 instance FromJSON Pipeline where
-  parseJSON = withObject "Pipeline" $ \p -> Pipeline <$> p .: "id" <*> p .: "ref" <*> p .: "status" <*> p .: "web_url" <*> p .: "ref"
+  parseJSON = withObject "Pipeline" $ \p -> Pipeline <$> p .: "id" <*> p .: "ref" <*> p .: "status" <*> p .: "web_url"
 
-toBuildStatus :: T.Text -> BuildStatus
-toBuildStatus "success" = Successful
-toBuildStatus "running" = Running
-toBuildStatus "failed" = Failed
-toBuildStatus "canceled" = Cancelled
-toBuildStatus "pending" = Pending
-toBuildStatus "skipped" = Skipped
-toBuildStatus _ = Unknown
+instance FromJSON URI where
+  parseJSON = withText "URI" $ \v -> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
+
+instance FromJSON BuildStatus where
+  parseJSON = withText "BuildStatus" $ \case
+    "success" -> pure Successful
+    "running" -> pure Running
+    "failed" -> pure Failed
+    "canceled" -> pure Cancelled
+    "pending" -> pure Pending
+    "skipped" -> pure Skipped
 
 -- | map a build status to a float value that's suitable for displaying it on Grafana dashboard.
 -- Suggested colors are:
