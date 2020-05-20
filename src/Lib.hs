@@ -22,6 +22,7 @@ import Data.Aeson hiding (Result)
 import Data.Either.Combinators (maybeToRight)
 import Data.List
 import qualified Data.Text as T hiding (partition)
+import Data.Time (getCurrentTime)
 import Env
 import Katip
 import Network.HTTP.Simple
@@ -52,8 +53,9 @@ oneSecond = 1000000
 updateStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env Result, KatipContext (RIO env)) => RIO env [Result]
 updateStatuses = do
   results <- currentKnownBuildStatuses
+  updateTime <- liftIO getCurrentTime
   ioref <- view statusesL
-  liftIO $ atomicModifyIORef' ioref (const (results, results))
+  liftIO $ atomicModifyIORef' ioref (const ((updateTime, results), results))
 
 currentKnownBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env Result, KatipContext (RIO env)) => RIO env [Result]
 currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses
@@ -72,7 +74,7 @@ logCurrentBuildStatuses :: (HasStatuses env Result, KatipContext (RIO env)) => R
 logCurrentBuildStatuses = do
   resultsIO <- view statusesL
   results <- readIORef resultsIO
-  let (unknown, known) = partition (\r -> buildStatus r == Unknown) results
+  let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd results)
   if null known
     then logLocM WarningS "No valid Pipeline statuses found"
     else logLocM InfoS . ls $ "Pipeline status found for projects " <> concatIds known

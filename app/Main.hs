@@ -14,6 +14,7 @@ import RIO hiding (logError)
 import RIO.Process (mkDefaultProcessContext)
 import Server (startServer)
 import System.Metrics
+import Data.Time
 
 main :: IO ()
 main = do
@@ -27,7 +28,8 @@ main = do
 
 start :: Config -> LogEnv -> IO ()
 start config le = do
-  statuses <- newIORef []
+  minTime <- getCurrentTime
+  statuses <- newIORef (minTime, [])
   store <- newStore
   let app = App statuses config store mempty mempty le
   _ <- forkIO $ runRIO app startServer

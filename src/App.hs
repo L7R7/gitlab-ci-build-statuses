@@ -10,10 +10,10 @@ import Katip
 import Lib
 import RIO
 import System.Metrics
-
+import Data.Time(UTCTime)
 data App
   = App
-      { statuses :: !(IORef [Result]),
+      { statuses :: !(IORef (UTCTime, [Result])),
         config :: !Config,
         ekgStore :: !Store,
         logNamespace :: !Namespace,

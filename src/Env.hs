@@ -5,6 +5,7 @@
 module Env where
 
 import Config
+import Data.Time
 import RIO
 import System.Metrics
 
@@ -30,4 +31,4 @@ class HasUiUpdateInterval env where
   uiUpdateIntervalL :: Lens' env UiUpdateIntervalSeconds
 
 class HasStatuses env a where
-  statusesL :: Lens' env (IORef [a])
+  statusesL :: Lens' env (IORef (UTCTime, [a]))  
