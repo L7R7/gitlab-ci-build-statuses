@@ -55,7 +55,7 @@ updateStatuses = do
   results <- currentKnownBuildStatuses
   updateTime <- liftIO getCurrentTime
   ioref <- view statusesL
-  liftIO $ atomicModifyIORef' ioref (const ((updateTime, results), results))
+  liftIO $ atomicModifyIORef' ioref (const ((Just updateTime, results), results))
 
 currentKnownBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env Result, KatipContext (RIO env)) => RIO env [Result]
 currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses

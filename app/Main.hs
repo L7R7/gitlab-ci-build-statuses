@@ -3,10 +3,10 @@
 
 module Main where
 
+import App (App (App))
 import Config (Config, parseConfigFromEnv, showErrors)
 import Control.Concurrent (forkIO)
 import Data.Validation (Validation (Failure, Success))
-import App (App (App))
 import Katip
 import Lib (updateStatusesRegularly)
 import Metrics
@@ -14,7 +14,6 @@ import RIO hiding (logError)
 import RIO.Process (mkDefaultProcessContext)
 import Server (startServer)
 import System.Metrics
-import Data.Time
 
 main :: IO ()
 main = do
@@ -28,8 +27,7 @@ main = do
 
 start :: Config -> LogEnv -> IO ()
 start config le = do
-  minTime <- getCurrentTime
-  statuses <- newIORef (minTime, [])
+  statuses <- newIORef (Nothing, mempty)
   store <- newStore
   let app = App statuses config store mempty mempty le
   _ <- forkIO $ runRIO app startServer

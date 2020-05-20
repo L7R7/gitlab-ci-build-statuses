@@ -31,4 +31,4 @@ class HasUiUpdateInterval env where
   uiUpdateIntervalL :: Lens' env UiUpdateIntervalSeconds
 
 class HasStatuses env a where
-  statusesL :: Lens' env (IORef (UTCTime, [a]))  
+  statusesL :: Lens' env (IORef (Maybe UTCTime, [a]))  

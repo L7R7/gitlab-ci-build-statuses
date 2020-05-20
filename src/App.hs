@@ -5,15 +5,16 @@
 module App where
 
 import Config
+import Data.Time (UTCTime)
 import Env
 import Katip
 import Lib
 import RIO
 import System.Metrics
-import Data.Time(UTCTime)
+
 data App
   = App
-      { statuses :: !(IORef (UTCTime, [Result])),
+      { statuses :: !(IORef (Maybe UTCTime, [Result])),
         config :: !Config,
         ekgStore :: !Store,
         logNamespace :: !Namespace,
