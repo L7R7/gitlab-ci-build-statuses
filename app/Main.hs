@@ -6,7 +6,7 @@ module Main where
 import Config (Config, parseConfigFromEnv, showErrors)
 import Control.Concurrent (forkIO)
 import Data.Validation (Validation (Failure, Success))
-import Env (App (App))
+import App (App (App))
 import Katip
 import Lib (updateStatusesRegularly)
 import Metrics

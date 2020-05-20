@@ -27,7 +27,8 @@ source-repository head
 
 library
   exposed-modules:
-      Config
+    App
+    , Config
     , Env
     , Html
     , Lib

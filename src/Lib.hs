@@ -11,6 +11,8 @@ module Lib
     BuildStatus (..),
     Result (..),
     GroupId (..),
+    ProjectName (..),
+    ProjectUrl (..),
   )
 where
 
@@ -30,7 +32,7 @@ import Prelude hiding (id)
 
 data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoMasterRef deriving (Show)
 
-updateStatusesRegularly :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasDataUpdateInterval env, HasStatuses env, KatipContext (RIO env)) => RIO env ()
+updateStatusesRegularly :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasDataUpdateInterval env, HasStatuses env Result, KatipContext (RIO env)) => RIO env ()
 updateStatusesRegularly =
   katipAddNamespace "update"
     $ forever
@@ -47,23 +49,26 @@ calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * oneSecond
 oneSecond :: Int
 oneSecond = 1000000
 
-updateStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
+updateStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env Result, KatipContext (RIO env)) => RIO env [Result]
 updateStatuses = do
   results <- currentKnownBuildStatuses
   ioref <- view statusesL
   liftIO $ atomicModifyIORef' ioref (const (results, results))
 
-currentKnownBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
+currentKnownBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env Result, KatipContext (RIO env)) => RIO env [Result]
 currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses
 
-currentBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env, KatipContext (RIO env)) => RIO env [Result]
+currentBuildStatuses :: (HasApiToken env, HasBaseUrl env, HasGroupId env, HasStatuses env Result, KatipContext (RIO env)) => RIO env [Result]
 currentBuildStatuses = do
   projects <- findProjects
   results <- traverse evalProject projects
   logCurrentBuildStatuses
-  pure $ sortOn (T.toLower . name) results
+  pure $ sortOn (toLower . name) results
+  where
+    toLower :: ProjectName -> T.Text -- TODO: lriedisser 2020-05-16 this is probably something to be fixed by coerce
+    toLower (ProjectName t) = T.toLower t
 
-logCurrentBuildStatuses :: (HasStatuses env, KatipContext (RIO env)) => RIO env ()
+logCurrentBuildStatuses :: (HasStatuses env Result, KatipContext (RIO env)) => RIO env ()
 logCurrentBuildStatuses = do
   resultsIO <- view statusesL
   results <- readIORef resultsIO
@@ -78,7 +83,7 @@ logCurrentBuildStatuses = do
 
 evalProject :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => Project -> RIO env Result
 evalProject (Project id name pUrl) = do
-  buildStatusOrUpdateError <- findBuildStatus (ProjectId id)
+  buildStatusOrUpdateError <- findBuildStatus id
   status <-
     case buildStatusOrUpdateError of
       Left EmptyPipelinesResult -> pure Unknown
@@ -122,12 +127,18 @@ projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
 pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
 
-data Project = Project {projectId :: Int, projectName :: T.Text, projectUrl :: T.Text} deriving (Show)
+data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectUrl :: ProjectUrl} deriving (Show)
+
+newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show, TextShow)
+
+newtype ProjectId = ProjectId Int deriving (FromJSON, Show, TextShow)
+
+newtype ProjectUrl = ProjectUrl URI deriving (FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \p -> Project <$> p .: "id" <*> p .: "name" <*> p .: "web_url"
 
-data Pipeline = Pipeline {pipelineId :: PipelineId, ref :: Ref, pipelineStatus :: BuildStatus, pipelineUrl :: URI} deriving (Show)
+data Pipeline = Pipeline {pipelineId :: PipelineId, ref :: Ref, pipelineStatus :: BuildStatus, pipelineUrl :: PipeLineUrl} deriving (Show)
 
 newtype PipelineId = PipelineId Int deriving (Eq, FromJSON, Ord, Show)
 
@@ -141,6 +152,8 @@ instance FromJSON Ref where
   parseJSON = withText "Ref" $ \case
     "master" -> pure Master
     t -> (pure . Ref) t
+
+newtype PipeLineUrl = PipeLineUrl URI deriving (FromJSON, Show)
 
 instance Eq Pipeline where
   (==) p1 p2 = pipelineId p1 == pipelineId p2
@@ -176,3 +189,13 @@ toMetricValue Running = 3
 toMetricValue Cancelled = 4
 toMetricValue Pending = 5
 toMetricValue Skipped = 6
+
+data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
+
+instance TextShow Result where
+  showb (Result i n bs _) = showb i <> showbCommaSpace <> showb n <> showbCommaSpace <> showb bs
+
+data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful deriving (Eq, Show, Ord)
+
+instance TextShow BuildStatus where
+  showb = showb . show

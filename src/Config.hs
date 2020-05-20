@@ -9,7 +9,6 @@ module Config
     ConfigError (..),
     DataUpdateIntervalMinutes (..),
     GroupId (..),
-    ProjectId (..),
     UiUpdateIntervalSeconds (..),
     parseConfigFromEnv,
     showErrors,
@@ -77,8 +76,6 @@ instance TextShow Config where
       <> (showb . show) uiUpdate
 
 newtype ApiToken = ApiToken B.ByteString
-
-newtype ProjectId = ProjectId Int deriving (Show)
 
 newtype GroupId = GroupId Int deriving (Show)
 

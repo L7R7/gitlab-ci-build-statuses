@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -8,11 +9,12 @@ where
 
 import Config
 import Env
+import Lib
 import RIO
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (name)
 
-template :: (HasUiUpdateInterval env, HasStatuses env) => RIO env Html
+template :: (HasUiUpdateInterval env, HasStatuses env Result) => RIO env Html
 template = do
   updateInterval <- view uiUpdateIntervalL
   resultsIO <- view statusesL
@@ -45,6 +47,12 @@ resultToHtml (Result _ projectName status url) =
     classesForStatus Pending = class_ "status pending"
     classesForStatus Skipped = class_ "status skipped"
     classesForStatus Successful = class_ "status successful"
+
+instance ToMarkup ProjectName where
+  toMarkup (ProjectName pN) = toMarkup pN
+  
+instance ToValue ProjectUrl where
+  toValue (ProjectUrl uri)= toValue $ show uri
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"
