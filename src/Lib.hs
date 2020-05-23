@@ -74,7 +74,7 @@ logCurrentBuildStatuses = do
   let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd results)
   if null known
     then logLocM WarningS "No valid Pipeline statuses found"
-    else logLocM InfoS . ls $ "Pipeline status found for projects " <> concatIds known
+    else katipAddContext (sl "projectIds" $ concatIds known) $ logLocM InfoS "Pipeline statuses found "
   unless (null unknown) (logLocM InfoS . ls $ "No pipelines found for projects " <> concatIds unknown)
   where
     concatIds :: [Result] -> T.Text
