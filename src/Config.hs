@@ -100,8 +100,9 @@ readApiTokenFromEnv pc = do
 
 readGroupIdFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) GroupId
 readGroupIdFromEnv pc = do
-  let maybeGroupIdString = T.unpack <$> envFromPC pc envGroupId
-  let maybeGroupId = maybeGroupIdString >>= readMaybe
+  let maybeGroupId = do
+        groupIdString <- T.unpack <$> envFromPC pc envGroupId
+        readMaybe groupIdString
   maybe (_Failure # single GroupIdMissing) (\gId -> _Success # GroupId gId) maybeGroupId
 
 readBaseUrlFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) BaseUrl

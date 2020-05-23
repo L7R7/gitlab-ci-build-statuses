@@ -19,6 +19,7 @@ where
 import Config hiding (apiToken, groupId)
 import Control.Monad
 import Data.Aeson hiding (Result)
+import Data.Coerce
 import Data.Either.Combinators (maybeToRight)
 import Data.List
 import qualified Data.Text as T hiding (partition)
@@ -65,10 +66,7 @@ currentBuildStatuses = do
   projects <- findProjects
   results <- traverse evalProject projects
   logCurrentBuildStatuses
-  pure $ sortOn (toLower . name) results
-  where
-    toLower :: ProjectName -> T.Text -- TODO: lriedisser 2020-05-16 this is probably something to be fixed by coerce
-    toLower (ProjectName t) = T.toLower t
+  pure $ sortOn (T.toLower . coerce . name) results
 
 logCurrentBuildStatuses :: (HasStatuses env Result, KatipContext (RIO env)) => RIO env ()
 logCurrentBuildStatuses = do
@@ -86,13 +84,12 @@ logCurrentBuildStatuses = do
 evalProject :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => Project -> RIO env Result
 evalProject (Project id name pUrl) = do
   buildStatusOrUpdateError <- findBuildStatus id
-  status <-
-    case buildStatusOrUpdateError of
-      Left EmptyPipelinesResult -> pure Unknown
-      Left uError -> do
-        logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
-        pure Unknown
-      Right st -> pure st
+  status <- case buildStatusOrUpdateError of
+    Left EmptyPipelinesResult -> pure Unknown
+    Left uError -> do
+      logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
+      pure Unknown
+    Right st -> pure st
   pure $ Result id name status pUrl
 
 findBuildStatus :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => ProjectId -> RIO env (Either UpdateError BuildStatus)
