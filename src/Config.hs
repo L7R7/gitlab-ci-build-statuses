@@ -25,7 +25,6 @@ import Network.HTTP.Simple (parseRequest)
 import RIO hiding (logError, logInfo)
 import qualified RIO.Map as Map
 import RIO.Process
-import TextShow
 
 envGroupId :: T.Text
 envGroupId = "GITLAB_GROUP_ID"
@@ -46,7 +45,7 @@ parseConfigFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) Config
 parseConfigFromEnv pc = Config <$> readApiTokenFromEnv pc <*> readGroupIdFromEnv pc <*> readBaseUrlFromEnv pc <*> pure (readDataUpdateIntervalFromEnv pc) <*> pure (readUiUpdateIntervalFromEnv pc)
 
 showErrors :: NonEmpty ConfigError -> T.Text
-showErrors errs = T.intercalate ", " $ fmap showt (toList errs)
+showErrors errs = T.intercalate ", " $ fmap tshow (toList errs)
 
 data Config
   = Config
@@ -57,23 +56,16 @@ data Config
         uiUpdateIntervalSecs :: UiUpdateIntervalSeconds
       }
 
-instance TextShow Config where
-  showb (Config _ group baseUrl dataUpdate uiUpdate) =
-    "Config: GroupId"
-      <> showbSpace
-      <> (showb . show) group
-      <> showbCommaSpace
-      <> "Base URL"
-      <> showbSpace
-      <> (showb . show) baseUrl
-      <> showbCommaSpace
-      <> "Data Update interval(mins)"
-      <> showbSpace
-      <> (showb . show) dataUpdate
-      <> showbCommaSpace
-      <> "UI interval(secs)"
-      <> showbSpace
-      <> (showb . show) uiUpdate
+instance Show Config where
+  show (Config _ group baseUrl dataUpdate uiUpdate) =
+    "Config: GroupId "
+      <> show group
+      <> ", Base URL "
+      <> show baseUrl
+      <> ", Data Update interval(mins) "
+      <> show dataUpdate
+      <> ", UI interval(secs) "
+      <> show uiUpdate
 
 newtype ApiToken = ApiToken B.ByteString
 
@@ -87,11 +79,11 @@ newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 
 data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid T.Text
 
-instance TextShow ConfigError where
-  showb ApiTokenMissing = "API Token is missing. Set it via" <> showbSpace <> showb envApiToken
-  showb GroupIdMissing = "Group ID is missing. Set it via" <> showbSpace <> showb envGroupId
-  showb GitlabBaseUrlMissing = "Gitlab base URL is missing. Set it via" <> showbSpace <> showb envBaseUrl
-  showb (GitlabBaseUrlInvalid url) = "Gitlab base URL set via" <> showbSpace <> showb envBaseUrl <> "is invalid. The value is:" <> showb url
+instance Show ConfigError where
+  show ApiTokenMissing = "API Token is missing. Set it via " <> show envApiToken
+  show GroupIdMissing = "Group ID is missing. Set it via " <> show envGroupId
+  show GitlabBaseUrlMissing = "Gitlab base URL is missing. Set it via " <> show envBaseUrl
+  show (GitlabBaseUrlInvalid url) = "Gitlab base URL set via " <> show envBaseUrl <> "is invalid. The value is: " <> show url
 
 readApiTokenFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) ApiToken
 readApiTokenFromEnv pc = do

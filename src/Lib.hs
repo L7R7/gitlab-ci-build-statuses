@@ -29,7 +29,6 @@ import Katip
 import Network.HTTP.Simple
 import Network.URI
 import RIO hiding (logError, logInfo)
-import TextShow
 import Prelude hiding (id)
 
 data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoMasterRef deriving (Show)
@@ -79,7 +78,7 @@ logCurrentBuildStatuses = do
   unless (null unknown) (logLocM InfoS . ls $ "No pipelines found for projects " <> concatIds unknown)
   where
     concatIds :: [Result] -> T.Text
-    concatIds rs = T.intercalate ", " (showt . projId <$> rs)
+    concatIds rs = T.intercalate ", " (tshow . projId <$> rs)
 
 evalProject :: (HasApiToken env, HasBaseUrl env, KatipContext (RIO env)) => Project -> RIO env Result
 evalProject (Project id name pUrl) = do
@@ -87,7 +86,7 @@ evalProject (Project id name pUrl) = do
   status <- case buildStatusOrUpdateError of
     Left EmptyPipelinesResult -> pure Unknown
     Left uError -> do
-      logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", showt id, "- error was", (T.pack . show) uError]
+      logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", tshow id, "- error was", tshow uError]
       pure Unknown
     Right st -> pure st
   pure $ Result id name status pUrl
@@ -128,9 +127,9 @@ pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [base
 
 data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectUrl :: ProjectUrl} deriving (Show)
 
-newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show, TextShow)
+newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
-newtype ProjectId = ProjectId Int deriving (FromJSON, Show, TextShow)
+newtype ProjectId = ProjectId Int deriving (FromJSON, Show)
 
 newtype ProjectUrl = ProjectUrl URI deriving (FromJSON, Show)
 
@@ -191,10 +190,4 @@ toMetricValue Skipped = 6
 
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
-instance TextShow Result where
-  showb (Result i n bs _) = showb i <> showbCommaSpace <> showb n <> showbCommaSpace <> showb bs
-
 data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful deriving (Eq, Show, Ord)
-
-instance TextShow BuildStatus where
-  showb = showb . show

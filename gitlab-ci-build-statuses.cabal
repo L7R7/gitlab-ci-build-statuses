@@ -63,7 +63,6 @@ library
     , servant-blaze
     , servant-ekg
     , servant-server
-    , text-show
     , text
     , time
     , transformers
