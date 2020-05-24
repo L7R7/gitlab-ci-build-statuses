@@ -104,7 +104,7 @@ findProjects = do
   result <- fetchData $ projectsRequest baseUrl groupId
   case result of
     Left err -> do
-      logLocM InfoS . ls $ T.unwords ["Couldn't load projects. Error was", (T.pack . show) err]
+      logLocM InfoS . ls $ T.unwords ["Couldn't load projects. Error was", tshow err]
       pure []
     Right ps -> pure ps
 
