@@ -167,12 +167,14 @@ instance FromJSON URI where
 
 instance FromJSON BuildStatus where
   parseJSON = withText "BuildStatus" $ \case
-    "success" -> pure Successful
     "running" -> pure Running
+    "pending" -> pure Pending
+    "success" -> pure Successful
     "failed" -> pure Failed
     "canceled" -> pure Cancelled
-    "pending" -> pure Pending
     "skipped" -> pure Skipped
+    "created" -> pure Created
+    "manual" -> pure Manual
 
 -- | map a build status to a float value that's suitable for displaying it on Grafana dashboard.
 -- Suggested colors are:
@@ -190,4 +192,4 @@ toMetricValue Skipped = 6
 
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
-data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful deriving (Eq, Show, Ord)
+data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful | Created | Manual deriving (Eq, Show, Ord)
