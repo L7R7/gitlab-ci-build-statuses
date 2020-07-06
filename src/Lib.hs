@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -19,6 +20,7 @@ where
 import Config hiding (apiToken, groupId)
 import Control.Monad
 import Data.Aeson hiding (Result)
+import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
 import Data.Either.Combinators (maybeToRight)
 import Data.List
@@ -110,7 +112,7 @@ findProjects = do
 
 pipelineForMaster :: [Pipeline] -> Either UpdateError Pipeline
 pipelineForMaster [] = Left EmptyPipelinesResult
-pipelineForMaster pipelines = maybeToRight NoMasterRef (find (\p -> ref p == Master) pipelines)
+pipelineForMaster pipelines = maybeToRight NoMasterRef (find (\p -> pipelineRef p == Master) pipelines)
 
 fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
 fetchData request = do
@@ -125,7 +127,7 @@ projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
 pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
 
-data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectUrl :: ProjectUrl} deriving (Show)
+data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectWebUrl :: ProjectUrl} deriving (Generic, Show)
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
@@ -134,9 +136,9 @@ newtype ProjectId = ProjectId Int deriving (FromJSON, Show)
 newtype ProjectUrl = ProjectUrl URI deriving (FromJSON, Show)
 
 instance FromJSON Project where
-  parseJSON = withObject "Project" $ \p -> Project <$> p .: "id" <*> p .: "name" <*> p .: "web_url"
+  parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
-data Pipeline = Pipeline {pipelineId :: PipelineId, ref :: Ref, pipelineStatus :: BuildStatus, pipelineUrl :: PipeLineUrl} deriving (Show)
+data Pipeline = Pipeline {pipelineId :: PipelineId, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: PipeLineUrl} deriving (Generic, Show)
 
 newtype PipelineId = PipelineId Int deriving (Eq, FromJSON, Ord, Show)
 
@@ -154,13 +156,13 @@ instance FromJSON Ref where
 newtype PipeLineUrl = PipeLineUrl URI deriving (FromJSON, Show)
 
 instance Eq Pipeline where
-  (==) p1 p2 = pipelineId p1 == pipelineId p2
+  (==) p p' = pipelineId p == pipelineId p'
 
 instance Ord Pipeline where
-  (<=) p1 p2 = pipelineId p1 <= pipelineId p2
+  (<=) p p' = pipelineId p <= pipelineId p'
 
 instance FromJSON Pipeline where
-  parseJSON = withObject "Pipeline" $ \p -> Pipeline <$> p .: "id" <*> p .: "ref" <*> p .: "status" <*> p .: "web_url"
+  parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
 instance FromJSON URI where
   parseJSON = withText "URI" $ \v -> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
