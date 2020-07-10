@@ -192,6 +192,8 @@ toMetricValue Running = 3
 toMetricValue Cancelled = 4
 toMetricValue Pending = 5
 toMetricValue Skipped = 6
+toMetricValue Created = 7
+toMetricValue Manual = 8
 
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 

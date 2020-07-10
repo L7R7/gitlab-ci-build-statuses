@@ -49,6 +49,8 @@ resultToHtml (Result _ projectName status url) =
     classesForStatus Pending = class_ "status pending"
     classesForStatus Skipped = class_ "status skipped"
     classesForStatus Successful = class_ "status successful"
+    classesForStatus Created = class_ "status created"
+    classesForStatus Manual = class_ "status manual"
 
 lastUpdatedToHtml :: UTCTime -> Html
 lastUpdatedToHtml t = H.div ! class_ "status timestamp" $ do
@@ -69,3 +71,5 @@ instance ToMarkup BuildStatus where
   toMarkup Pending = string "pending"
   toMarkup Skipped = string "skipped"
   toMarkup Successful = string "successful"
+  toMarkup Created = string "created"
+  toMarkup Manual = string "manual"
