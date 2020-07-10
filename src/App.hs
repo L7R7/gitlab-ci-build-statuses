@@ -9,6 +9,7 @@ module App where
 import Config
 import Core.Lib
 import Data.Aeson.Types (FromJSON)
+import Data.Coerce (coerce)
 import Data.Time (UTCTime, getCurrentTime)
 import Env
 import Katip
@@ -60,26 +61,26 @@ instance HasUiUpdateInterval App where
 
 instance HasGetProjects App where
   getProjects = do
-    url <- view baseUrlL
+    baseUrl <- view baseUrlL
     group <- view groupIdL
-    fetchData $ projectsRequest url group
+    fetchData $ projectsRequest baseUrl group
 
 projectsRequest :: BaseUrl -> GroupId -> Request
-projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
-  parseRequest_ $ mconcat [baseUrl, "/api/v4/groups/", show groupId, "/projects?per_page=100&simple=true&include_subgroups=true"]
+projectsRequest baseUrl gId =
+  parseRequest_ $ mconcat [coerce baseUrl, "/api/v4/groups/", show gId, "/projects?per_page=100&simple=true&include_subgroups=true"]
 
 instance HasGetPipelines App where
-  getPipelines projectId = do
+  getPipelines pId = do
     baseUrl <- view baseUrlL
-    fetchData $ pipelinesRequest baseUrl projectId
+    fetchData $ pipelinesRequest baseUrl pId
 
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
 pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
 
 fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
 fetchData request = do
-  (ApiToken apiToken) <- view apiTokenL
-  result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [apiToken] request))
+  token <- view apiTokenL
+  result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [coerce token] request))
   pure $ mapLeft HttpError result
 
 instance HasBuildStatuses App where

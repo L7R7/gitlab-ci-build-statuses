@@ -41,7 +41,7 @@ import Network.URI
 import RIO hiding (id, logError, logInfo)
 import Prelude hiding (id)
 
-newtype GroupId = GroupId Int deriving (Show)
+newtype GroupId = GroupId Int deriving newtype (Show)
 
 data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
 
