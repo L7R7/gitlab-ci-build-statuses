@@ -27,7 +27,7 @@ where
 
 import Control.Monad
 import Data.Aeson hiding (Result)
-import Data.Aeson.Casing (aesonDrop, aesonPrefix, camelCase, snakeCase)
+import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
 import Data.Either.Combinators (maybeToRight)
 import Data.List
