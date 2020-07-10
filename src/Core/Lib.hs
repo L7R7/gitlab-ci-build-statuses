@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -41,7 +42,7 @@ import Prelude hiding (id)
 
 newtype GroupId = GroupId Int deriving (Show)
 
-data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoMasterRef deriving (Show)
+data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
 
 newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show)
 
@@ -94,9 +95,9 @@ logCurrentBuildStatuses = do
     concatIds rs = T.intercalate ", " (tshow . projId <$> rs)
 
 evalProject :: (HasGetPipelines env, KatipContext (RIO env)) => Project -> RIO env Result
-evalProject (Project id pName pUrl) = do
+evalProject (Project id pName pUrl defaultBranch) = do
   pipelines <- getPipelines id
-  let buildStatusOrUpdateError = pipelineStatus <$> (pipelines >>= pipelineForMaster)
+  let buildStatusOrUpdateError = pipelineStatus <$> (pipelines >>= pipelineForDefaultBranch defaultBranch)
   status <- case buildStatusOrUpdateError of
     Left EmptyPipelinesResult -> pure Unknown
     Left uError -> do
@@ -124,11 +125,11 @@ findProjects = do
       pure []
     Right ps -> pure ps
 
-pipelineForMaster :: [Pipeline] -> Either UpdateError Pipeline
-pipelineForMaster [] = Left EmptyPipelinesResult
-pipelineForMaster pipelines = maybeToRight NoMasterRef (find (\p -> pipelineRef p == Master) pipelines)
+pipelineForDefaultBranch :: Ref -> [Pipeline] -> Either UpdateError Pipeline
+pipelineForDefaultBranch _ [] = Left EmptyPipelinesResult
+pipelineForDefaultBranch defaultBranch pipelines = maybeToRight NoPipelineForDefaultBranch (find (\p -> pipelineRef p == defaultBranch) pipelines)
 
-data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectWebUrl :: ProjectUrl} deriving (Generic, Show)
+data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectWebUrl :: ProjectUrl, projectDefaultBranch :: Ref} deriving (Generic, Show)
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
@@ -143,16 +144,7 @@ data Pipeline = Pipeline {pipelineId :: PipelineId, pipelineRef :: Ref, pipeline
 
 newtype PipelineId = PipelineId Int deriving (Eq, FromJSON, Ord, Show)
 
-data Ref = Master | Ref T.Text deriving (Eq)
-
-instance Show Ref where
-  show Master = "master"
-  show (Ref r) = show r
-
-instance FromJSON Ref where
-  parseJSON = withText "Ref" $ \case
-    "master" -> pure Master
-    t -> (pure . Ref) t
+newtype Ref = Ref T.Text deriving newtype (Eq, FromJSON, Show)
 
 newtype PipeLineUrl = PipeLineUrl URI deriving (FromJSON, Show)
 
