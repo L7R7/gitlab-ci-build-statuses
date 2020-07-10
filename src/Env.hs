@@ -5,7 +5,7 @@
 module Env where
 
 import Config
-import Data.Time
+import Core.Lib (GroupId, HasDataUpdateInterval)
 import RIO
 import System.Metrics
 
@@ -24,11 +24,5 @@ class HasBaseUrl env where
 class HasGroupId env where
   groupIdL :: Lens' env GroupId
 
-class HasDataUpdateInterval env where
-  dataUpdateIntervalL :: Lens' env DataUpdateIntervalMinutes
-
 class HasUiUpdateInterval env where
   uiUpdateIntervalL :: Lens' env UiUpdateIntervalSeconds
-
-class HasStatuses env a where
-  statusesL :: Lens' env (IORef (Maybe UTCTime, [a]))  

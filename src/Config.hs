@@ -7,8 +7,6 @@ module Config
     BaseUrl (..),
     Config (..),
     ConfigError (..),
-    DataUpdateIntervalMinutes (..),
-    GroupId (..),
     UiUpdateIntervalSeconds (..),
     parseConfigFromEnv,
     showErrors,
@@ -16,6 +14,7 @@ module Config
 where
 
 import Control.Lens
+import Core.Lib (DataUpdateIntervalMinutes (..), GroupId (..))
 import qualified Data.ByteString as B hiding (pack)
 import Data.List.NonEmpty hiding (group, toList)
 import Data.Maybe
@@ -69,11 +68,7 @@ instance Show Config where
 
 newtype ApiToken = ApiToken B.ByteString
 
-newtype GroupId = GroupId Int deriving (Show)
-
 newtype BaseUrl = BaseUrl String deriving (Show)
-
-newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show)
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 

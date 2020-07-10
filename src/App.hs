@@ -1,14 +1,19 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module App where
 
 import Config
-import Data.Time (UTCTime)
+import Core.Lib
+import Data.Aeson.Types (FromJSON)
+import Data.Time (UTCTime, getCurrentTime)
 import Env
 import Katip
-import Lib
+import Network.HTTP.Client.Conduit (Request, parseRequest_)
+import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestHeader)
 import RIO
 import System.Metrics
 
@@ -53,5 +58,36 @@ instance HasDataUpdateInterval App where
 instance HasUiUpdateInterval App where
   uiUpdateIntervalL = lens (uiUpdateIntervalSecs . config) (\app u -> app {config = (config app) {uiUpdateIntervalSecs = u}})
 
-instance HasStatuses App Result where
-  statusesL = lens statuses (\app st -> app {statuses = st})
+instance HasGetProjects App where
+  getProjects = do
+    url <- view baseUrlL
+    group <- view groupIdL
+    fetchData $ projectsRequest url group
+
+projectsRequest :: BaseUrl -> GroupId -> Request
+projectsRequest (BaseUrl baseUrl) (GroupId groupId) =
+  parseRequest_ $ mconcat [baseUrl, "/api/v4/groups/", show groupId, "/projects?per_page=100&simple=true&include_subgroups=true"]
+
+instance HasGetPipelines App where
+  getPipelines projectId = do
+    baseUrl <- view baseUrlL
+    fetchData $ pipelinesRequest baseUrl projectId
+
+pipelinesRequest :: BaseUrl -> ProjectId -> Request
+pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
+
+fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
+fetchData request = do
+  (ApiToken apiToken) <- view apiTokenL
+  result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [apiToken] request))
+  pure $ mapLeft HttpError result
+
+instance HasBuildStatuses App where
+  getStatuses = view readBuildStatuses >>= readIORef
+  setStatuses results = do
+    store <- view readBuildStatuses
+    updateTime <- liftIO getCurrentTime
+    liftIO $ atomicModifyIORef' store (const ((Just updateTime, results), (updateTime, results)))
+
+readBuildStatuses :: Lens' App (IORef (Maybe UTCTime, [Result]))
+readBuildStatuses = lens statuses (\app st -> app {statuses = st})

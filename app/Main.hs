@@ -6,13 +6,13 @@ module Main where
 import App (App (App))
 import Config (Config, parseConfigFromEnv, showErrors)
 import Control.Concurrent (forkIO)
+import Core.Lib (updateStatusesRegularly)
 import Data.Validation (Validation (Failure, Success))
+import HTTP.Metrics
+import HTTP.Server (startServer)
 import Katip
-import Lib (updateStatusesRegularly)
-import Metrics
 import RIO hiding (logError)
 import RIO.Process (mkDefaultProcessContext)
-import Server (startServer)
 import System.Metrics
 
 main :: IO ()

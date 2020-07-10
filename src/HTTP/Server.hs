@@ -6,12 +6,16 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Server(startServer) where
+module HTTP.Server
+  ( startServer,
+  )
+where
 
 import Control.Monad.Except (ExceptT (..))
+import Core.Lib (HasBuildStatuses)
 import qualified Data.Text as T
 import Env
-import Html
+import HTTP.Html
 import Katip
 import Network.Wai.Handler.Warp
 import Network.Wai.Metrics
@@ -19,17 +23,16 @@ import RIO hiding (Handler)
 import Servant
 import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H
-import Lib (Result)
 
 type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> Get '[HTML] H.Html
 
 api :: Proxy API
 api = Proxy
 
-server :: (HasConfig env, HasStatuses env Result) => ServerT API (RIO env)
+server :: (HasConfig env, HasBuildStatuses env) => ServerT API (RIO env)
 server = liftIO (return "UP") :<|> template
 
-startServer :: (HasConfig env, HasStatuses env Result, HasStore env, KatipContext (RIO env)) => RIO env ()
+startServer :: (HasConfig env, HasBuildStatuses env, HasStore env, KatipContext (RIO env)) => RIO env ()
 startServer = do
   env <- ask
   store <- view storeL
@@ -38,7 +41,7 @@ startServer = do
   logLocM InfoS "Starting server"
   liftIO $ run 8282 $ middleware . serve api . hoist $ env
 
-hoist :: forall env. (HasConfig env, HasStatuses env Result) => env -> Server API
+hoist :: forall env. (HasConfig env, HasBuildStatuses env) => env -> Server API
 hoist env = hoistServer api nat server
   where
     nat :: RIO env a -> Servant.Handler a

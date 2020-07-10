@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Metrics
+module HTTP.Metrics
   ( initPrometheusMetrics,
   )
 where

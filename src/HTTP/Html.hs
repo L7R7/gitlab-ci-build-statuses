@@ -2,24 +2,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Html
+module HTTP.Html
   ( template,
   )
 where
 
 import Config
+import Core.Lib
 import Data.Time (UTCTime, defaultTimeLocale, formatTime)
 import Env
-import Lib
 import RIO
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (name)
 
-template :: (HasUiUpdateInterval env, HasStatuses env Result) => RIO env Html
+template :: (HasUiUpdateInterval env, HasBuildStatuses env) => RIO env Html
 template = do
   updateInterval <- view uiUpdateIntervalL
-  resultsIO <- view statusesL
-  (lastUpdated, results) <- readIORef resultsIO
+  (lastUpdated, results) <- getStatuses
   pure $ template' updateInterval lastUpdated results
 
 template' :: UiUpdateIntervalSeconds -> Maybe UTCTime -> [Result] -> Html
