@@ -68,8 +68,7 @@ oneSecond = 1000000
 updateStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
 updateStatuses = do
   currentStatuses <- currentKnownBuildStatuses
-  (updateTime, _) <- setStatuses currentStatuses
-  logLocM InfoS . ls $ "Update finished at" <> show updateTime
+  _ <- setStatuses currentStatuses
   pure currentStatuses
 
 currentKnownBuildStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
