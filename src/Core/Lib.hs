@@ -4,6 +4,7 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Core.Lib
@@ -95,16 +96,16 @@ logCurrentBuildStatuses = do
     concatIds rs = T.intercalate ", " (tshow . projId <$> rs)
 
 evalProject :: (HasGetPipelines env, KatipContext (RIO env)) => Project -> RIO env Result
-evalProject (Project id pName pUrl defaultBranch) = do
-  pipelines <- getPipelines id
-  let buildStatusOrUpdateError = pipelineStatus <$> (pipelines >>= pipelineForDefaultBranch defaultBranch)
+evalProject Project {..} = do
+  pipelines <- getPipelines projectId
+  let buildStatusOrUpdateError = pipelineStatus <$> (pipelines >>= pipelineForDefaultBranch projectDefaultBranch)
   status <- case buildStatusOrUpdateError of
     Left EmptyPipelinesResult -> pure Unknown
     Left uError -> do
-      logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", tshow id, "- error was", tshow uError]
+      logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
       pure Unknown
     Right st -> pure st
-  pure $ Result id pName status pUrl
+  pure $ Result projectId projectName status projectWebUrl
 
 class HasBuildStatuses env where
   getStatuses :: RIO env (Maybe UTCTime, [Result])

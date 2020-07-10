@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module HTTP.Html
@@ -35,12 +36,12 @@ template' (UiUpdateIntervalSeconds updateInterval) lastUpdated results =
     H.style ".status {padding: 1em;text-align: center;background: white;justify-content: center;} .timestamp {background-color: transparent; color: white}  .successful {background-color: green;} .failed {background-color: red;} .running {background-color: blue;} .cancelled {background-color: orange;} .statuses {width: 100%;display: grid;grid-column-gap: 0.4em;grid-row-gap: 0.4em;grid-template-columns: repeat(auto-fit, minmax(11em, 10fr));} a {text-decoration: none;color: black;} html {height: 100%;font-family: Noto Sans, Arial, sans-serif;background: black;} body {margin: 0;padding: 8px}"
 
 resultToHtml :: Result -> Html
-resultToHtml (Result _ projectName status url) =
-  H.div ! classesForStatus status
+resultToHtml Result {..} =
+  H.div ! classesForStatus buildStatus
     $ a ! href (toValue url) ! target "_blank"
     $ do
-      h3 (toHtml projectName)
-      p (toHtml status)
+      h3 (toHtml name)
+      p (toHtml buildStatus)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Running = class_ "status running"
