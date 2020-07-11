@@ -3,7 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module HTTP.Html
+module Inbound.HTTP.Html
   ( template,
   )
 where

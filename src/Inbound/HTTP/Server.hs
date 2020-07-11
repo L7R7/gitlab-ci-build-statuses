@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module HTTP.Server
+module Inbound.HTTP.Server
   ( startServer,
   )
 where
@@ -15,7 +15,7 @@ import Control.Monad.Except (ExceptT (..))
 import Core.Lib (HasBuildStatuses)
 import qualified Data.Text as T
 import Env
-import HTTP.Html
+import Inbound.HTTP.Html
 import Katip
 import Network.Wai.Handler.Warp
 import Network.Wai.Metrics

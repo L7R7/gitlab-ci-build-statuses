@@ -8,9 +8,11 @@ import Config (Config, parseConfigFromEnv, showErrors)
 import Control.Concurrent (forkIO)
 import Core.Lib (updateStatusesRegularly)
 import Data.Validation (Validation (Failure, Success))
-import HTTP.Metrics
-import HTTP.Server (startServer)
+import Inbound.HTTP.Metrics
+import Inbound.HTTP.Server (startServer)
 import Katip
+import Outbound.Gitlab.GtlabAPI ()
+import Outbound.Storage.InMemory ()
 import RIO hiding (logError)
 import RIO.Process (mkDefaultProcessContext)
 import System.Metrics
