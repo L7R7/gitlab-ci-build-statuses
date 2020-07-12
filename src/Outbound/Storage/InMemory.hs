@@ -4,7 +4,7 @@
 module Outbound.Storage.InMemory where
 
 import App
-import Core.Lib (BuildStatuses, HasBuildStatuses (..), Result)
+import Core.Lib (BuildStatuses (..), HasBuildStatuses (..), Result)
 import Data.Time (getCurrentTime)
 import RIO
 
