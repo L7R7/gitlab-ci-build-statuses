@@ -22,15 +22,9 @@ template = do
   template' updateInterval <$> getStatuses
 
 template' :: UiUpdateIntervalSeconds -> BuildStatuses -> Html
-template' updateInterval NoSuccessfulUpdateYet = do
+template' updateInterval buildStatuses = do
   pageHeader updateInterval
-  H.body $ section ! class_ "statuses" $ noSuccessfulUpdateYet
-  pageFooter
-template' updateInterval (Statuses (lastUpdated, results)) = do
-  pageHeader updateInterval
-  H.body $ section ! class_ "statuses" $ do
-    toHtml (resultToHtml <$> results)
-    lastUpdatedToHtml lastUpdated
+  pageBody buildStatuses
   pageFooter
 
 pageHeader :: UiUpdateIntervalSeconds -> Html
@@ -40,6 +34,15 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) =
       meta ! charset "UTF-8"
       meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
       H.title "Build Statuses"
+
+pageBody :: BuildStatuses -> Html
+pageBody buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml buildStatuses
+
+statusesToHtml :: BuildStatuses -> Html
+statusesToHtml NoSuccessfulUpdateYet = H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
+statusesToHtml (Statuses (lastUpdated, results)) = do
+  toHtml (resultToHtml <$> results)
+  lastUpdatedToHtml lastUpdated
 
 pageFooter :: Html
 pageFooter = do
