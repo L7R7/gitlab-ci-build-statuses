@@ -12,6 +12,7 @@ module Core.Lib
     updateStatuses,
     updateStatusesRegularly,
     BuildStatus (..),
+    BuildStatuses (..),
     DataUpdateIntervalMinutes (..),
     Result (..),
     GroupId (..),
@@ -85,8 +86,13 @@ currentBuildStatuses = do
 
 logCurrentBuildStatuses :: (HasBuildStatuses env, KatipContext (RIO env)) => RIO env ()
 logCurrentBuildStatuses = do
-  results <- getStatuses
-  let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd results)
+  statuses <- getStatuses
+  logCurrentBuildStatuses' statuses
+
+logCurrentBuildStatuses' :: (KatipContext (RIO env)) => BuildStatuses -> RIO env ()
+logCurrentBuildStatuses' NoSuccessfulUpdateYet = pure ()
+logCurrentBuildStatuses' (Statuses statuses) = do
+  let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd statuses)
   if null known
     then logLocM WarningS "No valid Pipeline statuses found"
     else katipAddContext (sl "projectIds" $ concatIds known) $ logLocM InfoS "Pipeline statuses found "
@@ -106,10 +112,6 @@ evalProject Project {..} = do
       pure Unknown
     Right st -> pure st
   pure $ Result projectId projectName status projectWebUrl
-
-class HasBuildStatuses env where
-  getStatuses :: RIO env (Maybe UTCTime, [Result])
-  setStatuses :: [Result] -> RIO env (UTCTime, [Result])
 
 class HasGetPipelines env where
   getPipelines :: ProjectId -> RIO env (Either UpdateError [Pipeline])
@@ -191,3 +193,9 @@ toMetricValue Manual = 8
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
 data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful | Created | Manual deriving (Eq, Show, Ord)
+
+class HasBuildStatuses env where
+  getStatuses :: RIO env BuildStatuses
+  setStatuses :: [Result] -> RIO env BuildStatuses
+
+data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])

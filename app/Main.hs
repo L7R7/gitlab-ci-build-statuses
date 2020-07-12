@@ -6,7 +6,7 @@ module Main where
 import App (App (App))
 import Config (Config, parseConfigFromEnv, showErrors)
 import Control.Concurrent (forkIO)
-import Core.Lib (updateStatusesRegularly)
+import Core.Lib (BuildStatuses (NoSuccessfulUpdateYet), updateStatusesRegularly)
 import Data.Validation (Validation (Failure, Success))
 import Inbound.HTTP.Metrics
 import Inbound.HTTP.Server (startServer)
@@ -29,7 +29,7 @@ main = do
 
 start :: Config -> LogEnv -> IO ()
 start config le = do
-  statuses <- newIORef (Nothing, mempty)
+  statuses <- newIORef NoSuccessfulUpdateYet
   store <- newStore
   let app = App statuses config store mempty mempty le
   _ <- forkIO $ runRIO app startServer

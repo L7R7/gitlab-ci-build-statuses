@@ -1,18 +1,22 @@
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Outbound.Storage.InMemory where
 
 import App
-import Core.Lib (HasBuildStatuses (..), Result)
-import Data.Time (UTCTime, getCurrentTime)
+import Core.Lib (BuildStatuses, HasBuildStatuses (..), Result)
+import Data.Time (getCurrentTime)
 import RIO
 
 instance HasBuildStatuses App where
+  getStatuses :: RIO App BuildStatuses
   getStatuses = view readBuildStatuses >>= readIORef
+  setStatuses :: [Result] -> RIO App BuildStatuses
   setStatuses results = do
     store <- view readBuildStatuses
     updateTime <- liftIO getCurrentTime
-    liftIO $ atomicModifyIORef' store (const ((Just updateTime, results), (updateTime, results)))
+    let res = Statuses (updateTime, results)
+    liftIO $ atomicModifyIORef' store (const (res, res))
 
-readBuildStatuses :: Lens' App (IORef (Maybe UTCTime, [Result]))
+readBuildStatuses :: Lens' App (IORef BuildStatuses)
 readBuildStatuses = lens statuses (\app st -> app {statuses = st})
