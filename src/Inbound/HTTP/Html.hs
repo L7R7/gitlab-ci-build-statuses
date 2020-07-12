@@ -26,13 +26,12 @@ template' updateInterval NoSuccessfulUpdateYet = do
   pageHeader updateInterval
   H.body $ section ! class_ "statuses" $ noSuccessfulUpdateYet
   pageFooter
-template' updateInterval (Statuses (lastUpdated, results)) =
-  docTypeHtml ! lang "en" $ do
-    pageHeader updateInterval
-    H.body $ section ! class_ "statuses" $ do
-      toHtml (resultToHtml <$> results)
-      lastUpdatedToHtml lastUpdated
-    pageFooter
+template' updateInterval (Statuses (lastUpdated, results)) = do
+  pageHeader updateInterval
+  H.body $ section ! class_ "statuses" $ do
+    toHtml (resultToHtml <$> results)
+    lastUpdatedToHtml lastUpdated
+  pageFooter
 
 pageHeader :: UiUpdateIntervalSeconds -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) =
