@@ -53,9 +53,8 @@ class HasDataUpdateInterval env where
 
 updateStatusesRegularly :: (HasGetProjects env, HasGetPipelines env, HasDataUpdateInterval env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env ()
 updateStatusesRegularly =
-  katipAddNamespace "update"
-    $ forever
-    $ do
+  katipAddNamespace "update" $
+    forever $ do
       logLocM InfoS "updating build statuses"
       results <- updateStatuses
       katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
@@ -90,7 +89,7 @@ logCurrentBuildStatuses = do
   logCurrentBuildStatuses' statuses
 
 logCurrentBuildStatuses' :: (KatipContext (RIO env)) => BuildStatuses -> RIO env ()
-logCurrentBuildStatuses' NoSuccessfulUpdateYet = pure ()
+logCurrentBuildStatuses' NoSuccessfulUpdateYet = logLocM InfoS "There was no successful update yet, so there are no pipeline statuses available"
 logCurrentBuildStatuses' (Statuses statuses) = do
   let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd statuses)
   if null known
