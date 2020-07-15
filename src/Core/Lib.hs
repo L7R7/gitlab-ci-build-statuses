@@ -8,8 +8,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Core.Lib
-  ( toMetricValue,
-    updateStatuses,
+  ( updateStatuses,
     updateStatusesRegularly,
     BuildStatus (..),
     BuildStatuses (..),
@@ -172,22 +171,6 @@ instance FromJSON BuildStatus where
     "skipped" -> pure Skipped
     "created" -> pure Created
     "manual" -> pure Manual
-
--- | map a build status to a float value that's suitable for displaying it on Grafana dashboard.
--- Suggested colors are:
--- 0 -> green
--- 1 -> red
--- >1 -> blue
-toMetricValue :: BuildStatus -> Float
-toMetricValue Successful = 0
-toMetricValue Failed = 1
-toMetricValue Unknown = 2
-toMetricValue Running = 3
-toMetricValue Cancelled = 4
-toMetricValue Pending = 5
-toMetricValue Skipped = 6
-toMetricValue Created = 7
-toMetricValue Manual = 8
 
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
