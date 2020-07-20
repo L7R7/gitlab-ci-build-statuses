@@ -14,7 +14,7 @@ import Data.Time (UTCTime, defaultTimeLocale, formatTime)
 import Env
 import RIO
 import Text.Blaze.Html5 as H
-import Text.Blaze.Html5.Attributes as A hiding (name)
+import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
 template :: (HasUiUpdateInterval env, HasBuildStatuses env) => RIO env Html
 template = do
@@ -23,17 +23,25 @@ template = do
 
 template' :: UiUpdateIntervalSeconds -> BuildStatuses -> Html
 template' updateInterval buildStatuses = do
-  pageHeader updateInterval
+  pageHeader updateInterval buildStatuses
   pageBody buildStatuses
   pageFooter
 
-pageHeader :: UiUpdateIntervalSeconds -> Html
-pageHeader (UiUpdateIntervalSeconds updateInterval) =
-  docTypeHtml ! lang "en" $ H.head $
-    do
-      meta ! charset "UTF-8"
-      meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
-      H.title "Build Statuses"
+pageHeader :: UiUpdateIntervalSeconds -> BuildStatuses -> Html
+pageHeader (UiUpdateIntervalSeconds updateInterval) buildStatuses =
+  docTypeHtml ! lang "en" $
+    H.head $
+      do
+        meta ! charset "UTF-8"
+        meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
+        H.title $ titleIcon buildStatuses <> " Build Statuses"
+
+titleIcon :: BuildStatuses -> Html
+titleIcon NoSuccessfulUpdateYet = mempty
+titleIcon (Statuses (_, results)) = H.preEscapedToHtml icon
+  where
+    icon :: String
+    icon = if all (\r -> buildStatus r == Successful) results then "&#10003;" else "&#10007"
 
 pageBody :: BuildStatuses -> Html
 pageBody buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml buildStatuses
@@ -54,9 +62,8 @@ pageFooter = do
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
-  H.div ! classesForStatus buildStatus
-    $ a ! href (toValue url) ! target "_blank"
-    $ do
+  H.div ! classesForStatus buildStatus $
+    a ! href (toValue url) ! target "_blank" $ do
       h3 (toHtml name)
       p (toHtml buildStatus)
   where
