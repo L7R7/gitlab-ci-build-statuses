@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Outbound.Gitlab.GtlabAPI where
+module Outbound.Gitlab.GitlabAPI where
 
 import App
 import Config (ApiToken (..), BaseUrl (..))

@@ -11,7 +11,7 @@ import Data.Validation (Validation (Failure, Success))
 import Inbound.HTTP.Metrics
 import Inbound.HTTP.Server (startServer)
 import Katip
-import Outbound.Gitlab.GtlabAPI ()
+import Outbound.Gitlab.GitlabAPI ()
 import Outbound.Storage.InMemory ()
 import RIO hiding (logError)
 import RIO.Process (mkDefaultProcessContext)
