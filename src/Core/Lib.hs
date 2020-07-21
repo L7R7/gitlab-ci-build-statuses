@@ -134,7 +134,9 @@ data Project = Project {projectId :: ProjectId, projectName :: ProjectName, proj
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
-newtype ProjectId = ProjectId Int deriving (FromJSON, Show)
+newtype ProjectId = ProjectId Int
+  deriving (FromJSON)
+  deriving newtype (Show)
 
 newtype ProjectUrl = ProjectUrl URI deriving (FromJSON, Show)
 
