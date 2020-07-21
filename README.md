@@ -28,4 +28,9 @@ The most straightforward way to use this is to run the Docker image that's provi
 
     docker run -p 8282:8282 l7r7/gitlab-ci-build-statuses:latest
 
-You can set the environment variables beforehand or set them in the Docker command using the `-e` flag.
+You can set the environment variables `-e` flag.
+
+### API
+Currently, the app exposes two endpoints:
+* `/statuses`: Responds an HTML page that shows the current statuses of the pipelines
+* `/health`: Responds with a status indicating if the app is ready to serve requests
