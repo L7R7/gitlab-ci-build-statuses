@@ -9,17 +9,14 @@ import Core.Lib
 import Env
 import Katip
 import RIO
-import System.Metrics
 
-data App
-  = App
-      { statuses :: !(IORef BuildStatuses),
-        config :: !Config,
-        ekgStore :: !Store,
-        logNamespace :: !Namespace,
-        logContext :: !LogContexts,
-        logEnv :: !LogEnv
-      }
+data App = App
+  { statuses :: !(IORef BuildStatuses),
+    config :: !Config,
+    logNamespace :: !Namespace,
+    logContext :: !LogContexts,
+    logEnv :: !LogEnv
+  }
 
 instance Katip (RIO App) where
   getLogEnv = asks logEnv
@@ -33,9 +30,6 @@ instance KatipContext (RIO App) where
 
 instance HasConfig App where
   configL = lens config (\app iJC -> app {config = iJC})
-
-instance HasStore App where
-  storeL = lens ekgStore (\app st -> app {ekgStore = st})
 
 instance HasApiToken App where
   apiTokenL = lens (apiToken . config) (\app token -> app {config = (config app) {apiToken = token}})

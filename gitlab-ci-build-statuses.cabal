@@ -50,9 +50,6 @@ library
     , bytestring
     , containers
     , either
-    , ekg
-    , ekg-core
-    , ekg-prometheus-adapter
     , extra
     , http-conduit
     , katip
@@ -60,18 +57,15 @@ library
     , microlens
     , mtl
     , network-uri
-    , prometheus
     , rio
     , servant
     , servant-blaze
-    , servant-ekg
     , servant-server
     , text
     , time
     , transformers
     , validation
     , wai
-    , wai-middleware-metrics
     , warp
   default-language: Haskell2010
 
@@ -86,7 +80,6 @@ executable gitlab-ci-build-statuses-exe
       base >=4.7 && <5
     , gitlab-ci-build-statuses
     , async
-    , ekg-core
     , katip
     , monad-unlift
     , rio

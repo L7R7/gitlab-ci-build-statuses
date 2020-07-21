@@ -18,7 +18,6 @@ import Env
 import Inbound.HTTP.Html
 import Katip
 import Network.Wai.Handler.Warp
-import Network.Wai.Metrics
 import RIO hiding (Handler)
 import Servant
 import Servant.HTML.Blaze
@@ -32,14 +31,11 @@ api = Proxy
 server :: (HasConfig env, HasBuildStatuses env) => ServerT API (RIO env)
 server = liftIO (return "UP") :<|> template :<|> serveDirectoryWebApp "/service/static"
 
-startServer :: (HasConfig env, HasBuildStatuses env, HasStore env, KatipContext (RIO env)) => RIO env ()
+startServer :: (HasConfig env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env ()
 startServer = do
   env <- ask
-  store <- view storeL
-  waiMetrics <- liftIO $ registerWaiMetrics store
-  let middleware = metrics waiMetrics
   logLocM InfoS "Starting server"
-  liftIO $ run 8282 $ middleware . serve api . hoist $ env
+  liftIO $ run 8282 $ serve api . hoist $ env
 
 hoist :: forall env. (HasConfig env, HasBuildStatuses env) => env -> Server API
 hoist env = hoistServer api nat server
