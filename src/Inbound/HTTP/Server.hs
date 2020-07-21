@@ -24,13 +24,13 @@ import Servant
 import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H
 
-type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> Get '[HTML] H.Html
+type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> Get '[HTML] H.Html :<|> "static" :> Raw
 
 api :: Proxy API
 api = Proxy
 
 server :: (HasConfig env, HasBuildStatuses env) => ServerT API (RIO env)
-server = liftIO (return "UP") :<|> template
+server = liftIO (return "UP") :<|> template :<|> serveDirectoryWebApp "/service/static"
 
 startServer :: (HasConfig env, HasBuildStatuses env, HasStore env, KatipContext (RIO env)) => RIO env ()
 startServer = do
