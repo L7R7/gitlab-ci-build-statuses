@@ -62,10 +62,8 @@ pageFooter = do
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
-  H.div ! classesForStatus buildStatus $
-    a ! href (toValue url) ! target "_blank" $ do
-      h3 (toHtml name)
-      p (toHtml buildStatus)
+  H.div ! classesForStatus buildStatus ! A.title (toValue buildStatus) $
+    a ! href (toValue url) ! target "_blank" $ h3 (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Running = class_ "status running"
@@ -101,3 +99,6 @@ instance ToMarkup BuildStatus where
   toMarkup Successful = string "successful"
   toMarkup Created = string "created"
   toMarkup Manual = string "manual"
+
+instance ToValue BuildStatus where
+  toValue = toValue . show
