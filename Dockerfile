@@ -11,6 +11,8 @@ RUN useradd -d /service -g service service
 RUN chown root:service /service && chmod 1770 /service
 WORKDIR /service
 
+COPY static /service/static
+
 COPY gitlab-ci-build-statuses-exe .
 CMD chmod +x /service/gitlab-ci-build-statuses-exe
 EXPOSE 8282
