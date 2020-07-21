@@ -18,6 +18,7 @@ import Env
 import Inbound.HTTP.Html
 import Katip
 import Network.Wai.Handler.Warp
+import Network.Wai.Middleware.Prometheus (def, prometheus)
 import RIO hiding (Handler)
 import Servant
 import Servant.HTML.Blaze
@@ -35,7 +36,8 @@ startServer :: (HasConfig env, HasBuildStatuses env, KatipContext (RIO env)) => 
 startServer = do
   env <- ask
   logLocM InfoS "Starting server"
-  liftIO $ run 8282 $ serve api . hoist $ env
+  let metricsMiddleware = prometheus def
+  liftIO $ run 8282 $ metricsMiddleware . serve api . hoist $ env
 
 hoist :: forall env. (HasConfig env, HasBuildStatuses env) => env -> Server API
 hoist env = hoistServer api nat server

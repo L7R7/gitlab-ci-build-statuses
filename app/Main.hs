@@ -8,6 +8,7 @@ import Config (Config, parseConfigFromEnv, showErrors)
 import Control.Concurrent (forkIO)
 import Core.Lib (BuildStatuses (NoSuccessfulUpdateYet), updateStatusesRegularly)
 import Data.Validation (Validation (Failure, Success))
+import Inbound.HTTP.Metrics (registerGhcMetrics)
 import Inbound.HTTP.Server (startServer)
 import Katip
 import Outbound.Gitlab.GitlabAPI ()
@@ -28,6 +29,7 @@ main = do
 startWithEnv :: Config -> LogEnv -> IO ()
 startWithEnv config le = do
   statuses <- newIORef NoSuccessfulUpdateYet
+  registerGhcMetrics
   let app = App statuses config mempty mempty le
   _ <- forkIO $ runRIO app updateStatusesRegularly
   runRIO app startServer
