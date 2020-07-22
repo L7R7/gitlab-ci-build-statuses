@@ -40,8 +40,12 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-  - prometheus-metrics-ghc-1.0.1@sha256:d12cd520cbedff91bd193e0192056474723e953e69cdf817fb79494d110df390,1231
-  - wai-middleware-prometheus-1.0.0@sha256:1625792914fb2139f005685be8ce519111451cfb854816e430fbf54af46238b4,1314
+  - git: git@github.com:qnikst/prometheus-haskell.git
+    commit: 733b3c92a1e49eab2ded2b5e18199a2896517d52
+    subdirs:
+      - prometheus-client
+      - prometheus-metrics-ghc
+      - wai-middleware-prometheus
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
