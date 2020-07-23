@@ -40,7 +40,7 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-  - git: git@github.com:qnikst/prometheus-haskell.git
+  - github: qnikst/prometheus-haskell
     commit: 733b3c92a1e49eab2ded2b5e18199a2896517d52
     subdirs:
       - prometheus-client
