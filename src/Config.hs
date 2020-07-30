@@ -46,14 +46,13 @@ parseConfigFromEnv pc = Config <$> readApiTokenFromEnv pc <*> readGroupIdFromEnv
 showErrors :: NonEmpty ConfigError -> T.Text
 showErrors errs = T.intercalate ", " $ fmap tshow (toList errs)
 
-data Config
-  = Config
-      { apiToken :: ApiToken,
-        groupId :: GroupId,
-        gitlabBaseUrl :: BaseUrl,
-        dataUpdateIntervalMins :: DataUpdateIntervalMinutes,
-        uiUpdateIntervalSecs :: UiUpdateIntervalSeconds
-      }
+data Config = Config
+  { apiToken :: ApiToken,
+    groupId :: GroupId,
+    gitlabBaseUrl :: BaseUrl,
+    dataUpdateIntervalMins :: DataUpdateIntervalMinutes,
+    uiUpdateIntervalSecs :: UiUpdateIntervalSeconds
+  }
 
 instance Show Config where
   show (Config _ group baseUrl dataUpdate uiUpdate) =
