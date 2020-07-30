@@ -173,6 +173,7 @@ instance FromJSON BuildStatus where
     "skipped" -> pure Skipped
     "created" -> pure Created
     "manual" -> pure Manual
+    x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
