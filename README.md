@@ -2,7 +2,7 @@
 
 # gitlab-ci-build-statuses
 
-Fetch the current statuses of the latest Gitlab CI pipelines for all master branches in a Gitlab group and show them on an HTML page.
+Fetch the current statuses of the latest Gitlab CI pipelines for all default branches in a Gitlab group and show them on an HTML page.
 
 ## Usage
 
@@ -28,9 +28,10 @@ The most straightforward way to use this is to run the Docker image that's provi
 
     docker run -p 8282:8282 l7r7/gitlab-ci-build-statuses:latest
 
-You can set the environment variables `-e` flag.
+You can set the environment variables using the `-e` flag.
 
 ### API
-Currently, the app exposes two endpoints:
-* `/statuses`: Responds an HTML page that shows the current statuses of the pipelines
+The app exposes the following endpoints:
+* `/statuses`: Responds with an HTML page that shows the current statuses of the pipelines
 * `/health`: Responds with a status indicating if the app is ready to serve requests
+* `/metrics`: Returns [Prometheus](https://prometheus.io/) application metrics
