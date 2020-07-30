@@ -42,7 +42,7 @@ titleIcon NoSuccessfulUpdateYet = mempty
 titleIcon (Statuses (_, results)) = H.preEscapedToHtml icon
   where
     icon :: String
-    icon = if all (\r -> buildStatus r == Successful) results then "&#10003;" else "&#10007"
+    icon = if all (isHealthy . buildStatus) results then "&#10003;" else "&#10007"
 
 pageBody :: BuildStatuses -> Html
 pageBody buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml buildStatuses

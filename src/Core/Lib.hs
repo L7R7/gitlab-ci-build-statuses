@@ -24,6 +24,7 @@ module Core.Lib
     HasGetPipelines (..),
     UpdateError (..),
     Project (..),
+    isHealthy,
   )
 where
 
@@ -178,6 +179,13 @@ instance FromJSON BuildStatus where
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
 data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful | Created | Manual deriving (Eq, Show, Ord)
+
+isHealthy :: BuildStatus -> Bool
+isHealthy Successful = True
+isHealthy Created = True
+isHealthy Pending = True
+isHealthy Running = True
+isHealthy _ = False
 
 class HasBuildStatuses env where
   getStatuses :: RIO env BuildStatuses
