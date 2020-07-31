@@ -10,7 +10,7 @@ where
 
 import Config
 import Core.Lib
-import Data.Time (UTCTime, defaultTimeLocale, formatTime)
+import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime, getCurrentTime)
 import Env
 import RIO hiding (link)
 import Text.Blaze.Html5 as H
@@ -19,12 +19,13 @@ import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 template :: (HasUiUpdateInterval env, HasBuildStatuses env) => RIO env Html
 template = do
   updateInterval <- view uiUpdateIntervalL
-  template' updateInterval <$> getStatuses
+  now <- liftIO getCurrentTime
+  template' now updateInterval <$> getStatuses
 
-template' :: UiUpdateIntervalSeconds -> BuildStatuses -> Html
-template' updateInterval buildStatuses = do
+template' :: UTCTime -> UiUpdateIntervalSeconds -> BuildStatuses -> Html
+template' now updateInterval buildStatuses = do
   pageHeader updateInterval buildStatuses
-  pageBody buildStatuses
+  pageBody now buildStatuses
 
 pageHeader :: UiUpdateIntervalSeconds -> BuildStatuses -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) buildStatuses =
@@ -44,17 +45,17 @@ titleIcon (Statuses (_, results)) = H.preEscapedToHtml icon
     icon :: String
     icon = if all (isHealthy . buildStatus) results then "&#10003;" else "&#10007"
 
-pageBody :: BuildStatuses -> Html
-pageBody buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml buildStatuses
+pageBody :: UTCTime -> BuildStatuses -> Html
+pageBody now buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml now buildStatuses
 
-statusesToHtml :: BuildStatuses -> Html
-statusesToHtml NoSuccessfulUpdateYet = H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
-statusesToHtml (Statuses (lastUpdated, [])) = do
+statusesToHtml :: UTCTime -> BuildStatuses -> Html
+statusesToHtml _ NoSuccessfulUpdateYet = H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
+statusesToHtml now (Statuses (lastUpdated, [])) = do
   emptyResults
-  lastUpdatedToHtml lastUpdated
-statusesToHtml (Statuses (lastUpdated, results)) = do
+  lastUpdatedToHtml now lastUpdated
+statusesToHtml now (Statuses (lastUpdated, results)) = do
   toHtml (resultToHtml <$> results)
-  lastUpdatedToHtml lastUpdated
+  lastUpdatedToHtml now lastUpdated
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
@@ -71,10 +72,18 @@ resultToHtml Result {..} =
     classesForStatus Manual = class_ "status manual"
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
-lastUpdatedToHtml :: UTCTime -> Html
-lastUpdatedToHtml t = H.div ! class_ "status timestamp" $ do
+lastUpdatedToHtml :: UTCTime -> UTCTime -> Html
+lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $ do
   p "Last Update at:"
-  p (toHtml $ unwords [formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" t, "UTC"])
+  p (toHtml $ unwords [formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
+  where
+    lastUpdateTooOld = diffUTCTime now lastUpdate > 360
+    staleDataTitle
+      | lastUpdateTooOld = A.title "data is stale. Please check the logs"
+      | otherwise = mempty
+    classes
+      | lastUpdateTooOld = "status timestamp cancelled"
+      | otherwise = "status timestamp"
 
 emptyResults :: Html
 emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results for default branches found"
