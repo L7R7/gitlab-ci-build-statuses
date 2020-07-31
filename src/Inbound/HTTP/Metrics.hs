@@ -31,7 +31,7 @@ registerPipelinesOverviewMetric :: IO PipelinesOverviewGauge
 registerPipelinesOverviewMetric =
   register $
     vector "build_status" $
-      gauge (Info "metric_name" "Gauge that indicates the count of the pipeline statuses grouped by their result")
+      gauge (Info "build_pipelines_by_status_gauge" "Gauge that indicates the count of the pipeline statuses grouped by their result")
 
 registerAppMetrics :: IO Metrics
 registerAppMetrics = Metrics <$> registerPipelinesOverviewMetric
