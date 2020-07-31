@@ -70,6 +70,7 @@ resultToHtml Result {..} =
     classesForStatus Successful = class_ "status successful"
     classesForStatus Created = class_ "status created"
     classesForStatus Manual = class_ "status manual"
+    classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
 lastUpdatedToHtml :: UTCTime -> Html
 lastUpdatedToHtml t = H.div ! class_ "status timestamp" $ do
@@ -95,6 +96,7 @@ instance ToMarkup BuildStatus where
   toMarkup Successful = string "successful"
   toMarkup Created = string "created"
   toMarkup Manual = string "manual"
+  toMarkup WaitingForResource = string "waiting for resource"
 
 instance ToValue BuildStatus where
   toValue = toValue . show

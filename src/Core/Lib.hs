@@ -174,15 +174,17 @@ instance FromJSON BuildStatus where
     "skipped" -> pure Skipped
     "created" -> pure Created
     "manual" -> pure Manual
+    "waiting_for_resource" -> pure WaitingForResource
     x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
-data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful | Created | Manual deriving (Eq, Show, Ord)
+data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful | Created | Manual | WaitingForResource deriving (Eq, Show, Ord)
 
 isHealthy :: BuildStatus -> Bool
 isHealthy Successful = True
 isHealthy Created = True
+isHealthy WaitingForResource = True
 isHealthy Pending = True
 isHealthy Running = True
 isHealthy _ = False

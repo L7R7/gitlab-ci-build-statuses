@@ -5,7 +5,7 @@
     justify-content: center;
 }
 
-.empty-results, .no-successful-update, .timestamp {
+.empty-results, .no-successful-update, .waiting-for-resource, .timestamp {
     background-color: transparent;
     color: white
 }
