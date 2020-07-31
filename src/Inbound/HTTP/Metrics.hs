@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Inbound.HTTP.Metrics
@@ -11,8 +12,9 @@ module Inbound.HTTP.Metrics
   )
 where
 
-import Core.Lib (BuildStatus, BuildStatuses (..), HasBuildStatuses, Result (..), getStatuses)
-import Data.Map
+import Core.Lib (BuildStatus, BuildStatuses (..), HasBuildStatuses, Result (..), getStatuses, isHealthy)
+import Data.List (partition)
+import Data.Map hiding (partition)
 import Prometheus
 import Prometheus.Metric.GHC
 import RIO hiding (Vector, toList)
@@ -36,16 +38,21 @@ registerAppMetrics = Metrics <$> registerPipelinesOverviewMetric
 
 updatePipelinesOverviewMetric :: PipelinesOverviewGauge -> BuildStatuses -> IO ()
 updatePipelinesOverviewMetric _ NoSuccessfulUpdateYet = pure ()
-updatePipelinesOverviewMetric overviewGauge (Statuses (_, results)) = traverse_ (updateSingle overviewGauge) (toList (countByBuildStatus results))
+updatePipelinesOverviewMetric overviewGauge (Statuses (_, results)) =
+  traverse_ (updateSingle overviewGauge) (toList (countByBuildStatus results)) >> updateHealthyUnhealthy overviewGauge results
 
 updateSingle :: PipelinesOverviewGauge -> (BuildStatus, Double) -> IO ()
 updateSingle overviewGauge (status, count) = withLabel overviewGauge ((toLower . tshow) status) (`setGauge` count)
 
+updateHealthyUnhealthy :: PipelinesOverviewGauge -> [Result] -> IO ()
+updateHealthyUnhealthy overviewGauge results = do
+  let (healthyCount, unhealthyCount) = bimap length length (partition (isHealthy . buildStatus) results)
+  withLabel overviewGauge "healthy" (`setGauge` fromIntegral healthyCount)
+  withLabel overviewGauge "unhealthy" (`setGauge` fromIntegral unhealthyCount)
+  pure ()
+
 countByBuildStatus :: [Result] -> Map BuildStatus Double
 countByBuildStatus = countOccurrences buildStatus
-
-countOccurrences :: (Ord k, Num a) => (t -> k) -> [t] -> Map k a
-countOccurrences f xs = fromListWith (+) [(f x, 1) | x <- xs]
 
 updateMetrics :: (HasBuildStatuses env, HasPipelinesOverviewGauge env) => RIO env ()
 updateMetrics = do
@@ -60,3 +67,6 @@ updateMetricsRegularly = forever $ do
 
 class HasPipelinesOverviewGauge env where
   getPipelinesOverviewGaugeL :: Lens' env PipelinesOverviewGauge
+
+countOccurrences :: (Ord k, Num a) => (t -> k) -> [t] -> Map k a
+countOccurrences f xs = fromListWith (+) [(f x, 1) | x <- xs]
