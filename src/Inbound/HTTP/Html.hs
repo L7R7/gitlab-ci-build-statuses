@@ -58,8 +58,7 @@ statusesToHtml (Statuses (lastUpdated, results)) = do
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
-  H.div ! classesForStatus buildStatus ! A.title (toValue buildStatus) $
-    a ! href (toValue url) ! target "_blank" $ h3 (toHtml name)
+  a ! href (toValue url) ! target "_blank" ! classesForStatus buildStatus ! A.title (toValue buildStatus) $ h3 (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Running = class_ "status running"
