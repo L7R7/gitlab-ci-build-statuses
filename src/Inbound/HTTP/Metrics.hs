@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Inbound.HTTP.Metrics
@@ -14,6 +15,7 @@ where
 
 import Core.Lib (BuildStatus, BuildStatuses (..), HasBuildStatuses, Result (..), getStatuses, isHealthy)
 import Data.List (partition)
+import Data.List.Extra (enumerate)
 import Data.Map hiding (partition)
 import Prometheus
 import Prometheus.Metric.GHC
@@ -52,7 +54,10 @@ updateHealthyUnhealthy overviewGauge results = do
   pure ()
 
 countByBuildStatus :: [Result] -> Map BuildStatus Double
-countByBuildStatus = countOccurrences buildStatus
+countByBuildStatus results = countOccurrences buildStatus results `union` resetValues
+
+resetValues :: Map BuildStatus Double
+resetValues = fromList $ (,0) <$> enumerate
 
 updateMetrics :: (HasBuildStatuses env, HasPipelinesOverviewGauge env) => RIO env ()
 updateMetrics = do
