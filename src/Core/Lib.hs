@@ -37,14 +37,14 @@ import Data.List
 import qualified Data.Text as T hiding (partition)
 import Data.Time (UTCTime (..))
 import Katip
-import Network.HTTP.Simple (HttpException)
+import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import RIO hiding (id, logError, logInfo)
 import Prelude hiding (id)
 
 newtype GroupId = GroupId Int deriving newtype (Show)
 
-data UpdateError = HttpError HttpException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
+data UpdateError = HttpError HttpException | ConversionError JSONException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
 
 newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show)
 

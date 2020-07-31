@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Outbound.Gitlab.GitlabAPI where
@@ -9,7 +10,7 @@ import Core.Lib (GroupId, HasGetPipelines (..), HasGetProjects (..), ProjectId (
 import Data.Aeson (FromJSON)
 import Data.Coerce (coerce)
 import Env (HasApiToken, apiTokenL, baseUrlL, groupIdL)
-import Network.HTTP.Simple (Request, getResponseBody, httpJSON, parseRequest_, setRequestHeader)
+import Network.HTTP.Simple (Request, getResponseBody, httpJSONEither, parseRequest_, setRequestHeader)
 import RIO
 
 instance HasGetProjects App where
@@ -33,5 +34,5 @@ pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [base
 fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
 fetchData request = do
   token <- view apiTokenL
-  result <- try (getResponseBody <$> httpJSON (setRequestHeader "PRIVATE-TOKEN" [coerce token] request))
-  pure $ mapLeft HttpError result
+  result <- try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setRequestHeader "PRIVATE-TOKEN" [coerce token] request))
+  pure . join $ mapLeft HttpError result
