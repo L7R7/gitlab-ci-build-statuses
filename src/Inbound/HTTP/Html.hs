@@ -59,7 +59,7 @@ statusesToHtml now (Statuses (lastUpdated, results)) = do
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
-  a ! href (toValue url) ! target "_blank" ! classesForStatus buildStatus ! A.title (toValue buildStatus) $ h3 (toHtml name)
+  a ! href (either toValue toValue url) ! target "_blank" ! classesForStatus buildStatus ! A.title (toValue buildStatus) $ h3 (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Running = class_ "status running"
@@ -94,6 +94,9 @@ instance ToMarkup ProjectName where
 
 instance ToValue ProjectUrl where
   toValue (ProjectUrl uri) = toValue $ show uri
+
+instance ToValue PipelineUrl where
+  toValue (PipelineUrl uri) = toValue $ show uri
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"

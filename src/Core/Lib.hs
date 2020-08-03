@@ -16,6 +16,7 @@ module Core.Lib
     Result (..),
     GroupId (..),
     PipelineId (..),
+    PipelineUrl (..),
     ProjectName (..),
     ProjectUrl (..),
     ProjectId (..),
@@ -117,7 +118,8 @@ evalProject Project {..} = do
           then detailedStatusForPipeline projectId (pipelineId p)
           else pure Nothing
       pure $ fromMaybe st detailedStatus
-  pure $ Result projectId projectName status projectWebUrl
+  let resultUrl = bimap (const projectWebUrl) pipelineWebUrl pipeline
+  pure $ Result projectId projectName status resultUrl
 
 class HasGetPipelines env where
   getPipelines :: ProjectId -> RIO env (Either UpdateError [Pipeline])
@@ -207,7 +209,7 @@ instance FromJSON BuildStatus where
     "success-with-warnings" -> pure SuccessfulWithWarnings
     x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
-data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
+data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: Either ProjectUrl PipelineUrl} deriving (Show)
 
 data BuildStatus
   = Unknown
