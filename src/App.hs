@@ -7,7 +7,7 @@ module App where
 import Config
 import Core.Lib
 import Env
-import Inbound.HTTP.Metrics (HasPipelinesOverviewGauge (..), Metrics, currentPipelinesOverview)
+import Inbound.HTTP.Metrics (HasOutgoingHttpRequestsHistogram (..), HasPipelinesOverviewGauge (..), Metrics (..), currentPipelinesOverview)
 import Katip
 import RIO
 
@@ -49,4 +49,7 @@ instance HasUiUpdateInterval App where
   uiUpdateIntervalL = lens (uiUpdateIntervalSecs . config) (\app u -> app {config = (config app) {uiUpdateIntervalSecs = u}})
 
 instance HasPipelinesOverviewGauge App where
-  getPipelinesOverviewGaugeL = lens (currentPipelinesOverview . metrics) (\app cpo -> app {metrics = (metrics app) {currentPipelinesOverview = cpo}})
+  pipelinesOverviewGaugeL = lens (currentPipelinesOverview . metrics) (\app cpo -> app {metrics = (metrics app) {currentPipelinesOverview = cpo}})
+
+instance HasOutgoingHttpRequestsHistogram App where
+  outgoingHttpRequestsHistogramL = lens (outgoingHttpRequestsHistogram . metrics) (\app ohrh -> app {metrics = (metrics app) {outgoingHttpRequestsHistogram = ohrh}})

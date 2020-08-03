@@ -5,11 +5,13 @@
 
 module Inbound.HTTP.Metrics
   ( HasPipelinesOverviewGauge (..),
+    HasOutgoingHttpRequestsHistogram (..),
     Metrics (..),
     registerAppMetrics,
     registerGhcMetrics,
     updateMetricsRegularly,
     updatePipelinesOverviewMetric,
+    VectorWithLabel (..),
   )
 where
 
@@ -27,7 +29,9 @@ registerGhcMetrics = register ghcMetrics
 
 type PipelinesOverviewGauge = Vector Label1 Gauge
 
-newtype Metrics = Metrics {currentPipelinesOverview :: PipelinesOverviewGauge}
+type OutgoingHttpRequestsHistogram = Vector Label1 Histogram
+
+data Metrics = Metrics {currentPipelinesOverview :: PipelinesOverviewGauge, outgoingHttpRequestsHistogram :: OutgoingHttpRequestsHistogram}
 
 registerPipelinesOverviewMetric :: IO PipelinesOverviewGauge
 registerPipelinesOverviewMetric =
@@ -35,8 +39,11 @@ registerPipelinesOverviewMetric =
     vector "build_status" $
       gauge (Info "build_pipelines_by_status_gauge" "Gauge that indicates the count of the pipeline statuses grouped by their result")
 
+registerOutgoingHttpRequestsHistogram :: IO OutgoingHttpRequestsHistogram
+registerOutgoingHttpRequestsHistogram = register $ vector "path" $ histogram (Info "outgoing_http_requests_histogram" "Histogram indicating how long outgoing HTTP request durations") defaultBuckets
+
 registerAppMetrics :: IO Metrics
-registerAppMetrics = Metrics <$> registerPipelinesOverviewMetric
+registerAppMetrics = Metrics <$> registerPipelinesOverviewMetric <*> registerOutgoingHttpRequestsHistogram
 
 updatePipelinesOverviewMetric :: PipelinesOverviewGauge -> BuildStatuses -> IO ()
 updatePipelinesOverviewMetric _ NoSuccessfulUpdateYet = pure ()
@@ -61,7 +68,7 @@ resetValues = fromList $ (,0) <$> enumerate
 
 updateMetrics :: (HasBuildStatuses env, HasPipelinesOverviewGauge env) => RIO env ()
 updateMetrics = do
-  pipelinesGauge <- view getPipelinesOverviewGaugeL
+  pipelinesGauge <- view pipelinesOverviewGaugeL
   statuses <- getStatuses
   liftIO $ updatePipelinesOverviewMetric pipelinesGauge statuses
 
@@ -71,7 +78,17 @@ updateMetricsRegularly = forever $ do
   threadDelay $ 10 * 1000000
 
 class HasPipelinesOverviewGauge env where
-  getPipelinesOverviewGaugeL :: Lens' env PipelinesOverviewGauge
+  pipelinesOverviewGaugeL :: Lens' env PipelinesOverviewGauge
+
+class HasOutgoingHttpRequestsHistogram env where
+  outgoingHttpRequestsHistogramL :: Lens' env OutgoingHttpRequestsHistogram
 
 countOccurrences :: (Ord k, Num a) => (t -> k) -> [t] -> Map k a
 countOccurrences f xs = fromListWith (+) [(f x, 1) | x <- xs]
+
+data VectorWithLabel l m = VectorWithLabel (Vector l m) l
+
+instance (Label l, Observer m) => Observer (VectorWithLabel l m) where
+  observe (VectorWithLabel vctr label) value = withLabel vctr label f
+    where
+      f metric = observe metric value
