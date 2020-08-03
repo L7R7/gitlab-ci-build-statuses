@@ -15,6 +15,7 @@ module Core.Lib
     DataUpdateIntervalMinutes (..),
     Result (..),
     GroupId (..),
+    PipelineId (..),
     ProjectName (..),
     ProjectUrl (..),
     ProjectId (..),
@@ -103,17 +104,34 @@ logCurrentBuildStatuses' (Statuses statuses) = do
 evalProject :: (HasGetPipelines env, KatipContext (RIO env)) => Project -> RIO env Result
 evalProject Project {..} = do
   pipelines <- getPipelines projectId
-  let buildStatusOrUpdateError = pipelineStatus <$> (pipelines >>= pipelineForDefaultBranch projectDefaultBranch)
-  status <- case buildStatusOrUpdateError of
+  let pipeline = pipelines >>= pipelineForDefaultBranch projectDefaultBranch
+  status <- case pipeline of
     Left EmptyPipelinesResult -> pure Unknown
     Left uError -> do
       logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
       pure Unknown
-    Right st -> pure st
+    Right p -> do
+      let st = pipelineStatus p
+      detailedStatus <-
+        if st == Successful
+          then detailedStatusForPipeline projectId (pipelineId p)
+          else pure Nothing
+      pure $ fromMaybe st detailedStatus
   pure $ Result projectId projectName status projectWebUrl
 
 class HasGetPipelines env where
   getPipelines :: ProjectId -> RIO env (Either UpdateError [Pipeline])
+  getSinglePipeline :: ProjectId -> PipelineId -> RIO env (Either UpdateError DetailedPipeline)
+
+data DetailedPipeline = DetailedPipeline {detailedPipelineId :: PipelineId, detailedPipelineRef :: Ref, detailedPipelineStatus :: BuildStatus, detailedPipelineWebUrl :: PipelineUrl}
+
+instance FromJSON DetailedPipeline where
+  parseJSON = withObject "detailedPipeline" $ \dp -> do
+    detailedPipelineId <- dp .: "id"
+    detailedPipelineRef <- dp .: "ref"
+    detailedPipelineWebUrl <- dp .: "web_url"
+    detailedPipelineStatus <- dp .: "detailed_status" >>= \ds -> ds .: "group"
+    pure DetailedPipeline {..}
 
 class HasGetProjects env where
   getProjects :: RIO env (Either UpdateError [Project])
@@ -131,26 +149,37 @@ pipelineForDefaultBranch :: Ref -> [Pipeline] -> Either UpdateError Pipeline
 pipelineForDefaultBranch _ [] = Left EmptyPipelinesResult
 pipelineForDefaultBranch defaultBranch pipelines = maybeToRight NoPipelineForDefaultBranch (find (\p -> pipelineRef p == defaultBranch) pipelines)
 
+detailedStatusForPipeline :: (HasGetPipelines env, KatipContext (RIO env)) => ProjectId -> PipelineId -> RIO env (Maybe BuildStatus)
+detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId" projectId <> sl "pipelineId" pipelineId) $ do
+  singlePipelineResult <- getSinglePipeline projectId pipelineId
+  case singlePipelineResult of
+    Left uError -> do
+      logLocM WarningS . ls $ T.unwords ["Couldn't get details for pipeline, error was", tshow uError]
+      pure Nothing
+    Right dp -> pure . Just $ detailedPipelineStatus dp
+
 data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectWebUrl :: ProjectUrl, projectDefaultBranch :: Ref} deriving (Generic, Show)
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
 newtype ProjectId = ProjectId Int
   deriving (FromJSON)
-  deriving newtype (Show)
+  deriving newtype (Show, ToJSON)
 
 newtype ProjectUrl = ProjectUrl URI deriving (FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
-data Pipeline = Pipeline {pipelineId :: PipelineId, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: PipeLineUrl} deriving (Generic, Show)
+data Pipeline = Pipeline {pipelineId :: PipelineId, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: PipelineUrl} deriving (Generic, Show)
 
-newtype PipelineId = PipelineId Int deriving (Eq, FromJSON, Ord, Show)
+newtype PipelineId = PipelineId Int
+  deriving (Eq, FromJSON, Ord)
+  deriving newtype (Show, ToJSON)
 
 newtype Ref = Ref T.Text deriving newtype (Eq, FromJSON, Show)
 
-newtype PipeLineUrl = PipeLineUrl URI deriving (FromJSON, Show)
+newtype PipelineUrl = PipelineUrl URI deriving (FromJSON, Show)
 
 instance Eq Pipeline where
   (==) p p' = pipelineId p == pipelineId p'
@@ -175,11 +204,24 @@ instance FromJSON BuildStatus where
     "created" -> pure Created
     "manual" -> pure Manual
     "waiting_for_resource" -> pure WaitingForResource
+    "success-with-warnings" -> pure SuccessfulWithWarnings
     x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
 data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: ProjectUrl} deriving (Show)
 
-data BuildStatus = Unknown | Running | Failed | Cancelled | Pending | Skipped | Successful | Created | Manual | WaitingForResource deriving (Bounded, Enum, Eq, Show, Ord)
+data BuildStatus
+  = Unknown
+  | Running
+  | Failed
+  | Cancelled
+  | Pending
+  | Skipped
+  | Successful
+  | Created
+  | Manual
+  | WaitingForResource
+  | SuccessfulWithWarnings
+  deriving (Bounded, Enum, Eq, Show, Ord)
 
 isHealthy :: BuildStatus -> Bool
 isHealthy Successful = True

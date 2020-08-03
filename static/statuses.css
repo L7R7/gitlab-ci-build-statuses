@@ -5,7 +5,7 @@
     justify-content: center;
 }
 
-.empty-results, .no-successful-update, .waiting-for-resource, .timestamp {
+.empty-results, .no-successful-update, .timestamp {
     background-color: transparent;
     color: white
 }
@@ -22,7 +22,7 @@
     background-color: blue;
 }
 
-.cancelled {
+.cancelled, .waiting-for-resource, .passed-with-warnings {
     background-color: orange;
 }
 

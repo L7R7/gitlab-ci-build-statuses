@@ -71,6 +71,7 @@ resultToHtml Result {..} =
     classesForStatus Created = class_ "status created"
     classesForStatus Manual = class_ "status manual"
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
+    classesForStatus SuccessfulWithWarnings = class_ "status passed-with-warnings"
 
 lastUpdatedToHtml :: UTCTime -> UTCTime -> Html
 lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $ do
@@ -105,6 +106,7 @@ instance ToMarkup BuildStatus where
   toMarkup Created = string "created"
   toMarkup Manual = string "manual"
   toMarkup WaitingForResource = string "waiting for resource"
+  toMarkup SuccessfulWithWarnings = string "successful with warnings"
 
 instance ToValue BuildStatus where
   toValue = toValue . show

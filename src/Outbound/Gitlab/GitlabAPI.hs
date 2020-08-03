@@ -6,7 +6,7 @@ module Outbound.Gitlab.GitlabAPI where
 
 import App
 import Config (ApiToken (..), BaseUrl (..))
-import Core.Lib (GroupId, HasGetPipelines (..), HasGetProjects (..), ProjectId (..), UpdateError (..))
+import Core.Lib (GroupId, HasGetPipelines (..), HasGetProjects (..), PipelineId (..), ProjectId (..), UpdateError (..))
 import Data.Aeson (FromJSON)
 import Data.Coerce (coerce)
 import Env (HasApiToken, apiTokenL, baseUrlL, groupIdL)
@@ -27,11 +27,17 @@ instance HasGetPipelines App where
   getPipelines pId = do
     baseUrl <- view baseUrlL
     fetchData $ pipelinesRequest baseUrl pId
+  getSinglePipeline project pipeline = do
+    baseUrl <- view baseUrlL
+    fetchData $ singlePipelineRequest baseUrl project pipeline
 
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
 pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
 
-fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError [a])
+singlePipelineRequest :: BaseUrl -> ProjectId -> PipelineId -> Request
+singlePipelineRequest (BaseUrl baseUrl) (ProjectId project) (PipelineId pipeline) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show project, "/pipelines/", show pipeline]
+
+fetchData :: (HasApiToken env, FromJSON a) => Request -> RIO env (Either UpdateError a)
 fetchData request = do
   token <- view apiTokenL
   result <- try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setRequestHeader "PRIVATE-TOKEN" [coerce token] request))
