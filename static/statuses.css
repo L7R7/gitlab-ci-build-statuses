@@ -30,7 +30,7 @@
     background-color: #e0b400;
 }
 
-.waiting-for-resource {
+.pending, .waiting-for-resource {
     background-color: #8936b2;
 }
 
