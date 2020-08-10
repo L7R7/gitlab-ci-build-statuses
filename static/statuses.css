@@ -11,19 +11,23 @@
 }
 
 .successful {
-    background-color: green;
+    background-color: #388729;
 }
 
 .failed {
-    background-color: red;
+    background-color: #c41934;
 }
 
 .running {
-    background-color: blue;
+    background-color: #1857B8;
 }
 
-.cancelled, .waiting-for-resource, .passed-with-warnings {
-    background-color: orange;
+.passed-with-warnings {
+    background-color: #fa6400;
+}
+
+.cancelled, .waiting-for-resource {
+    background-color: #e0b400;
 }
 
 .statuses {
