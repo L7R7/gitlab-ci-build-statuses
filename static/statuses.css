@@ -26,8 +26,12 @@
     background-color: #fa6400;
 }
 
-.cancelled, .waiting-for-resource {
+.cancelled {
     background-color: #e0b400;
+}
+
+.waiting-for-resource {
+    background-color: #8936b2;
 }
 
 .statuses {
