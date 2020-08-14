@@ -15,7 +15,7 @@ module Inbound.HTTP.Metrics
   )
 where
 
-import Core.Lib (BuildStatus, BuildStatuses (..), HasBuildStatuses, Result (..), getStatuses, isHealthy)
+import Core.Lib (BuildStatus, BuildStatuses (..), HasBuildStatuses, Result (..), UpdateJobDurationHistogram, getStatuses, isHealthy)
 import Data.List (partition)
 import Data.List.Extra (enumerate)
 import Data.Map hiding (partition)
@@ -31,7 +31,11 @@ type PipelinesOverviewGauge = Vector Label1 Gauge
 
 type OutgoingHttpRequestsHistogram = Vector Label1 Histogram
 
-data Metrics = Metrics {currentPipelinesOverview :: PipelinesOverviewGauge, outgoingHttpRequestsHistogram :: OutgoingHttpRequestsHistogram}
+data Metrics = Metrics
+  { currentPipelinesOverview :: !PipelinesOverviewGauge,
+    outgoingHttpRequestsHistogram :: !OutgoingHttpRequestsHistogram,
+    updateJobDurationHistogram :: !UpdateJobDurationHistogram
+  }
 
 registerPipelinesOverviewMetric :: IO PipelinesOverviewGauge
 registerPipelinesOverviewMetric =
@@ -42,8 +46,11 @@ registerPipelinesOverviewMetric =
 registerOutgoingHttpRequestsHistogram :: IO OutgoingHttpRequestsHistogram
 registerOutgoingHttpRequestsHistogram = register $ vector "path" $ histogram (Info "outgoing_http_requests_histogram" "Histogram indicating how long outgoing HTTP request durations") defaultBuckets
 
+registerUpdateJobDurationHistogram :: IO UpdateJobDurationHistogram
+registerUpdateJobDurationHistogram = register $ histogram (Info "update_job_duration_histogram" "Histogram indicating how long the update job took") (exponentialBuckets 3 1.5 10)
+
 registerAppMetrics :: IO Metrics
-registerAppMetrics = Metrics <$> registerPipelinesOverviewMetric <*> registerOutgoingHttpRequestsHistogram
+registerAppMetrics = Metrics <$> registerPipelinesOverviewMetric <*> registerOutgoingHttpRequestsHistogram <*> registerUpdateJobDurationHistogram
 
 updatePipelinesOverviewMetric :: PipelinesOverviewGauge -> BuildStatuses -> IO ()
 updatePipelinesOverviewMetric _ NoSuccessfulUpdateYet = pure ()

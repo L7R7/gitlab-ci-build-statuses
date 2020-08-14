@@ -27,6 +27,8 @@ module Core.Lib
     UpdateError (..),
     Project (..),
     isHealthy,
+    UpdateJobDurationHistogram,
+    HasUpdateJobDurationHistogram (..),
   )
 where
 
@@ -41,6 +43,7 @@ import Data.Time (UTCTime (..))
 import Katip
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
+import Prometheus (Histogram, MonadMonitor, observeDuration)
 import RIO hiding (id, logError, logInfo)
 import Prelude hiding (id)
 
@@ -53,14 +56,21 @@ newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show
 class HasDataUpdateInterval env where
   dataUpdateIntervalL :: Lens' env DataUpdateIntervalMinutes
 
-updateStatusesRegularly :: (HasGetProjects env, HasGetPipelines env, HasDataUpdateInterval env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env ()
+type UpdateJobDurationHistogram = Histogram
+
+class HasUpdateJobDurationHistogram env where
+  hasUpdateJobDurationHistogramL :: Lens' env UpdateJobDurationHistogram
+
+updateStatusesRegularly :: (HasGetProjects env, HasGetPipelines env, HasDataUpdateInterval env, HasBuildStatuses env, HasUpdateJobDurationHistogram env, MonadMonitor (RIO env), KatipContext (RIO env)) => RIO env ()
 updateStatusesRegularly =
-  katipAddNamespace "update" $
+  katipAddNamespace "update" $ do
+    histogram <- view hasUpdateJobDurationHistogramL
+    updateInterval <- view dataUpdateIntervalL
     forever $ do
-      logLocM InfoS "updating build statuses"
-      results <- updateStatuses
-      katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
-      updateInterval <- view dataUpdateIntervalL
+      observeDuration histogram $ do
+        logLocM InfoS "updating build statuses"
+        results <- updateStatuses
+        katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
       threadDelay $ calculateDelay updateInterval
 
 calculateDelay :: DataUpdateIntervalMinutes -> Int

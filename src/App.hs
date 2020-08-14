@@ -9,6 +9,7 @@ import Core.Lib
 import Env
 import Inbound.HTTP.Metrics (HasOutgoingHttpRequestsHistogram (..), HasPipelinesOverviewGauge (..), Metrics (..), currentPipelinesOverview)
 import Katip
+import Prometheus (MonadMonitor (..))
 import RIO
 
 data App = App
@@ -53,3 +54,9 @@ instance HasPipelinesOverviewGauge App where
 
 instance HasOutgoingHttpRequestsHistogram App where
   outgoingHttpRequestsHistogramL = lens (outgoingHttpRequestsHistogram . metrics) (\app ohrh -> app {metrics = (metrics app) {outgoingHttpRequestsHistogram = ohrh}})
+
+instance HasUpdateJobDurationHistogram App where
+  hasUpdateJobDurationHistogramL = lens (updateJobDurationHistogram . metrics) (\app ujdh -> app {metrics = (metrics app) {updateJobDurationHistogram = ujdh}})
+
+instance MonadMonitor (RIO App) where
+  doIO = liftIO
