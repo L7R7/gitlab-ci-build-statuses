@@ -1,4 +1,6 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -20,7 +22,7 @@ import Data.List.NonEmpty hiding (group, toList)
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Validation
-import Network.HTTP.Simple (parseRequest)
+import Network.URI (URI, parseAbsoluteURI)
 import RIO hiding (logError, logInfo)
 import qualified RIO.Map as Map
 import RIO.Process
@@ -67,7 +69,7 @@ instance Show Config where
 
 newtype ApiToken = ApiToken B.ByteString
 
-newtype BaseUrl = BaseUrl String deriving (Show)
+newtype BaseUrl = BaseUrl URI deriving newtype (Show)
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 
@@ -93,11 +95,11 @@ readGroupIdFromEnv pc = do
 
 readBaseUrlFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) BaseUrl
 readBaseUrlFromEnv pc = do
-  let maybeBaseUrl = envFromPC pc envBaseUrl
-  let urlValid = isJust $ maybeBaseUrl >>= (parseRequest . T.unpack)
-  if urlValid
-    then maybe urlMissing (\s -> _Success # BaseUrl (T.unpack s)) maybeBaseUrl
-    else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) maybeBaseUrl
+  let valueFromEnv = envFromPC pc envBaseUrl
+  let baseUrl = valueFromEnv >>= parseAbsoluteURI . T.unpack
+  if isJust baseUrl
+    then maybe urlMissing (\url -> _Success # BaseUrl url) baseUrl
+    else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) valueFromEnv
   where
     urlMissing = _Failure # single GitlabBaseUrlMissing
 

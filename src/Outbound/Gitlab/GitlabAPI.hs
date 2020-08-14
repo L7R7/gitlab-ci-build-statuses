@@ -23,7 +23,7 @@ instance HasGetProjects App where
 
 projectsRequest :: BaseUrl -> GroupId -> Request
 projectsRequest baseUrl gId =
-  parseRequest_ $ mconcat [coerce baseUrl, "/api/v4/groups/", show gId, "/projects?per_page=100&simple=true&include_subgroups=true"]
+  parseRequest_ $ mconcat [show baseUrl, "/api/v4/groups/", show gId, "/projects?per_page=100&simple=true&include_subgroups=true"]
 
 instance HasGetPipelines App where
   getPipelines pId = do
@@ -34,10 +34,10 @@ instance HasGetPipelines App where
     fetchData "/api/v4/projects/{projectId}/pipelines/{pipelineId}" $ singlePipelineRequest baseUrl project pipeline
 
 pipelinesRequest :: BaseUrl -> ProjectId -> Request
-pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
+pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [show baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
 
 singlePipelineRequest :: BaseUrl -> ProjectId -> PipelineId -> Request
-singlePipelineRequest (BaseUrl baseUrl) (ProjectId project) (PipelineId pipeline) = parseRequest_ $ mconcat [baseUrl, "/api/v4/projects/", show project, "/pipelines/", show pipeline]
+singlePipelineRequest (BaseUrl baseUrl) (ProjectId project) (PipelineId pipeline) = parseRequest_ $ mconcat [show baseUrl, "/api/v4/projects/", show project, "/pipelines/", show pipeline]
 
 fetchData :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a) => Text -> Request -> RIO env (Either UpdateError a)
 fetchData metricLabel request = do
