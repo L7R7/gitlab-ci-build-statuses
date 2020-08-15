@@ -11,7 +11,6 @@ import Burrito
 import Config (ApiToken (..), BaseUrl (..))
 import Core.Lib (HasGetPipelines (..), HasGetProjects (..), UpdateError (..))
 import Data.Aeson (FromJSON)
-import Data.Coerce (coerce)
 import Data.Text (pack)
 import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
 import Inbound.HTTP.Metrics
@@ -33,7 +32,11 @@ instance HasGetPipelines App where
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
     fetchData template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)]
 
-fetchData :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) => Template -> [(String, Value)] -> RIO env (Either UpdateError a)
+fetchData ::
+  (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) =>
+  Template ->
+  [(String, Value)] ->
+  RIO env (Either UpdateError a)
 fetchData template vars = do
   (ApiToken token) <- view apiTokenL
   (BaseUrl baseUrl) <- view baseUrlL
@@ -41,5 +44,8 @@ fetchData template vars = do
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
     (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
     Right request -> do
-      result <- liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setRequestHeader "PRIVATE-TOKEN" [coerce token] request)))
+      result <- measure histogram (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (addToken token request)))
       pure . join $ mapLeft HttpError result
+  where
+    addToken token = setRequestHeader "PRIVATE-TOKEN" [token]
+    measure histogram action = liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) action
