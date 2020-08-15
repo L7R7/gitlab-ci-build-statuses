@@ -1,47 +1,42 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Outbound.Gitlab.GitlabAPI where
+module Outbound.Gitlab.GitlabAPI () where
 
 import App
+import Burrito
 import Config (ApiToken (..), BaseUrl (..))
-import Core.Lib (GroupId, HasGetPipelines (..), HasGetProjects (..), PipelineId (..), ProjectId (..), UpdateError (..))
+import Core.Lib (HasGetPipelines (..), HasGetProjects (..), UpdateError (..))
 import Data.Aeson (FromJSON)
 import Data.Coerce (coerce)
-import Env (HasApiToken, apiTokenL, baseUrlL, groupIdL)
+import Data.Text (pack)
+import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
 import Inbound.HTTP.Metrics
-import Network.HTTP.Simple (Request, getResponseBody, httpJSONEither, parseRequest_, setRequestHeader)
+import Network.HTTP.Simple (getResponseBody, httpJSONEither, parseRequest_, setRequestHeader)
 import Prometheus (observeDuration)
 import RIO
 
 instance HasGetProjects App where
   getProjects = do
-    baseUrl <- view baseUrlL
     group <- view groupIdL
-    fetchData "/api/v4/groups/{groupId}/projects" $ projectsRequest baseUrl group
-
-projectsRequest :: BaseUrl -> GroupId -> Request
-projectsRequest baseUrl gId =
-  parseRequest_ $ mconcat [show baseUrl, "/api/v4/groups/", show gId, "/projects?per_page=100&simple=true&include_subgroups=true"]
+    let template = [uriTemplate|/api/v4/groups/{groupId}/projects?per_page=100&simple=true&include_subgroups=true|]
+    fetchData template [("groupId", (stringValue . show) group)]
 
 instance HasGetPipelines App where
-  getPipelines pId = do
-    baseUrl <- view baseUrlL
-    fetchData "/api/v4/projects/{projectId}/pipelines" $ pipelinesRequest baseUrl pId
+  getPipelines project = do
+    let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines|]
+    fetchData template [("projectId", (stringValue . show) project)]
   getSinglePipeline project pipeline = do
-    baseUrl <- view baseUrlL
-    fetchData "/api/v4/projects/{projectId}/pipelines/{pipelineId}" $ singlePipelineRequest baseUrl project pipeline
+    let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
+    fetchData template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)]
 
-pipelinesRequest :: BaseUrl -> ProjectId -> Request
-pipelinesRequest (BaseUrl baseUrl) (ProjectId i) = parseRequest_ $ mconcat [show baseUrl, "/api/v4/projects/", show i, "/pipelines?scope=branches"]
-
-singlePipelineRequest :: BaseUrl -> ProjectId -> PipelineId -> Request
-singlePipelineRequest (BaseUrl baseUrl) (ProjectId project) (PipelineId pipeline) = parseRequest_ $ mconcat [show baseUrl, "/api/v4/projects/", show project, "/pipelines/", show pipeline]
-
-fetchData :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a) => Text -> Request -> RIO env (Either UpdateError a)
-fetchData metricLabel request = do
+fetchData :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) => Template -> [(String, Value)] -> RIO env (Either UpdateError a)
+fetchData template vars = do
   token <- view apiTokenL
+  (BaseUrl baseUrl) <- view baseUrlL
   histogram <- view outgoingHttpRequestsHistogramL
-  result <- liftIO $ observeDuration (VectorWithLabel histogram metricLabel) (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setRequestHeader "PRIVATE-TOKEN" [coerce token] request)))
+  let request = parseRequest_ $ show baseUrl <> "/" <> expand vars template
+  result <- liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setRequestHeader "PRIVATE-TOKEN" [coerce token] request)))
   pure . join $ mapLeft HttpError result

@@ -47,6 +47,7 @@ library
     , aeson-casing
     , async
     , blaze-html
+    , burrito
     , bytestring
     , containers
     , either
