@@ -45,7 +45,6 @@ import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import Prometheus (Histogram, MonadMonitor, observeDuration)
 import RIO hiding (id, logError, logInfo)
-import Prelude hiding (id)
 
 newtype GroupId = GroupId Int deriving newtype (Show)
 
