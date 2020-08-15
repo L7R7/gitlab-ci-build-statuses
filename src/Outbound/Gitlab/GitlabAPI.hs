@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -14,7 +15,7 @@ import Data.Coerce (coerce)
 import Data.Text (pack)
 import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
 import Inbound.HTTP.Metrics
-import Network.HTTP.Simple (getResponseBody, httpJSONEither, parseRequest_, setRequestHeader)
+import Network.HTTP.Simple (getResponseBody, httpJSONEither, parseRequest, setRequestHeader)
 import Prometheus (observeDuration)
 import RIO
 
@@ -34,9 +35,11 @@ instance HasGetPipelines App where
 
 fetchData :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) => Template -> [(String, Value)] -> RIO env (Either UpdateError a)
 fetchData template vars = do
-  token <- view apiTokenL
+  (ApiToken token) <- view apiTokenL
   (BaseUrl baseUrl) <- view baseUrlL
   histogram <- view outgoingHttpRequestsHistogramL
-  let request = parseRequest_ $ show baseUrl <> "/" <> expand vars template
-  result <- liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setRequestHeader "PRIVATE-TOKEN" [coerce token] request)))
-  pure . join $ mapLeft HttpError result
+  try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
+    (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
+    Right request -> do
+      result <- liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setRequestHeader "PRIVATE-TOKEN" [coerce token] request)))
+      pure . join $ mapLeft HttpError result
