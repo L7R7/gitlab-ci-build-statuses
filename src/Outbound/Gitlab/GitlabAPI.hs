@@ -14,7 +14,7 @@ import Data.Aeson (FromJSON)
 import Data.Text (pack)
 import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
 import Inbound.HTTP.Metrics
-import Network.HTTP.Simple (getResponseBody, httpJSONEither, parseRequest, setRequestHeader)
+import Network.HTTP.Simple (Request, getResponseBody, httpJSONEither, parseRequest, setRequestHeader)
 import Prometheus (observeDuration)
 import RIO
 
@@ -38,14 +38,17 @@ fetchData ::
   [(String, Value)] ->
   RIO env (Either UpdateError a)
 fetchData template vars = do
-  (ApiToken token) <- view apiTokenL
   (BaseUrl baseUrl) <- view baseUrlL
-  histogram <- view outgoingHttpRequestsHistogramL
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
     (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
-    Right request -> do
-      result <- measure histogram (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (addToken token request)))
-      pure . join $ mapLeft HttpError result
+    Right request -> fetchData' request template
+
+fetchData' :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a) => Request -> Template -> RIO env (Either UpdateError a)
+fetchData' request template = do
+  (ApiToken token) <- view apiTokenL
+  histogram <- view outgoingHttpRequestsHistogramL
+  result <- measure histogram (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (addToken token request)))
+  pure . join $ mapLeft HttpError result
   where
     addToken token = setRequestHeader "PRIVATE-TOKEN" [token]
     measure histogram action = liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) action
