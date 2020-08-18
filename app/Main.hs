@@ -6,10 +6,11 @@ module Main where
 import App (App (App))
 import Config (Config, parseConfigFromEnv, showErrors)
 import Control.Concurrent (forkIO)
-import Core.Lib (BuildStatuses (NoSuccessfulUpdateYet), updateStatusesRegularly)
+import Core.Lib (BuildStatuses (NoSuccessfulUpdateYet))
 import Data.Validation (Validation (Failure, Success))
 import Inbound.HTTP.Metrics (registerAppMetrics, registerGhcMetrics, updateMetricsRegularly)
 import Inbound.HTTP.Server (startServer)
+import Inbound.Jobs.Inbound.Jobs.Updating (updateStatusesRegularly)
 import Katip
 import Outbound.Gitlab.GitlabAPI ()
 import Outbound.Storage.InMemory ()

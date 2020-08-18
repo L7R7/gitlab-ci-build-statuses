@@ -33,6 +33,7 @@ library
     , Env
     , Inbound.HTTP.Html
     , Inbound.HTTP.Metrics
+    , Inbound.Jobs.Inbound.Jobs.Updating
     , Inbound.HTTP.Server
     , Outbound.Gitlab.GitlabAPI
     , Outbound.Storage.InMemory

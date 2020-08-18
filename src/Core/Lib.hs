@@ -9,7 +9,6 @@
 
 module Core.Lib
   ( updateStatuses,
-    updateStatusesRegularly,
     BuildStatus (..),
     BuildStatuses (..),
     DataUpdateIntervalMinutes (..),
@@ -18,7 +17,6 @@ module Core.Lib
     Id (..),
     Url (..),
     ProjectName (..),
-    HasDataUpdateInterval (..),
     HasGetProjects (..),
     HasBuildStatuses (..),
     HasGetPipelines (..),
@@ -27,8 +25,6 @@ module Core.Lib
     Pipeline,
     Project (..),
     isHealthy,
-    UpdateJobDurationHistogram,
-    HasUpdateJobDurationHistogram (..),
   )
 where
 
@@ -43,7 +39,6 @@ import Data.Time (UTCTime (..))
 import Katip
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
-import Prometheus (Histogram, MonadMonitor, observeDuration)
 import RIO hiding (id, logError, logInfo)
 
 newtype GroupId = GroupId Int deriving newtype (Show)
@@ -51,32 +46,6 @@ newtype GroupId = GroupId Int deriving newtype (Show)
 data UpdateError = HttpError HttpException | ConversionError JSONException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
 
 newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show)
-
-class HasDataUpdateInterval env where
-  dataUpdateIntervalL :: Lens' env DataUpdateIntervalMinutes
-
-type UpdateJobDurationHistogram = Histogram
-
-class HasUpdateJobDurationHistogram env where
-  hasUpdateJobDurationHistogramL :: Lens' env UpdateJobDurationHistogram
-
-updateStatusesRegularly :: (HasGetProjects env, HasGetPipelines env, HasDataUpdateInterval env, HasBuildStatuses env, HasUpdateJobDurationHistogram env, MonadMonitor (RIO env), KatipContext (RIO env)) => RIO env ()
-updateStatusesRegularly =
-  katipAddNamespace "update" $ do
-    histogram <- view hasUpdateJobDurationHistogramL
-    updateInterval <- view dataUpdateIntervalL
-    forever $ do
-      observeDuration histogram $ do
-        logLocM InfoS "updating build statuses"
-        results <- updateStatuses
-        katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
-      threadDelay $ calculateDelay updateInterval
-
-calculateDelay :: DataUpdateIntervalMinutes -> Int
-calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * oneSecond
-
-oneSecond :: Int
-oneSecond = 1000000
 
 updateStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
 updateStatuses = do

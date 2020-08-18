@@ -15,10 +15,11 @@ module Inbound.HTTP.Metrics
   )
 where
 
-import Core.Lib (BuildStatus, BuildStatuses (..), HasBuildStatuses, Result (..), UpdateJobDurationHistogram, getStatuses, isHealthy)
+import Core.Lib (BuildStatus, BuildStatuses (..), HasBuildStatuses, Result (..), getStatuses, isHealthy)
 import Data.List (partition)
 import Data.List.Extra (enumerate)
 import Data.Map hiding (partition)
+import Inbound.Jobs.Inbound.Jobs.Updating (UpdateJobDurationHistogram)
 import Prometheus
 import Prometheus.Metric.GHC
 import RIO hiding (Vector, toList)

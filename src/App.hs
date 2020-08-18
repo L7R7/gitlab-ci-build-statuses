@@ -8,6 +8,7 @@ import Config
 import Core.Lib
 import Env
 import Inbound.HTTP.Metrics (HasOutgoingHttpRequestsHistogram (..), HasPipelinesOverviewGauge (..), Metrics (..), currentPipelinesOverview)
+import Inbound.Jobs.Inbound.Jobs.Updating (HasDataUpdateInterval (..), HasUpdateJobDurationHistogram (..))
 import Katip
 import Prometheus (MonadMonitor (..))
 import RIO
