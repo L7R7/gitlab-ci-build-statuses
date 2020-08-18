@@ -10,7 +10,7 @@ module Outbound.Gitlab.GitlabAPI () where
 import App
 import Burrito
 import Config (ApiToken (..), BaseUrl (..))
-import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Pipeline, PipelineId, Project, ProjectId, UpdateError (..))
+import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id, Pipeline, Project, UpdateError (..))
 import Data.Aeson (FromJSON)
 import Data.Text (pack)
 import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
@@ -27,11 +27,11 @@ instance HasGetProjects App where
     fetchData template [("groupId", (stringValue . show) group)]
 
 instance HasGetPipelines App where
-  getPipelines :: ProjectId -> RIO App (Either UpdateError [Pipeline])
+  getPipelines :: Id Project -> RIO App (Either UpdateError [Pipeline])
   getPipelines project = do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines|]
     fetchData template [("projectId", (stringValue . show) project)]
-  getSinglePipeline :: ProjectId -> PipelineId -> RIO App (Either UpdateError DetailedPipeline)
+  getSinglePipeline :: Id Project -> Id Pipeline -> RIO App (Either UpdateError DetailedPipeline)
   getSinglePipeline project pipeline = do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
     fetchData template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)]

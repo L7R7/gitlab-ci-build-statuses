@@ -15,11 +15,10 @@ module Core.Lib
     DataUpdateIntervalMinutes (..),
     Result (..),
     GroupId (..),
-    PipelineId (..),
+    Id (..),
     PipelineUrl (..),
     ProjectName (..),
     ProjectUrl (..),
-    ProjectId (..),
     HasDataUpdateInterval (..),
     HasGetProjects (..),
     HasBuildStatuses (..),
@@ -133,10 +132,10 @@ evalProject Project {..} = do
   pure $ Result projectId projectName status resultUrl
 
 class HasGetPipelines env where
-  getPipelines :: ProjectId -> RIO env (Either UpdateError [Pipeline])
-  getSinglePipeline :: ProjectId -> PipelineId -> RIO env (Either UpdateError DetailedPipeline)
+  getPipelines :: Id Project -> RIO env (Either UpdateError [Pipeline])
+  getSinglePipeline :: Id Project -> Id Pipeline -> RIO env (Either UpdateError DetailedPipeline)
 
-data DetailedPipeline = DetailedPipeline {detailedPipelineId :: PipelineId, detailedPipelineRef :: Ref, detailedPipelineStatus :: BuildStatus, detailedPipelineWebUrl :: PipelineUrl}
+data DetailedPipeline = DetailedPipeline {detailedPipelineId :: Id Pipeline, detailedPipelineRef :: Ref, detailedPipelineStatus :: BuildStatus, detailedPipelineWebUrl :: PipelineUrl}
 
 instance FromJSON DetailedPipeline where
   parseJSON = withObject "detailedPipeline" $ \dp -> do
@@ -162,7 +161,7 @@ pipelineForDefaultBranch :: Ref -> [Pipeline] -> Either UpdateError Pipeline
 pipelineForDefaultBranch _ [] = Left EmptyPipelinesResult
 pipelineForDefaultBranch defaultBranch pipelines = maybeToRight NoPipelineForDefaultBranch (find (\p -> pipelineRef p == defaultBranch) pipelines)
 
-detailedStatusForPipeline :: (HasGetPipelines env, KatipContext (RIO env)) => ProjectId -> PipelineId -> RIO env (Maybe BuildStatus)
+detailedStatusForPipeline :: (HasGetPipelines env, KatipContext (RIO env)) => Id Project -> Id Pipeline -> RIO env (Maybe BuildStatus)
 detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId" projectId <> sl "pipelineId" pipelineId) $ do
   singlePipelineResult <- getSinglePipeline projectId pipelineId
   case singlePipelineResult of
@@ -171,22 +170,18 @@ detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId"
       pure Nothing
     Right dp -> pure . Just $ detailedPipelineStatus dp
 
-data Project = Project {projectId :: ProjectId, projectName :: ProjectName, projectWebUrl :: ProjectUrl, projectDefaultBranch :: Ref} deriving (Generic, Show)
+data Project = Project {projectId :: Id Project, projectName :: ProjectName, projectWebUrl :: ProjectUrl, projectDefaultBranch :: Ref} deriving (Generic, Show)
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
-
-newtype ProjectId = ProjectId Int
-  deriving (FromJSON)
-  deriving newtype (Show, ToJSON)
 
 newtype ProjectUrl = ProjectUrl URI deriving (FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
-data Pipeline = Pipeline {pipelineId :: PipelineId, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: PipelineUrl} deriving (Generic, Show)
+data Pipeline = Pipeline {pipelineId :: Id Pipeline, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: PipelineUrl} deriving (Generic, Show)
 
-newtype PipelineId = PipelineId Int
+newtype Id a = Id Int
   deriving (Eq, FromJSON, Ord)
   deriving newtype (Show, ToJSON)
 
@@ -220,7 +215,7 @@ instance FromJSON BuildStatus where
     "success-with-warnings" -> pure SuccessfulWithWarnings
     x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
-data Result = Result {projId :: ProjectId, name :: ProjectName, buildStatus :: BuildStatus, url :: Either ProjectUrl PipelineUrl} deriving (Show)
+data Result = Result {projId :: Id Project, name :: ProjectName, buildStatus :: BuildStatus, url :: Either ProjectUrl PipelineUrl} deriving (Show)
 
 data BuildStatus
   = Unknown
