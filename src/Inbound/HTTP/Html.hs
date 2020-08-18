@@ -92,11 +92,8 @@ emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results fo
 instance ToMarkup ProjectName where
   toMarkup (ProjectName pN) = toMarkup pN
 
-instance ToValue ProjectUrl where
-  toValue (ProjectUrl uri) = toValue $ show uri
-
-instance ToValue PipelineUrl where
-  toValue (PipelineUrl uri) = toValue $ show uri
+instance ToValue (Url a) where
+  toValue (Url url) = toValue $ show url
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"

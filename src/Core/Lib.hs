@@ -16,9 +16,8 @@ module Core.Lib
     Result (..),
     GroupId (..),
     Id (..),
-    PipelineUrl (..),
+    Url (..),
     ProjectName (..),
-    ProjectUrl (..),
     HasDataUpdateInterval (..),
     HasGetProjects (..),
     HasBuildStatuses (..),
@@ -135,7 +134,7 @@ class HasGetPipelines env where
   getPipelines :: Id Project -> RIO env (Either UpdateError [Pipeline])
   getSinglePipeline :: Id Project -> Id Pipeline -> RIO env (Either UpdateError DetailedPipeline)
 
-data DetailedPipeline = DetailedPipeline {detailedPipelineId :: Id Pipeline, detailedPipelineRef :: Ref, detailedPipelineStatus :: BuildStatus, detailedPipelineWebUrl :: PipelineUrl}
+data DetailedPipeline = DetailedPipeline {detailedPipelineId :: Id Pipeline, detailedPipelineRef :: Ref, detailedPipelineStatus :: BuildStatus, detailedPipelineWebUrl :: Url Pipeline}
 
 instance FromJSON DetailedPipeline where
   parseJSON = withObject "detailedPipeline" $ \dp -> do
@@ -170,24 +169,25 @@ detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId"
       pure Nothing
     Right dp -> pure . Just $ detailedPipelineStatus dp
 
-data Project = Project {projectId :: Id Project, projectName :: ProjectName, projectWebUrl :: ProjectUrl, projectDefaultBranch :: Ref} deriving (Generic, Show)
+data Project = Project {projectId :: Id Project, projectName :: ProjectName, projectWebUrl :: Url Project, projectDefaultBranch :: Ref} deriving (Generic, Show)
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
-
-newtype ProjectUrl = ProjectUrl URI deriving (FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
-data Pipeline = Pipeline {pipelineId :: Id Pipeline, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: PipelineUrl} deriving (Generic, Show)
+data Pipeline = Pipeline {pipelineId :: Id Pipeline, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: Url Pipeline} deriving (Generic, Show)
 
 newtype Id a = Id Int
   deriving (Eq, FromJSON, Ord)
   deriving newtype (Show, ToJSON)
 
-newtype Ref = Ref T.Text deriving newtype (Eq, FromJSON, Show)
+newtype Url a = Url URI deriving (Show)
 
-newtype PipelineUrl = PipelineUrl URI deriving (FromJSON, Show)
+instance FromJSON (Url a) where
+  parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
+
+newtype Ref = Ref T.Text deriving newtype (Eq, FromJSON, Show)
 
 instance Eq Pipeline where
   (==) p p' = pipelineId p == pipelineId p'
@@ -197,9 +197,6 @@ instance Ord Pipeline where
 
 instance FromJSON Pipeline where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
-
-instance FromJSON URI where
-  parseJSON = withText "URI" $ \v -> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
 
 instance FromJSON BuildStatus where
   parseJSON = withText "BuildStatus" $ \case
@@ -215,7 +212,7 @@ instance FromJSON BuildStatus where
     "success-with-warnings" -> pure SuccessfulWithWarnings
     x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
-data Result = Result {projId :: Id Project, name :: ProjectName, buildStatus :: BuildStatus, url :: Either ProjectUrl PipelineUrl} deriving (Show)
+data Result = Result {projId :: Id Project, name :: ProjectName, buildStatus :: BuildStatus, url :: Either (Url Project) (Url Pipeline)} deriving (Show)
 
 data BuildStatus
   = Unknown
