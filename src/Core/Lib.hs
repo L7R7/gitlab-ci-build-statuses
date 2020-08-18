@@ -234,7 +234,12 @@ isHealthy Created = True
 isHealthy WaitingForResource = True
 isHealthy Pending = True
 isHealthy Running = True
-isHealthy _ = False
+isHealthy Unknown = False
+isHealthy Failed = False
+isHealthy Cancelled = False
+isHealthy Skipped = False
+isHealthy Manual = False
+isHealthy SuccessfulWithWarnings = False
 
 class HasBuildStatuses env where
   getStatuses :: RIO env BuildStatuses
