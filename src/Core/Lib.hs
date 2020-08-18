@@ -25,6 +25,8 @@ module Core.Lib
     HasBuildStatuses (..),
     HasGetPipelines (..),
     UpdateError (..),
+    DetailedPipeline,
+    Pipeline,
     Project (..),
     isHealthy,
     UpdateJobDurationHistogram,
