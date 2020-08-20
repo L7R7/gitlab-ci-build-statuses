@@ -59,7 +59,7 @@ currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentB
 currentBuildStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
 currentBuildStatuses = do
   projects <- findProjects
-  results <- traverse evalProject projects
+  results <- mapConcurrently evalProject projects
   logCurrentBuildStatuses
   pure $ sortOn (T.toLower . coerce . name) results
 
