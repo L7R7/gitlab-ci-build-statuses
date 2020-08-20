@@ -6,6 +6,7 @@
 module Inbound.HTTP.Metrics
   ( HasPipelinesOverviewGauge (..),
     HasOutgoingHttpRequestsHistogram (..),
+    OutgoingHttpRequestsHistogram,
     Metrics (..),
     registerAppMetrics,
     registerGhcMetrics,
