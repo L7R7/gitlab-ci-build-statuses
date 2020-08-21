@@ -25,6 +25,7 @@ module Core.Lib
     DetailedPipeline,
     Pipeline,
     Project (..),
+    Ref (..),
     isHealthy,
   )
 where
@@ -33,7 +34,6 @@ import Control.Monad
 import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
-import Data.Either.Combinators (maybeToRight)
 import Data.List
 import qualified Data.Text as T hiding (partition)
 import Data.Time (UTCTime (..))
@@ -84,10 +84,10 @@ logCurrentBuildStatuses' (Statuses statuses) = do
 
 evalProject :: (HasGetPipelines env, KatipContext (RIO env)) => Project -> RIO env Result
 evalProject Project {..} = do
-  pipelines <- getPipelines projectId
-  let pipeline = pipelines >>= pipelineForDefaultBranch projectDefaultBranch
+  pipeline <- getLatestPipelineForRef projectId projectDefaultBranch
   status <- case pipeline of
     Left EmptyPipelinesResult -> pure Unknown
+    Left NoPipelineForDefaultBranch -> pure Unknown
     Left uError -> do
       logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
       pure Unknown
@@ -102,7 +102,7 @@ evalProject Project {..} = do
   pure $ Result projectId projectName status resultUrl
 
 class HasGetPipelines env where
-  getPipelines :: Id Project -> RIO env (Either UpdateError [Pipeline])
+  getLatestPipelineForRef :: Id Project -> Ref -> RIO env (Either UpdateError Pipeline)
   getSinglePipeline :: Id Project -> Id Pipeline -> RIO env (Either UpdateError DetailedPipeline)
 
 data DetailedPipeline = DetailedPipeline {detailedPipelineId :: Id Pipeline, detailedPipelineRef :: Ref, detailedPipelineStatus :: BuildStatus, detailedPipelineWebUrl :: Url Pipeline}
@@ -129,10 +129,6 @@ findProjects = do
       logLocM InfoS . ls $ T.unwords ["Couldn't load projects. Error was", tshow err]
       pure []
     Right ps -> pure ps
-
-pipelineForDefaultBranch :: Ref -> [Pipeline] -> Either UpdateError Pipeline
-pipelineForDefaultBranch _ [] = Left EmptyPipelinesResult
-pipelineForDefaultBranch defaultBranch pipelines = maybeToRight NoPipelineForDefaultBranch (find (\p -> pipelineRef p == defaultBranch) pipelines)
 
 detailedStatusForPipeline :: (HasGetPipelines env, KatipContext (RIO env)) => Id Project -> Id Pipeline -> RIO env (Maybe BuildStatus)
 detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId" projectId <> sl "pipelineId" pipelineId) $ do

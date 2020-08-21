@@ -11,10 +11,10 @@ module Outbound.Gitlab.GitlabAPI () where
 import App
 import Burrito
 import Config (ApiToken (..), BaseUrl (..), maxConcurrency)
-import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id, Pipeline, Project, UpdateError (..))
+import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id (..), Pipeline, Project, Ref (..), UpdateError (..))
 import Data.Aeson (FromJSON)
 import Data.List (find)
-import Data.Text (pack)
+import Data.Text (pack, unpack)
 import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
 import Inbound.HTTP.Metrics
 import Network.HTTP.Client.Conduit (requestFromURI_, responseTimeout, responseTimeoutMicro)
@@ -34,14 +34,19 @@ instance HasGetProjects App where
   maxConcurrencyL = to (maxConcurrency . config)
 
 instance HasGetPipelines App where
-  getPipelines :: Id Project -> RIO App (Either UpdateError [Pipeline])
-  getPipelines project = do
-    let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines|]
-    fetchData template [("projectId", (stringValue . show) project)]
+  getLatestPipelineForRef :: Id Project -> Ref -> RIO App (Either UpdateError Pipeline)
+  getLatestPipelineForRef (Id project) (Ref ref) = do
+    let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines?ref={ref}&per_page=1|]
+    headOrUpdateError <$> fetchData template [("projectId", (stringValue . show) project), ("ref", (stringValue . unpack) ref)]
   getSinglePipeline :: Id Project -> Id Pipeline -> RIO App (Either UpdateError DetailedPipeline)
   getSinglePipeline project pipeline = do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
     fetchData template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)]
+
+headOrUpdateError :: Either UpdateError [a] -> Either UpdateError a
+headOrUpdateError (Right (a : _)) = Right a
+headOrUpdateError (Right _) = Left NoPipelineForDefaultBranch
+headOrUpdateError (Left e) = Left e
 
 fetchData ::
   (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) =>
