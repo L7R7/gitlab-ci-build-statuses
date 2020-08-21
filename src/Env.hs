@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Env where
+module Env (HasConfig (..), HasApiToken (..), HasBaseUrl (..), HasGroupId (..), HasUiUpdateInterval (..)) where
 
 import Config
 import Core.Lib (GroupId)

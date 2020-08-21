@@ -1,7 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Outbound.Storage.InMemory where
+module Outbound.Storage.InMemory () where
 
 import App
 import Core.Lib (BuildStatuses (..), HasBuildStatuses (..), Result)

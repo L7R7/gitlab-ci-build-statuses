@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module App where
+module App (App (..)) where
 
 import Config
 import Core.Lib
