@@ -10,7 +10,7 @@ module Outbound.Gitlab.GitlabAPI () where
 
 import App
 import Burrito
-import Config (ApiToken (..), BaseUrl (..))
+import Config (ApiToken (..), BaseUrl (..), maxConcurrency)
 import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id, Pipeline, Project, UpdateError (..))
 import Data.Aeson (FromJSON)
 import Data.List (find)
@@ -31,6 +31,7 @@ instance HasGetProjects App where
     group <- view groupIdL
     let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true|]
     fetchDataPaginated template [("groupId", (stringValue . show) group)]
+  maxConcurrencyL = to (maxConcurrency . config)
 
 instance HasGetPipelines App where
   getPipelines :: Id Project -> RIO App (Either UpdateError [Pipeline])

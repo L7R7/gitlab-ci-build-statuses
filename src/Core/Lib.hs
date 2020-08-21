@@ -12,6 +12,7 @@ module Core.Lib
     BuildStatus (..),
     BuildStatuses (..),
     DataUpdateIntervalMinutes (..),
+    MaxConcurrency (..),
     Result (..),
     GroupId (..),
     Id (..),
@@ -59,7 +60,8 @@ currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentB
 currentBuildStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
 currentBuildStatuses = do
   projects <- findProjects
-  results <- pooledMapConcurrentlyN 5 evalProject projects
+  (MaxConcurrency concurrency) <- view maxConcurrencyL
+  results <- pooledMapConcurrentlyN concurrency evalProject projects
   logCurrentBuildStatuses
   pure $ sortOn (T.toLower . coerce . name) results
 
@@ -115,6 +117,9 @@ instance FromJSON DetailedPipeline where
 
 class HasGetProjects env where
   getProjects :: RIO env (Either UpdateError [Project])
+  maxConcurrencyL :: SimpleGetter env MaxConcurrency
+
+newtype MaxConcurrency = MaxConcurrency Int deriving (Show)
 
 findProjects :: (HasGetProjects env, KatipContext (RIO env)) => RIO env [Project]
 findProjects = do

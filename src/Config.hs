@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Config
@@ -16,8 +17,9 @@ module Config
 where
 
 import Control.Lens
-import Core.Lib (DataUpdateIntervalMinutes (..), GroupId (..))
+import Core.Lib (DataUpdateIntervalMinutes (..), GroupId (..), MaxConcurrency (..))
 import qualified Data.ByteString as B hiding (pack)
+import Data.List (find)
 import Data.List.NonEmpty hiding (group, toList)
 import Data.Maybe
 import qualified Data.Text as T
@@ -42,8 +44,17 @@ envDataUpdateInterval = "DATA_UPDATE_INTERVAL_MINS"
 envUiUpdateInterval :: T.Text
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
+envMaxConcurrency :: T.Text
+envMaxConcurrency = "MAX_CONCURRENCY"
+
 parseConfigFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) Config
-parseConfigFromEnv pc = Config <$> readApiTokenFromEnv pc <*> readGroupIdFromEnv pc <*> readBaseUrlFromEnv pc <*> pure (readDataUpdateIntervalFromEnv pc) <*> pure (readUiUpdateIntervalFromEnv pc)
+parseConfigFromEnv pc =
+  Config <$> readApiTokenFromEnv pc
+    <*> readGroupIdFromEnv pc
+    <*> readBaseUrlFromEnv pc
+    <*> pure (readDataUpdateIntervalFromEnv pc)
+    <*> pure (readUiUpdateIntervalFromEnv pc)
+    <*> pure (readMaxConcurrencyFromEnv pc)
 
 showErrors :: NonEmpty ConfigError -> T.Text
 showErrors errs = T.intercalate ", " $ fmap tshow (toList errs)
@@ -53,19 +64,22 @@ data Config = Config
     groupId :: GroupId,
     gitlabBaseUrl :: BaseUrl,
     dataUpdateIntervalMins :: DataUpdateIntervalMinutes,
-    uiUpdateIntervalSecs :: UiUpdateIntervalSeconds
+    uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
+    maxConcurrency :: MaxConcurrency
   }
 
 instance Show Config where
-  show (Config _ group baseUrl dataUpdate uiUpdate) =
+  show Config {..} =
     "Config: GroupId "
-      <> show group
+      <> show groupId
       <> ", Base URL "
-      <> show baseUrl
-      <> ", Data Update interval(mins) "
-      <> show dataUpdate
-      <> ", UI interval(secs) "
-      <> show uiUpdate
+      <> show gitlabBaseUrl
+      <> ", "
+      <> show dataUpdateIntervalMins
+      <> ", "
+      <> show uiUpdateIntervalSecs
+      <> ", "
+      <> show maxConcurrency
 
 newtype ApiToken = ApiToken B.ByteString
 
@@ -112,6 +126,11 @@ readUiUpdateIntervalFromEnv :: ProcessContext -> UiUpdateIntervalSeconds
 readUiUpdateIntervalFromEnv pc = UiUpdateIntervalSeconds $ fromMaybe 60 maybeUpdateInterval
   where
     maybeUpdateInterval = envFromPC pc envUiUpdateInterval >>= (readMaybe . T.unpack) >>= filterUpdateInterval
+
+readMaxConcurrencyFromEnv :: ProcessContext -> MaxConcurrency
+readMaxConcurrencyFromEnv pc = MaxConcurrency $ fromMaybe 5 maybeMaxConcurrency
+  where
+    maybeMaxConcurrency = find (> 0) (envFromPC pc envMaxConcurrency >>= (readMaybe . T.unpack))
 
 filterUpdateInterval :: Int -> Maybe Int
 filterUpdateInterval i

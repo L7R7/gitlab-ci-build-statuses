@@ -24,7 +24,9 @@ main = do
   bracket mkLogEnv closeScribes $ \logEnv -> do
     processContext <- mkDefaultProcessContext
     case parseConfigFromEnv processContext of
-      Success config -> startWithEnv config logEnv
+      Success config -> do
+        runKatipContextT logEnv () mempty $ logLocM InfoS . ls $ "Using config: " <> show config
+        startWithEnv config logEnv
       Failure errs -> runKatipContextT logEnv () mempty $ logLocM ErrorS . ls $ "Failed to parse config. Exiting now. Errors were: " <> showErrors errs
 
 startWithEnv :: Config -> LogEnv -> IO ()
