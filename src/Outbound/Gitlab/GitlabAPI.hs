@@ -17,7 +17,7 @@ import Data.List (find)
 import Data.Text (pack)
 import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
 import Inbound.HTTP.Metrics
-import Network.HTTP.Client.Conduit (requestFromURI_)
+import Network.HTTP.Client.Conduit (requestFromURI_, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
 import Network.HTTP.Simple (Request, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
@@ -57,7 +57,7 @@ fetchData' :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a
 fetchData' request template = do
   token <- view apiTokenL
   histogram <- view outgoingHttpRequestsHistogramL
-  result <- measure histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (addToken token request)))
+  result <- measure histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken token request)))
   pure . join $ mapLeft HttpError result
 
 fetchDataPaginated ::
@@ -83,7 +83,7 @@ fetchDataPaginated' ::
   RIO env (Either UpdateError [a])
 fetchDataPaginated' apiToken histogram template request acc = do
   result <- try $ do
-    response <- measure histogram template $ httpJSONEither (addToken apiToken request)
+    response <- measure histogram template $ httpJSONEither (setTimeout $ addToken apiToken request)
     let next = parseNextRequest response
     case mapLeft ConversionError $ getResponseBody response of
       Left err -> pure $ Left err
@@ -102,6 +102,9 @@ isNextLink _ = False
 
 addToken :: ApiToken -> Request -> Request
 addToken (ApiToken token) = setRequestHeader "PRIVATE-TOKEN" [token]
+
+setTimeout :: Request -> Request
+setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 
 measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> RIO env a
 measure histogram template action = liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) action
