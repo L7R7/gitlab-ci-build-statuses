@@ -46,7 +46,7 @@ extra-deps:
       - prometheus-client
       - prometheus-metrics-ghc
       - wai-middleware-prometheus
-  - burrito-1.1.0.2@sha256:40125c5b42394274a21c278e2832391c7f6861130e375331d74c632ac65f1ea6,2877
+  - burrito-1.2.0.0@sha256:13490e501d3ce017cc9ba7774d0b1263f72f22e8f755c8f0b7cbd2e8d555f2ae,2877
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
