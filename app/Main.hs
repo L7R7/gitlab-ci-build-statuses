@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Main where
+module Main (main) where
 
 import App (App (App))
 import Config (Config, parseConfigFromEnv, showErrors)
