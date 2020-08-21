@@ -52,17 +52,17 @@ updateStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env
 updateStatuses = do
   currentStatuses <- currentKnownBuildStatuses
   _ <- setStatuses currentStatuses
+  logCurrentBuildStatuses
   pure currentStatuses
 
-currentKnownBuildStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
+currentKnownBuildStatuses :: (HasGetProjects env, HasGetPipelines env, KatipContext (RIO env)) => RIO env [Result]
 currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses
 
-currentBuildStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
+currentBuildStatuses :: (HasGetProjects env, HasGetPipelines env, KatipContext (RIO env)) => RIO env [Result]
 currentBuildStatuses = do
   projects <- findProjects
   (MaxConcurrency concurrency) <- view maxConcurrencyL
   results <- pooledMapConcurrentlyN concurrency evalProject projects
-  logCurrentBuildStatuses
   pure $ sortOn (T.toLower . coerce . name) results
 
 logCurrentBuildStatuses :: (HasBuildStatuses env, KatipContext (RIO env)) => RIO env ()
