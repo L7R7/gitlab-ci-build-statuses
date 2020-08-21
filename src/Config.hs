@@ -128,7 +128,7 @@ readUiUpdateIntervalFromEnv pc = UiUpdateIntervalSeconds $ fromMaybe 5 maybeUpda
     maybeUpdateInterval = find (> 0) (envFromPC pc envUiUpdateInterval >>= (readMaybe . T.unpack))
 
 readMaxConcurrencyFromEnv :: ProcessContext -> MaxConcurrency
-readMaxConcurrencyFromEnv pc = MaxConcurrency $ fromMaybe 5 maybeMaxConcurrency
+readMaxConcurrencyFromEnv pc = MaxConcurrency $ fromMaybe 2 maybeMaxConcurrency
   where
     maybeMaxConcurrency = find (> 0) (envFromPC pc envMaxConcurrency >>= (readMaybe . T.unpack))
 
