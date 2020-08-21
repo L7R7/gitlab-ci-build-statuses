@@ -30,7 +30,7 @@ oneSecond = 1000000
 type UpdateJobDurationHistogram = Histogram
 
 class HasDataUpdateInterval env where
-  dataUpdateIntervalL :: Lens' env DataUpdateIntervalMinutes
+  dataUpdateIntervalL :: SimpleGetter env DataUpdateIntervalMinutes
 
 class HasUpdateJobDurationHistogram env where
-  hasUpdateJobDurationHistogramL :: Lens' env UpdateJobDurationHistogram
+  hasUpdateJobDurationHistogramL :: SimpleGetter env UpdateJobDurationHistogram

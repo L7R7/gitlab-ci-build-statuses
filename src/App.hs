@@ -33,31 +33,31 @@ instance KatipContext (RIO App) where
   localKatipNamespace f (RIO app) = RIO (local (\s -> s {logNamespace = f (logNamespace s)}) app)
 
 instance HasConfig App where
-  configL = lens config (\app iJC -> app {config = iJC})
+  configL = to config
 
 instance HasApiToken App where
-  apiTokenL = lens (apiToken . config) (\app token -> app {config = (config app) {apiToken = token}})
+  apiTokenL = to (apiToken . config)
 
 instance HasBaseUrl App where
-  baseUrlL = lens (gitlabBaseUrl . config) (\app u -> app {config = (config app) {gitlabBaseUrl = u}})
+  baseUrlL = to (gitlabBaseUrl . config)
 
 instance HasGroupId App where
-  groupIdL = lens (groupId . config) (\app g -> app {config = (config app) {groupId = g}})
+  groupIdL = to (groupId . config)
 
 instance HasDataUpdateInterval App where
-  dataUpdateIntervalL = lens (dataUpdateIntervalMins . config) (\app d -> app {config = (config app) {dataUpdateIntervalMins = d}})
+  dataUpdateIntervalL = to (dataUpdateIntervalMins . config)
 
 instance HasUiUpdateInterval App where
-  uiUpdateIntervalL = lens (uiUpdateIntervalSecs . config) (\app u -> app {config = (config app) {uiUpdateIntervalSecs = u}})
+  uiUpdateIntervalL = to (uiUpdateIntervalSecs . config)
 
 instance HasPipelinesOverviewGauge App where
-  pipelinesOverviewGaugeL = lens (currentPipelinesOverview . metrics) (\app cpo -> app {metrics = (metrics app) {currentPipelinesOverview = cpo}})
+  pipelinesOverviewGaugeL = to (currentPipelinesOverview . metrics)
 
 instance HasOutgoingHttpRequestsHistogram App where
-  outgoingHttpRequestsHistogramL = lens (outgoingHttpRequestsHistogram . metrics) (\app ohrh -> app {metrics = (metrics app) {outgoingHttpRequestsHistogram = ohrh}})
+  outgoingHttpRequestsHistogramL = to (outgoingHttpRequestsHistogram . metrics)
 
 instance HasUpdateJobDurationHistogram App where
-  hasUpdateJobDurationHistogramL = lens (updateJobDurationHistogram . metrics) (\app ujdh -> app {metrics = (metrics app) {updateJobDurationHistogram = ujdh}})
+  hasUpdateJobDurationHistogramL = to (updateJobDurationHistogram . metrics)
 
 instance MonadMonitor (RIO App) where
   doIO = liftIO

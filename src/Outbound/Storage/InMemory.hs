@@ -18,5 +18,5 @@ instance HasBuildStatuses App where
     let res = Statuses (updateTime, results)
     liftIO $ atomicModifyIORef' store (const (res, res))
 
-readBuildStatuses :: Lens' App (IORef BuildStatuses)
-readBuildStatuses = lens statuses (\app st -> app {statuses = st})
+readBuildStatuses :: SimpleGetter App (IORef BuildStatuses)
+readBuildStatuses = to statuses

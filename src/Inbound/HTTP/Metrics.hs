@@ -87,10 +87,10 @@ updateMetricsRegularly = forever $ do
   threadDelay $ 10 * 1000000
 
 class HasPipelinesOverviewGauge env where
-  pipelinesOverviewGaugeL :: Lens' env PipelinesOverviewGauge
+  pipelinesOverviewGaugeL :: SimpleGetter env PipelinesOverviewGauge
 
 class HasOutgoingHttpRequestsHistogram env where
-  outgoingHttpRequestsHistogramL :: Lens' env OutgoingHttpRequestsHistogram
+  outgoingHttpRequestsHistogramL :: SimpleGetter env OutgoingHttpRequestsHistogram
 
 countOccurrences :: (Ord k, Num a) => (t -> k) -> [t] -> Map k a
 countOccurrences f xs = fromListWith (+) [(f x, 1) | x <- xs]

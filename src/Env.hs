@@ -10,16 +10,16 @@ import Inbound.Jobs.Inbound.Jobs.Updating (HasDataUpdateInterval)
 import RIO
 
 class (HasApiToken env, HasBaseUrl env, HasGroupId env, HasDataUpdateInterval env, HasUiUpdateInterval env) => HasConfig env where
-  configL :: Lens' env Config
+  configL :: SimpleGetter env Config
 
 class HasApiToken env where
-  apiTokenL :: Lens' env ApiToken
+  apiTokenL :: SimpleGetter env ApiToken
 
 class HasBaseUrl env where
-  baseUrlL :: Lens' env BaseUrl
+  baseUrlL :: SimpleGetter env BaseUrl
 
 class HasGroupId env where
-  groupIdL :: Lens' env GroupId
+  groupIdL :: SimpleGetter env GroupId
 
 class HasUiUpdateInterval env where
-  uiUpdateIntervalL :: Lens' env UiUpdateIntervalSeconds
+  uiUpdateIntervalL :: SimpleGetter env UiUpdateIntervalSeconds
