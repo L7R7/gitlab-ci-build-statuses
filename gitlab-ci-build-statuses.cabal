@@ -55,6 +55,7 @@ library
     , extra
     , http-conduit
     , http-link-header
+    , http-types
     , katip
     , lens
     , microlens
