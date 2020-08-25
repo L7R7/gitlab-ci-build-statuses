@@ -1,0 +1,5 @@
+ignore = [
+    { id = "OBS-STAN-0103-8wuoIq-32:47" },
+    { id = "OBS-STAN-0103-wV31sx-67:46" },
+    { id = "OBS-STAN-0103-wV31sx-67:53" }
+]

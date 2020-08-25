@@ -41,7 +41,7 @@ library
       Paths_gitlab_ci_build_statuses
   hs-source-dirs:
       src
-  ghc-options: -Wall -threaded -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -fno-warn-orphans
+  ghc-options: -Wall -threaded -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -fno-warn-orphans -fwrite-ide-info -hiedir=.hie
   build-depends:
       base >=4.7 && <5
     , aeson
@@ -75,6 +75,7 @@ library
     , wai-middleware-prometheus
     , warp
   default-language: Haskell2010
+  default-extensions: StrictData
 
 executable gitlab-ci-build-statuses-exe
   main-is: Main.hs
@@ -82,7 +83,7 @@ executable gitlab-ci-build-statuses-exe
       Paths_gitlab_ci_build_statuses
   hs-source-dirs:
       app
-  ghc-options: -Wall -threaded -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -rtsopts -with-rtsopts=-T
+  ghc-options: -Wall -threaded -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -rtsopts -with-rtsopts=-T -fwrite-ide-info -hiedir=.hie
   build-depends:
       base >=4.7 && <5
     , gitlab-ci-build-statuses
