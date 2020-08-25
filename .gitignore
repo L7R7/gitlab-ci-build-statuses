@@ -4,4 +4,6 @@ stack.yaml.lock
 .idea/
 target/
 *.iml
+*.hie
+.hie/
 *~
