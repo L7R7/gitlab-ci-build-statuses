@@ -11,14 +11,14 @@ module Outbound.Gitlab.GitlabAPI () where
 import App
 import Burrito
 import Config (ApiToken (..), BaseUrl (..), maxConcurrency)
-import Control.Lens (filtered, _2)
+import Control.Lens (Prism', Traversal', filtered, prism', _1, _2)
 import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id (..), Pipeline, Project, Ref (..), UpdateError (..))
 import Data.Aeson (FromJSON)
 import Data.List (find)
 import Data.Text (pack, unpack)
 import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
 import Inbound.HTTP.Metrics
-import Network.HTTP.Client.Conduit (requestFromURI_, requestHeaders, responseTimeout, responseTimeoutMicro)
+import Network.HTTP.Client.Conduit (HttpExceptionContent, requestFromURI_, requestHeaders, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
 import Network.HTTP.Simple (HttpException (..), Request, RequestHeaders, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
@@ -117,18 +117,23 @@ setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> RIO env a
 measure histogram template action = liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) action
 
--- TODO: 2020-08-24 use even more lenses?
 removeApiTokenFromHeader :: HttpException -> HttpException
-removeApiTokenFromHeader (HttpExceptionRequest request reason) = HttpExceptionRequest requestWithoutApiToken reason
+removeApiTokenFromHeader = set (reqPrism . _1 . headers . tokenHeader) "xxxxx"
+
+reqPrism :: Prism' HttpException (Request, HttpExceptionContent)
+reqPrism = prism' (uncurry HttpExceptionRequest) extract
   where
-    requestWithoutApiToken = updateRequest request
-removeApiTokenFromHeader ex = ex
+    extract (HttpExceptionRequest request reason) = Just (request, reason)
+    extract _ = Nothing
+
+tokenHeader :: Traversal' RequestHeaders ByteString
+tokenHeader = traverse . filtered (\header -> fst header == privateToken) . _2
 
 privateToken :: HeaderName
 privateToken = "PRIVATE-TOKEN"
 
-updateRequest :: Request -> Request
-updateRequest req = req {requestHeaders = updateHeaders (requestHeaders req)}
-
-updateHeaders :: RequestHeaders -> RequestHeaders
-updateHeaders headers = headers & traverse . filtered (\header -> fst header == privateToken) %~ set _2 "xxxxxx"
+headers :: Lens' Request RequestHeaders
+headers = lens getter setter
+  where
+    getter = requestHeaders
+    setter r h = r {requestHeaders = h}
