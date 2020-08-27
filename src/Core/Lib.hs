@@ -14,7 +14,7 @@ module Core.Lib
     DataUpdateIntervalMinutes (..),
     MaxConcurrency (..),
     Result (..),
-    GroupId (..),
+    Group,
     Id (..),
     Url (..),
     ProjectName (..),
@@ -42,7 +42,7 @@ import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import RIO hiding (id, logError, logInfo)
 
-newtype GroupId = GroupId Int deriving newtype (Show)
+data Group
 
 data UpdateError = HttpError HttpException | ConversionError JSONException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
 
@@ -148,9 +148,7 @@ instance FromJSON Project where
 
 data Pipeline = Pipeline {pipelineId :: Id Pipeline, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: Url Pipeline} deriving (Generic, Show)
 
-newtype Id a = Id Int
-  deriving (Eq, FromJSON, Ord)
-  deriving newtype (Show, ToJSON)
+newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
 
 newtype Url a = Url URI deriving (Show)
 

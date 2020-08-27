@@ -1,15 +1,14 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Config
   ( ApiToken (..),
-    BaseUrl (..),
     Config (..),
     ConfigError (..),
+    GitlabHost,
     UiUpdateIntervalSeconds (..),
     parseConfigFromEnv,
     showErrors,
@@ -17,14 +16,14 @@ module Config
 where
 
 import Control.Lens
-import Core.Lib (DataUpdateIntervalMinutes (..), GroupId (..), MaxConcurrency (..))
+import Core.Lib (DataUpdateIntervalMinutes (..), Group, Id (..), MaxConcurrency (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
 import Data.List (find)
 import Data.List.NonEmpty hiding (group, toList)
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Validation
-import Network.URI (URI, parseAbsoluteURI)
+import Network.URI (parseAbsoluteURI)
 import RIO hiding (logError, logInfo)
 import qualified RIO.Map as Map
 import RIO.Process
@@ -61,8 +60,8 @@ showErrors errs = T.intercalate ", " $ fmap tshow (toList errs)
 
 data Config = Config
   { apiToken :: ApiToken,
-    groupId :: GroupId,
-    gitlabBaseUrl :: BaseUrl,
+    groupId :: Id Group,
+    gitlabBaseUrl :: Url GitlabHost,
     dataUpdateIntervalMins :: DataUpdateIntervalMinutes,
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
     maxConcurrency :: MaxConcurrency
@@ -83,7 +82,7 @@ instance Show Config where
 
 newtype ApiToken = ApiToken B.ByteString
 
-newtype BaseUrl = BaseUrl URI deriving newtype (Show)
+data GitlabHost
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 
@@ -100,19 +99,19 @@ readApiTokenFromEnv pc = do
   let maybeGroupId = encodeUtf8 <$> envFromPC pc envApiToken
   maybe (_Failure # single ApiTokenMissing) (\token -> _Success # ApiToken token) maybeGroupId
 
-readGroupIdFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) GroupId
+readGroupIdFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) (Id Group)
 readGroupIdFromEnv pc = do
   let maybeGroupId = do
         groupIdString <- T.unpack <$> envFromPC pc envGroupId
         readMaybe groupIdString
-  maybe (_Failure # single GroupIdMissing) (\gId -> _Success # GroupId gId) maybeGroupId
+  maybe (_Failure # single GroupIdMissing) (\gId -> _Success # Id gId) maybeGroupId
 
-readBaseUrlFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) BaseUrl
+readBaseUrlFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) (Url GitlabHost)
 readBaseUrlFromEnv pc = do
   let valueFromEnv = envFromPC pc envBaseUrl
   let baseUrl = valueFromEnv >>= parseAbsoluteURI . T.unpack
   if isJust baseUrl
-    then maybe urlMissing (\url -> _Success # BaseUrl url) baseUrl
+    then maybe urlMissing (\url -> _Success # Url url) baseUrl
     else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) valueFromEnv
   where
     urlMissing = _Failure # single GitlabBaseUrlMissing

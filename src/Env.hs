@@ -5,7 +5,7 @@
 module Env (HasConfig (..), HasApiToken (..), HasBaseUrl (..), HasGroupId (..), HasUiUpdateInterval (..)) where
 
 import Config
-import Core.Lib (GroupId)
+import Core.Lib (Group, Id, Url)
 import Inbound.Jobs.Inbound.Jobs.Updating (HasDataUpdateInterval)
 import RIO
 
@@ -16,10 +16,10 @@ class HasApiToken env where
   apiTokenL :: SimpleGetter env ApiToken
 
 class HasBaseUrl env where
-  baseUrlL :: SimpleGetter env BaseUrl
+  baseUrlL :: SimpleGetter env (Url GitlabHost)
 
 class HasGroupId env where
-  groupIdL :: SimpleGetter env GroupId
+  groupIdL :: SimpleGetter env (Id Group)
 
 class HasUiUpdateInterval env where
   uiUpdateIntervalL :: SimpleGetter env UiUpdateIntervalSeconds

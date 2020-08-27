@@ -10,9 +10,9 @@ module Outbound.Gitlab.GitlabAPI () where
 
 import App
 import Burrito
-import Config (ApiToken (..), BaseUrl (..), maxConcurrency)
+import Config (ApiToken (..), maxConcurrency)
 import Control.Lens (Prism', Traversal', filtered, prism', _1, _2)
-import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id (..), Pipeline, Project, Ref (..), UpdateError (..))
+import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id (..), Pipeline, Project, Ref (..), UpdateError (..), Url (..))
 import Data.Aeson (FromJSON)
 import Data.List (find)
 import Data.Text (pack, unpack)
@@ -56,7 +56,7 @@ fetchData ::
   [(String, Value)] ->
   RIO env (Either UpdateError a)
 fetchData template vars = do
-  (BaseUrl baseUrl) <- view baseUrlL
+  (Url baseUrl) <- view baseUrlL
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
     (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
     Right request -> fetchData' request template
@@ -75,7 +75,7 @@ fetchDataPaginated ::
   RIO env (Either UpdateError [a])
 fetchDataPaginated template vars = do
   token <- view apiTokenL
-  (BaseUrl baseUrl) <- view baseUrlL
+  (Url baseUrl) <- view baseUrlL
   histogram <- view outgoingHttpRequestsHistogramL
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
     (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
