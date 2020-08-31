@@ -84,22 +84,28 @@ logCurrentBuildStatuses' (Statuses statuses) = do
 
 evalProject :: (HasGetPipelines env, KatipContext (RIO env)) => Project -> RIO env Result
 evalProject Project {..} = do
-  pipeline <- getLatestPipelineForRef projectId projectDefaultBranch
-  status <- case pipeline of
-    Left EmptyPipelinesResult -> pure Unknown
-    Left NoPipelineForDefaultBranch -> pure Unknown
+  result <- getStatusForProject projectId projectDefaultBranch
+  pure $ case result of
+    Nothing -> Result projectId projectName Unknown (Left projectWebUrl)
+    Just (status, url) -> Result projectId projectName status (Right url)
+
+getStatusForProject :: (HasGetPipelines env, KatipContext (RIO env)) => Id Project -> Maybe Ref -> RIO env (Maybe (BuildStatus, Url Pipeline))
+getStatusForProject _ Nothing = pure Nothing
+getStatusForProject projectId (Just defaultBranch) = do
+  pipeline <- getLatestPipelineForRef projectId defaultBranch
+  case pipeline of
+    Left EmptyPipelinesResult -> pure Nothing
+    Left NoPipelineForDefaultBranch -> pure Nothing
     Left uError -> do
       logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
-      pure Unknown
+      pure Nothing
     Right p -> do
       let st = pipelineStatus p
       detailedStatus <-
         if st == Successful
           then detailedStatusForPipeline projectId (pipelineId p)
           else pure Nothing
-      pure $ fromMaybe st detailedStatus
-  let resultUrl = bimap (const projectWebUrl) pipelineWebUrl pipeline
-  pure $ Result projectId projectName status resultUrl
+      pure $ Just (fromMaybe st detailedStatus, pipelineWebUrl p)
 
 class HasGetPipelines env where
   getLatestPipelineForRef :: Id Project -> Ref -> RIO env (Either UpdateError Pipeline)
@@ -139,7 +145,7 @@ detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId"
       pure Nothing
     Right dp -> pure . Just $ detailedPipelineStatus dp
 
-data Project = Project {projectId :: Id Project, projectName :: ProjectName, projectWebUrl :: Url Project, projectDefaultBranch :: Ref} deriving (Generic, Show)
+data Project = Project {projectId :: Id Project, projectName :: ProjectName, projectWebUrl :: Url Project, projectDefaultBranch :: Maybe Ref} deriving (Generic, Show)
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
