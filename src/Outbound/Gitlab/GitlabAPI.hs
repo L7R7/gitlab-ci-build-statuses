@@ -21,7 +21,7 @@ import Inbound.HTTP.Metrics
 import Network.HTTP.Client.Conduit (HttpExceptionContent, requestFromURI_, requestHeaders, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
-import Network.HTTP.Simple (HttpException (..), Request, RequestHeaders, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
+import Network.HTTP.Simple (HttpException (..), JSONException (..), Request, RequestHeaders, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
 import Network.HTTP.Types.Header (HeaderName)
 import Network.URI (URI)
 import Prometheus (observeDuration)
@@ -65,8 +65,8 @@ fetchData' :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a
 fetchData' request template = do
   token <- view apiTokenL
   histogram <- view outgoingHttpRequestsHistogramL
-  result <- measure histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken token request)))
-  pure . join $ mapLeft (HttpError . removeApiTokenFromHeader) result
+  result <- measure histogram template (try (mapLeft (ConversionError . removeApiTokenFromJsonException) . getResponseBody <$> httpJSONEither (setTimeout $ addToken token request)))
+  pure . join $ mapLeft (HttpError . removeApiTokenFromHttpException) result
 
 fetchDataPaginated ::
   (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) =>
@@ -96,7 +96,7 @@ fetchDataPaginated' apiToken histogram template request acc = do
     case mapLeft ConversionError $ getResponseBody response of
       Left err -> pure $ Left err
       Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken histogram template req (as <> acc)) next
-  pure $ join $ mapLeft (HttpError . removeApiTokenFromHeader) result
+  pure $ join $ mapLeft (HttpError . removeApiTokenFromHttpException) result
 
 parseNextRequest :: Response a -> Maybe Request
 parseNextRequest response = requestFromURI_ <$> parseNextHeader response
@@ -117,8 +117,8 @@ setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> RIO env a
 measure histogram template action = liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) action
 
-removeApiTokenFromHeader :: HttpException -> HttpException
-removeApiTokenFromHeader = set (reqPrism . _1 . headers . tokenHeader) "xxxxx"
+removeApiTokenFromHttpException :: HttpException -> HttpException
+removeApiTokenFromHttpException = set (reqPrism . _1 . headers . tokenHeader) "xxxxx"
 
 reqPrism :: Prism' HttpException (Request, HttpExceptionContent)
 reqPrism = prism' (uncurry HttpExceptionRequest) extract
@@ -137,3 +137,10 @@ headers = lens getter setter
   where
     getter = requestHeaders
     setter r h = r {requestHeaders = h}
+
+removeApiTokenFromJsonException :: JSONException -> JSONException
+removeApiTokenFromJsonException (JSONParseException request response parseError) = JSONParseException (removeApiTokenFromRequest request) response parseError
+removeApiTokenFromJsonException (JSONConversionException request response s) = JSONConversionException (removeApiTokenFromRequest request) response s
+
+removeApiTokenFromRequest :: Request -> Request
+removeApiTokenFromRequest = set (headers . tokenHeader) "xxxxx"
