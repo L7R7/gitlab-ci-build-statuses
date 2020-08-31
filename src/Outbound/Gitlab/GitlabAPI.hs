@@ -65,8 +65,8 @@ fetchData' :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a
 fetchData' request template = do
   token <- view apiTokenL
   histogram <- view outgoingHttpRequestsHistogramL
-  result <- measure histogram template (try (mapLeft (ConversionError . removeApiTokenFromJsonException) . getResponseBody <$> httpJSONEither (setTimeout $ addToken token request)))
-  pure . join $ mapLeft (HttpError . removeApiTokenFromHttpException) result
+  result <- measure histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken token request)))
+  pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
 fetchDataPaginated ::
   (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) =>
@@ -96,7 +96,7 @@ fetchDataPaginated' apiToken histogram template request acc = do
     case mapLeft ConversionError $ getResponseBody response of
       Left err -> pure $ Left err
       Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken histogram template req (as <> acc)) next
-  pure $ join $ mapLeft (HttpError . removeApiTokenFromHttpException) result
+  pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
 parseNextRequest :: Response a -> Maybe Request
 parseNextRequest response = requestFromURI_ <$> parseNextHeader response
@@ -116,6 +116,13 @@ setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 
 measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> RIO env a
 measure histogram template action = liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) action
+
+-- TODO: 2020-08-31 can we use lenses for that (does it make sense to do that?)
+removeApiTokenFromUpdateError :: UpdateError -> UpdateError
+removeApiTokenFromUpdateError (HttpError httpException) = HttpError (removeApiTokenFromHttpException httpException)
+removeApiTokenFromUpdateError (ConversionError jsonException) = ConversionError (removeApiTokenFromJsonException jsonException)
+removeApiTokenFromUpdateError EmptyPipelinesResult = EmptyPipelinesResult
+removeApiTokenFromUpdateError NoPipelineForDefaultBranch = NoPipelineForDefaultBranch
 
 removeApiTokenFromHttpException :: HttpException -> HttpException
 removeApiTokenFromHttpException = set (reqPrism . _1 . headers . tokenHeader) "xxxxx"
