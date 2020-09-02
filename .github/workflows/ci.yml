@@ -30,3 +30,11 @@ jobs:
 
       - name: Build executable
         run: stack build --system-ghc --copy-bins --local-bin-path .
+
+  docker:
+    name: Docker build
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Docker image
+        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s) --tag latest
