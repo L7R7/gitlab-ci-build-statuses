@@ -30,7 +30,6 @@ module Core.Lib
   )
 where
 
-import Control.Monad
 import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
