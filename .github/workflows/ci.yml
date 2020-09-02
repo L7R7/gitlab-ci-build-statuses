@@ -22,9 +22,9 @@ jobs:
     - uses: actions/setup-haskell@v1.1
       name: Setup Haskell Stack
       with:
-        enable-stack: true
         ghc-version: ${{ matrix.ghc }}
         stack-version: ${{ matrix.stack }}
+      run: stack init
 
     - uses: actions/cache@v1
       name: Cache ~/.stack
