@@ -83,9 +83,7 @@ executable gitlab-ci-build-statuses-exe
       Paths_gitlab_ci_build_statuses
   hs-source-dirs:
       app
-  ghc-options: -Wall -threaded -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -rtsopts -with-rtsopts=-T -fwrite-ide-info -hiedir=.hie -static
-  cc-options: -static
-  ld-options: -static -pthread
+  ghc-options: -Wall -threaded -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -rtsopts -with-rtsopts=-T -fwrite-ide-info -hiedir=.hie
   build-depends:
       base >=4.7 && <5
     , gitlab-ci-build-statuses
