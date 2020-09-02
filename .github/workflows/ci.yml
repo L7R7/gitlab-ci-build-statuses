@@ -12,9 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - uses: actions/cache@v1
+          name: Cache ~/.stack
+          with:
+            path: ~/.stack
+            key: stack-cache
+
       - uses: actions/setup-haskell@v1.1
         with:
-          ghc-version: '8.8.4' # Exact version of ghc to use
+          ghc-version: '8.8.4'
           enable-stack: true
           stack-version: '2.3.3'
       - run: stack build --system-ghc --copy-bins --local-bin-path .
