@@ -1,8 +1,13 @@
-FROM alpine
+FROM ubuntu:18.04
+USER root
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y ca-certificates
+RUN apt-get install -y libgmp-dev libgmp10
+RUN apt-get install procps
 
-RUN addgroup service
+RUN groupadd service
 RUN mkdir /service
-RUN adduser -D -h /service -G service service
+RUN useradd -d /service -g service service
 RUN chown root:service /service && chmod 1770 /service
 WORKDIR /service
 
