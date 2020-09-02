@@ -2,9 +2,9 @@ name: CI
 
 # Trigger the workflow on push or pull request, but only for the master branch
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
@@ -20,6 +20,15 @@ jobs:
           key: stack-cache
 
       - uses: actions/setup-haskell@v1.1
+        name: Install dependencies
+        with:
+          ghc-version: '8.8.4'
+          enable-stack: true
+          stack-version: '2.3.3'
+      - run: stack --no-terminal --install-ghc test --only-dependencies
+
+      - uses: actions/setup-haskell@v1.1
+        name: Build executable
         with:
           ghc-version: '8.8.4'
           enable-stack: true
