@@ -11,7 +11,7 @@ module Core.Lib
   ( updateStatuses,
     BuildStatus (..),
     BuildStatuses (..),
-    DataUpdateIntervalMinutes (..),
+    DataUpdateIntervalSeconds (..),
     MaxConcurrency (..),
     Result (..),
     Group,
@@ -45,7 +45,7 @@ data Group
 
 data UpdateError = HttpError HttpException | ConversionError JSONException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
 
-newtype DataUpdateIntervalMinutes = DataUpdateIntervalMinutes Int deriving (Show)
+newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int deriving (Show)
 
 updateStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
 updateStatuses = do

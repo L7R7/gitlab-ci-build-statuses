@@ -16,7 +16,7 @@ module Config
 where
 
 import Control.Lens
-import Core.Lib (DataUpdateIntervalMinutes (..), Group, Id (..), MaxConcurrency (..), Url (..))
+import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), MaxConcurrency (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
 import Data.List (find)
 import Data.List.NonEmpty hiding (group, toList)
@@ -38,7 +38,7 @@ envBaseUrl :: T.Text
 envBaseUrl = "GITLAB_BASE_URL"
 
 envDataUpdateInterval :: T.Text
-envDataUpdateInterval = "DATA_UPDATE_INTERVAL_MINS"
+envDataUpdateInterval = "DATA_UPDATE_INTERVAL_SECS"
 
 envUiUpdateInterval :: T.Text
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
@@ -62,7 +62,7 @@ data Config = Config
   { apiToken :: ApiToken,
     groupId :: Id Group,
     gitlabBaseUrl :: Url GitlabHost,
-    dataUpdateIntervalMins :: DataUpdateIntervalMinutes,
+    dataUpdateIntervalSecs :: DataUpdateIntervalSeconds,
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
     maxConcurrency :: MaxConcurrency
   }
@@ -74,7 +74,7 @@ instance Show Config where
       <> ", Base URL "
       <> show gitlabBaseUrl
       <> ", "
-      <> show dataUpdateIntervalMins
+      <> show dataUpdateIntervalSecs
       <> ", "
       <> show uiUpdateIntervalSecs
       <> ", "
@@ -116,8 +116,8 @@ readBaseUrlFromEnv pc = do
   where
     urlMissing = _Failure # single GitlabBaseUrlMissing
 
-readDataUpdateIntervalFromEnv :: ProcessContext -> DataUpdateIntervalMinutes
-readDataUpdateIntervalFromEnv pc = DataUpdateIntervalMinutes $ fromMaybe 1 maybeUpdateInterval
+readDataUpdateIntervalFromEnv :: ProcessContext -> DataUpdateIntervalSeconds
+readDataUpdateIntervalFromEnv pc = DataUpdateIntervalSeconds $ fromMaybe 60 maybeUpdateInterval
   where
     maybeUpdateInterval = find (> 0) (envFromPC pc envDataUpdateInterval >>= (readMaybe . T.unpack))
 

@@ -45,7 +45,7 @@ instance HasGroupId App where
   groupIdL = to (groupId . config)
 
 instance HasDataUpdateInterval App where
-  dataUpdateIntervalL = to (dataUpdateIntervalMins . config)
+  dataUpdateIntervalL = to (dataUpdateIntervalSecs . config)
 
 instance HasUiUpdateInterval App where
   uiUpdateIntervalL = to (uiUpdateIntervalSecs . config)

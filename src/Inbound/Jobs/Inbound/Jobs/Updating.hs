@@ -4,7 +4,7 @@
 
 module Inbound.Jobs.Inbound.Jobs.Updating (updateStatusesRegularly, UpdateJobDurationHistogram, HasDataUpdateInterval (..), HasUpdateJobDurationHistogram (..)) where
 
-import Core.Lib (DataUpdateIntervalMinutes (..), HasBuildStatuses (..), HasGetPipelines (..), HasGetProjects (..), updateStatuses)
+import Core.Lib (DataUpdateIntervalSeconds (..), HasBuildStatuses (..), HasGetPipelines (..), HasGetProjects (..), updateStatuses)
 import Katip
 import Prometheus (Histogram, MonadMonitor, observeDuration)
 import RIO
@@ -21,8 +21,8 @@ updateStatusesRegularly =
         katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
       threadDelay $ calculateDelay updateInterval
 
-calculateDelay :: DataUpdateIntervalMinutes -> Int
-calculateDelay (DataUpdateIntervalMinutes mins) = mins * 60 * oneSecond
+calculateDelay :: DataUpdateIntervalSeconds -> Int
+calculateDelay (DataUpdateIntervalSeconds mins) = mins * oneSecond
 
 oneSecond :: Int
 oneSecond = 1000000
@@ -30,7 +30,7 @@ oneSecond = 1000000
 type UpdateJobDurationHistogram = Histogram
 
 class HasDataUpdateInterval env where
-  dataUpdateIntervalL :: SimpleGetter env DataUpdateIntervalMinutes
+  dataUpdateIntervalL :: SimpleGetter env DataUpdateIntervalSeconds
 
 class HasUpdateJobDurationHistogram env where
   hasUpdateJobDurationHistogramL :: SimpleGetter env UpdateJobDurationHistogram
