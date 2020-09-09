@@ -31,7 +31,7 @@ instance HasGetProjects App where
   getProjects :: RIO App (Either UpdateError [Project])
   getProjects = do
     group <- view groupIdL
-    let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true|]
+    let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false|]
     fetchDataPaginated template [("groupId", (stringValue . show) group)]
   maxConcurrencyL = to (maxConcurrency . config)
 
