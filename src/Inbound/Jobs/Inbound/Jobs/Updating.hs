@@ -2,7 +2,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Inbound.Jobs.Inbound.Jobs.Updating (updateStatusesRegularly, UpdateJobDurationHistogram, HasDataUpdateInterval (..), HasUpdateJobDurationHistogram (..)) where
+module Inbound.Jobs.Inbound.Jobs.Updating
+  ( updateStatusesRegularly,
+    UpdateJobDurationHistogram,
+    HasDataUpdateInterval (..),
+    HasUpdateJobDurationHistogram (..),
+  )
+where
 
 import Core.Lib (DataUpdateIntervalSeconds (..), HasBuildStatuses (..), HasGetPipelines (..), HasGetProjects (..), updateStatuses)
 import Katip
@@ -12,14 +18,18 @@ import RIO
 updateStatusesRegularly :: (HasGetProjects env, HasGetPipelines env, HasDataUpdateInterval env, HasBuildStatuses env, HasUpdateJobDurationHistogram env, MonadMonitor (RIO env), KatipContext (RIO env)) => RIO env ()
 updateStatusesRegularly =
   katipAddNamespace "update" $ do
-    histogram <- view hasUpdateJobDurationHistogramL
     updateInterval <- view dataUpdateIntervalL
     forever $ do
-      observeDuration histogram $ do
-        logLocM InfoS "updating build statuses"
-        results <- updateStatuses
-        katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
+      updateWithDurationObservation
       threadDelay $ calculateDelay updateInterval
+
+updateWithDurationObservation :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, HasUpdateJobDurationHistogram env, MonadMonitor (RIO env), KatipContext (RIO env)) => RIO env ()
+updateWithDurationObservation = do
+  histogram <- view hasUpdateJobDurationHistogramL
+  observeDuration histogram $ do
+    logLocM InfoS "updating build statuses"
+    results <- updateStatuses
+    katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
 
 calculateDelay :: DataUpdateIntervalSeconds -> Int
 calculateDelay (DataUpdateIntervalSeconds mins) = mins * oneSecond
