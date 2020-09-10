@@ -1,5 +1,4 @@
 [![GitHub CI](https://github.com/l7r7/gitlab-ci-build-statuses/workflows/CI/badge.svg)](https://github.com/l7r7/gitlab-ci-build-statuses/actions)
-[![Build Status](https://travis-ci.com/L7R7/gitlab-ci-build-statuses.svg?branch=master)](https://travis-ci.com/L7R7/gitlab-ci-build-statuses)
 
 # gitlab-ci-build-statuses
 
