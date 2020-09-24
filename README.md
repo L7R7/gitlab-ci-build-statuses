@@ -26,9 +26,7 @@ There will be a log message with the details before the application exits.
 
 The most straightforward way to use this is to run the Docker image that's provided.
 
-    docker run -p 8282:8282 l7r7/gitlab-ci-build-statuses:latest
-
-You can set the environment variables using the `-e` flag.
+    docker run -p 8282:8282 -e GITLAB_API_TOKEN=<...> -e GITLAB_BASE_URL=<...>> -e GITLAB_GROUP_ID=<...> l7r7/gitlab-ci-build-statuses:latest
 
 ### API
 The app exposes the following endpoints:
