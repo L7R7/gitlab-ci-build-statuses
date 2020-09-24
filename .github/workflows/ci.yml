@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: service-executable
+          name: gitlab-ci-build-statuses-exe
           path: gitlab-ci-build-statuses-exe
 
   docker:
@@ -45,7 +45,7 @@ jobs:
 
       - uses: actions/download-artifact@v2
         with:
-          name: service-executable
+          name: gitlab-ci-build-statuses-exe
 
       - uses: mr-smithers-excellent/docker-build-push@v4
         name: Build & push Docker image
