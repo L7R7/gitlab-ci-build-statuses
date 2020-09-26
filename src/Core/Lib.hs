@@ -173,52 +173,52 @@ instance FromJSON Pipeline where
 
 instance FromJSON BuildStatus where
   parseJSON = withText "BuildStatus" $ \case
-    "running" -> pure Running
-    "pending" -> pure Pending
-    "success" -> pure Successful
-    "failed" -> pure Failed
     "canceled" -> pure Cancelled
-    "skipped" -> pure Skipped
     "created" -> pure Created
+    "failed" -> pure Failed
     "manual" -> pure Manual
-    "waiting_for_resource" -> pure WaitingForResource
-    "success-with-warnings" -> pure SuccessfulWithWarnings
+    "pending" -> pure Pending
     "preparing" -> pure Preparing
+    "running" -> pure Running
     "scheduled" -> pure Scheduled
+    "skipped" -> pure Skipped
+    "success" -> pure Successful
+    "success-with-warnings" -> pure SuccessfulWithWarnings
+    "waiting_for_resource" -> pure WaitingForResource
     x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
 data Result = Result {projId :: Id Project, name :: ProjectName, buildStatus :: BuildStatus, url :: Either (Url Project) (Url Pipeline)} deriving (Show)
 
 data BuildStatus
   = Unknown
-  | Running
-  | Failed
   | Cancelled
+  | Created
+  | Failed
+  | Manual
   | Pending
+  | Preparing
+  | Running
+  | Scheduled
   | Skipped
   | Successful
-  | Created
-  | Manual
-  | WaitingForResource
   | SuccessfulWithWarnings
-  | Preparing
-  | Scheduled
+  | WaitingForResource
   deriving (Bounded, Enum, Eq, Show, Ord)
 
 isHealthy :: BuildStatus -> Bool
-isHealthy Successful = True
-isHealthy Created = True
-isHealthy WaitingForResource = True
-isHealthy Pending = True
-isHealthy Running = True
 isHealthy Unknown = False
-isHealthy Failed = False
 isHealthy Cancelled = False
-isHealthy Skipped = False
+isHealthy Created = True
+isHealthy Failed = False
 isHealthy Manual = False
-isHealthy SuccessfulWithWarnings = False
+isHealthy Pending = True
 isHealthy Preparing = True
+isHealthy Running = True
 isHealthy Scheduled = True
+isHealthy Skipped = False
+isHealthy Successful = True
+isHealthy SuccessfulWithWarnings = False
+isHealthy WaitingForResource = True
 
 class HasBuildStatuses env where
   getStatuses :: RIO env BuildStatuses

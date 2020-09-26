@@ -62,18 +62,18 @@ resultToHtml Result {..} =
   a ! href (either toValue toValue url) ! target "_blank" ! classesForStatus buildStatus ! A.title (toValue buildStatus) $ h3 (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
-    classesForStatus Running = class_ "status running"
-    classesForStatus Failed = class_ "status failed"
     classesForStatus Cancelled = class_ "status cancelled"
+    classesForStatus Created = class_ "status created"
+    classesForStatus Failed = class_ "status failed"
+    classesForStatus Manual = class_ "status manual"
     classesForStatus Pending = class_ "status pending"
+    classesForStatus Preparing = class_ "status preparing"
+    classesForStatus Running = class_ "status running"
+    classesForStatus Scheduled = class_ "status scheduled"
     classesForStatus Skipped = class_ "status skipped"
     classesForStatus Successful = class_ "status successful"
-    classesForStatus Created = class_ "status created"
-    classesForStatus Manual = class_ "status manual"
-    classesForStatus WaitingForResource = class_ "status waiting-for-resource"
     classesForStatus SuccessfulWithWarnings = class_ "status passed-with-warnings"
-    classesForStatus Preparing = class_ "status preparing"
-    classesForStatus Scheduled = class_ "status scheduled"
+    classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
 lastUpdatedToHtml :: UTCTime -> UTCTime -> Html
 lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $ do
@@ -99,18 +99,18 @@ instance ToValue (Url a) where
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"
-  toMarkup Running = string "running"
-  toMarkup Failed = string "failed"
   toMarkup Cancelled = string "cancelled"
+  toMarkup Created = string "created"
+  toMarkup Failed = string "failed"
+  toMarkup Manual = string "manual"
   toMarkup Pending = string "pending"
+  toMarkup Preparing = string "preparing"
+  toMarkup Running = string "running"
+  toMarkup Scheduled = string "scheduled"
   toMarkup Skipped = string "skipped"
   toMarkup Successful = string "successful"
-  toMarkup Created = string "created"
-  toMarkup Manual = string "manual"
-  toMarkup WaitingForResource = string "waiting for resource"
   toMarkup SuccessfulWithWarnings = string "successful with warnings"
-  toMarkup Preparing = string "preparing"
-  toMarkup Scheduled = string "scheduled"
+  toMarkup WaitingForResource = string "waiting for resource"
 
 instance ToValue BuildStatus where
   toValue = toValue . show
