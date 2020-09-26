@@ -183,6 +183,8 @@ instance FromJSON BuildStatus where
     "manual" -> pure Manual
     "waiting_for_resource" -> pure WaitingForResource
     "success-with-warnings" -> pure SuccessfulWithWarnings
+    "preparing" -> pure Preparing
+    "scheduled" -> pure Scheduled
     x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
 
 data Result = Result {projId :: Id Project, name :: ProjectName, buildStatus :: BuildStatus, url :: Either (Url Project) (Url Pipeline)} deriving (Show)
@@ -199,6 +201,8 @@ data BuildStatus
   | Manual
   | WaitingForResource
   | SuccessfulWithWarnings
+  | Preparing
+  | Scheduled
   deriving (Bounded, Enum, Eq, Show, Ord)
 
 isHealthy :: BuildStatus -> Bool
@@ -213,6 +217,8 @@ isHealthy Cancelled = False
 isHealthy Skipped = False
 isHealthy Manual = False
 isHealthy SuccessfulWithWarnings = False
+isHealthy Preparing = True
+isHealthy Scheduled = True
 
 class HasBuildStatuses env where
   getStatuses :: RIO env BuildStatuses
