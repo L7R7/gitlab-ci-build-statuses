@@ -17,7 +17,9 @@ jobs:
         name: Cache ~/.stack
         with:
           path: ~/.stack
-          key: stack-cache
+          key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('stack.yaml.lock','gitlab-ci-build-statuses.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.ghc }}-
 
       - uses: actions/setup-haskell@v1.1
         with:
