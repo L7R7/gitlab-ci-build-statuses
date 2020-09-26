@@ -2,10 +2,10 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Core.Lib
   ( updateStatuses,
@@ -40,6 +40,7 @@ import Katip
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import RIO hiding (id, logError, logInfo)
+import Data.List.Extra (enumerate)
 
 data Group
 
@@ -172,20 +173,25 @@ instance FromJSON Pipeline where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
 instance FromJSON BuildStatus where
-  parseJSON = withText "BuildStatus" $ \case
-    "canceled" -> pure Cancelled
-    "created" -> pure Created
-    "failed" -> pure Failed
-    "manual" -> pure Manual
-    "pending" -> pure Pending
-    "preparing" -> pure Preparing
-    "running" -> pure Running
-    "scheduled" -> pure Scheduled
-    "skipped" -> pure Skipped
-    "success" -> pure Successful
-    "success-with-warnings" -> pure SuccessfulWithWarnings
-    "waiting_for_resource" -> pure WaitingForResource
-    x -> fail $ mconcat ["couldn't parse build status from '", show x, "'"]
+  parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
+
+buildStatusToApiString :: IsString p => BuildStatus -> p
+buildStatusToApiString Unknown = "unknown"
+buildStatusToApiString Cancelled = "canceled"
+buildStatusToApiString Created = "created"
+buildStatusToApiString Failed = "failed"
+buildStatusToApiString Manual = "manual"
+buildStatusToApiString Pending = "pending"
+buildStatusToApiString Preparing = "preparing"
+buildStatusToApiString Running = "running"
+buildStatusToApiString Scheduled = "scheduled"
+buildStatusToApiString Skipped = "skipped"
+buildStatusToApiString Successful = "success"
+buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
+buildStatusToApiString WaitingForResource = "waiting_for_resource"
+
+inverseMap :: forall e s . (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
+inverseMap f s = find ((== s) . f) enumerate
 
 data Result = Result {projId :: Id Project, name :: ProjectName, buildStatus :: BuildStatus, url :: Either (Url Project) (Url Pipeline)} deriving (Show)
 
