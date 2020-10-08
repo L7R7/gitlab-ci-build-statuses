@@ -3,9 +3,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Core.Lib
   ( updateStatuses,
@@ -34,17 +34,22 @@ import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
 import Data.List
+import Data.List.Extra (enumerate)
 import qualified Data.Text as T hiding (partition)
 import Data.Time (UTCTime (..))
 import Katip
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import RIO hiding (id, logError, logInfo)
-import Data.List.Extra (enumerate)
 
 data Group
 
-data UpdateError = HttpError HttpException | ConversionError JSONException | EmptyPipelinesResult | NoPipelineForDefaultBranch deriving (Show)
+data UpdateError
+  = HttpError HttpException
+  | ConversionError JSONException
+  | EmptyPipelinesResult
+  | NoPipelineForDefaultBranch
+  deriving (Show)
 
 newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int deriving (Show)
 
@@ -111,7 +116,12 @@ class HasGetPipelines env where
   getLatestPipelineForRef :: Id Project -> Ref -> RIO env (Either UpdateError Pipeline)
   getSinglePipeline :: Id Project -> Id Pipeline -> RIO env (Either UpdateError DetailedPipeline)
 
-data DetailedPipeline = DetailedPipeline {detailedPipelineId :: Id Pipeline, detailedPipelineRef :: Ref, detailedPipelineStatus :: BuildStatus, detailedPipelineWebUrl :: Url Pipeline}
+data DetailedPipeline = DetailedPipeline
+  { detailedPipelineId :: Id Pipeline,
+    detailedPipelineRef :: Ref,
+    detailedPipelineStatus :: BuildStatus,
+    detailedPipelineWebUrl :: Url Pipeline
+  }
 
 instance FromJSON DetailedPipeline where
   parseJSON = withObject "detailedPipeline" $ \dp -> do
@@ -145,14 +155,26 @@ detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId"
       pure Nothing
     Right dp -> pure . Just $ detailedPipelineStatus dp
 
-data Project = Project {projectId :: Id Project, projectName :: ProjectName, projectWebUrl :: Url Project, projectDefaultBranch :: Maybe Ref} deriving (Generic, Show)
+data Project = Project
+  { projectId :: Id Project,
+    projectName :: ProjectName,
+    projectWebUrl :: Url Project,
+    projectDefaultBranch :: Maybe Ref
+  }
+  deriving (Generic, Show)
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
-data Pipeline = Pipeline {pipelineId :: Id Pipeline, pipelineRef :: Ref, pipelineStatus :: BuildStatus, pipelineWebUrl :: Url Pipeline} deriving (Generic, Show)
+data Pipeline = Pipeline
+  { pipelineId :: Id Pipeline,
+    pipelineRef :: Ref,
+    pipelineStatus :: BuildStatus,
+    pipelineWebUrl :: Url Pipeline
+  }
+  deriving (Generic, Show)
 
 newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
 
@@ -190,10 +212,16 @@ buildStatusToApiString Successful = "success"
 buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
 buildStatusToApiString WaitingForResource = "waiting_for_resource"
 
-inverseMap :: forall e s . (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
+inverseMap :: forall e s. (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
 inverseMap f s = find ((== s) . f) enumerate
 
-data Result = Result {projId :: Id Project, name :: ProjectName, buildStatus :: BuildStatus, url :: Either (Url Project) (Url Pipeline)} deriving (Show)
+data Result = Result
+  { projId :: Id Project,
+    name :: ProjectName,
+    buildStatus :: BuildStatus,
+    url :: Either (Url Project) (Url Pipeline)
+  }
+  deriving (Show)
 
 data BuildStatus
   = Unknown
