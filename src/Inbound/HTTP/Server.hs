@@ -1,7 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -11,36 +14,44 @@ module Inbound.HTTP.Server
   )
 where
 
+import Config (Config (..), UiUpdateIntervalSeconds)
 import Control.Monad.Except (ExceptT (..))
-import Core.Lib (HasBuildStatuses)
+import Core.Effects (Timer)
+import Core.Lib (BuildStatuses, BuildStatusesApi)
 import qualified Data.Text as T
-import Env
 import Inbound.HTTP.Html
-import Katip
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Prometheus (def, prometheus)
-import RIO hiding (Handler)
+import Outbound.Storage.InMemory (buildStatusesApiToIO)
+import Polysemy hiding (run)
+import RIO hiding (Handler, logInfo)
 import Servant
 import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H
+import Util (timerToIO)
 
 type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> Get '[HTML] H.Html :<|> "static" :> Raw
 
 api :: Proxy API
 api = Proxy
 
-server :: (HasConfig env, HasBuildStatuses env) => ServerT API (RIO env)
-server = liftIO (return "UP") :<|> template :<|> serveDirectoryWebApp "/service/static"
+server :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> ServerT API (Sem r)
+server uiUpdateInterval = return "UP" :<|> template uiUpdateInterval :<|> serveDirectoryWebApp "/service/static"
 
-startServer :: (HasConfig env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env ()
-startServer = do
-  env <- ask
-  logLocM InfoS "Starting server"
-  let metricsMiddleware = prometheus def
-  liftIO $ run 8282 $ metricsMiddleware . serve api . hoist $ env
+hoist :: Config -> ServerT API Handler
+hoist Config {..} = do
+  hoistServer api (liftServer statuses) (server uiUpdateIntervalSecs)
 
-hoist :: forall env. (HasConfig env, HasBuildStatuses env) => env -> Server API
-hoist env = hoistServer api nat server
-  where
-    nat :: RIO env a -> Servant.Handler a
-    nat act = Servant.Handler $ ExceptT $ try $ runRIO env act
+liftServer :: IORef BuildStatuses -> Sem '[BuildStatusesApi, Timer, Embed IO] a -> Handler a
+liftServer statuses sem =
+  sem
+    & buildStatusesApiToIO statuses
+    & timerToIO
+    & runM
+    & Handler . ExceptT . try
+
+startServer :: Config -> IO ()
+startServer config =
+  serve api (hoist config)
+    & prometheus def
+    & run 8282

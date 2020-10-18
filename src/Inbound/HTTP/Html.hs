@@ -1,7 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Inbound.HTTP.Html
   ( template,
@@ -9,17 +11,17 @@ module Inbound.HTTP.Html
 where
 
 import Config
+import Core.Effects (Timer, getCurrentTime)
 import Core.Lib
-import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime, getCurrentTime)
-import Env
+import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
+import Polysemy
 import RIO hiding (link)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
-template :: (HasUiUpdateInterval env, HasBuildStatuses env) => RIO env Html
-template = do
-  updateInterval <- view uiUpdateIntervalL
-  now <- liftIO getCurrentTime
+template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> Sem r Html
+template updateInterval = do
+  now <- getCurrentTime
   template' now updateInterval <$> getStatuses
 
 template' :: UTCTime -> UiUpdateIntervalSeconds -> BuildStatuses -> Html

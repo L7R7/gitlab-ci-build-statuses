@@ -3,17 +3,12 @@
 
 module Main (main) where
 
-import App (App (App))
-import Config (Config, parseConfigFromEnv, showErrors)
-import Control.Concurrent (forkIO)
-import Core.Lib (BuildStatuses (NoSuccessfulUpdateYet))
+import App (startWithConfig)
+import Config (LogConfig (..), parseConfigFromEnv, showErrors)
 import Data.Validation (Validation (Failure, Success))
-import Inbound.HTTP.Metrics (registerAppMetrics, registerGhcMetrics, updateMetricsRegularly)
-import Inbound.HTTP.Server (startServer)
-import Inbound.Jobs.Inbound.Jobs.Updating (updateStatusesRegularly)
 import Katip
-import Outbound.Gitlab.GitlabAPI ()
-import Outbound.Storage.InMemory ()
+import Metrics.Metrics (registerMetrics)
+import Outbound.Storage.InMemory (initStorage)
 import RIO hiding (logError)
 import RIO.Process (mkDefaultProcessContext)
 
@@ -23,18 +18,10 @@ main = do
   let mkLogEnv = registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "gitlab-ci-build-statuses" "production"
   bracket mkLogEnv closeScribes $ \logEnv -> do
     processContext <- mkDefaultProcessContext
-    case parseConfigFromEnv processContext of
+    statuses <- initStorage
+    metrics <- registerMetrics
+    case parseConfigFromEnv metrics statuses (LogConfig mempty mempty logEnv) processContext of
       Success config -> do
         runKatipContextT logEnv () mempty $ logLocM InfoS . ls $ "Using config: " <> show config
-        startWithEnv config logEnv
+        startWithConfig config
       Failure errs -> runKatipContextT logEnv () mempty $ logLocM ErrorS . ls $ "Failed to parse config. Exiting now. Errors were: " <> showErrors errs
-
-startWithEnv :: Config -> LogEnv -> IO ()
-startWithEnv config le = do
-  statuses <- newIORef NoSuccessfulUpdateYet
-  _ <- registerGhcMetrics
-  metrics <- registerAppMetrics
-  let app = App statuses config mempty mempty le metrics
-  _ <- forkIO $ runRIO app updateStatusesRegularly
-  _ <- forkIO $ runRIO app updateMetricsRegularly
-  runRIO app startServer

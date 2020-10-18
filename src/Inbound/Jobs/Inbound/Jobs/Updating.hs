@@ -1,46 +1,33 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Inbound.Jobs.Inbound.Jobs.Updating
   ( updateStatusesRegularly,
-    UpdateJobDurationHistogram,
-    HasDataUpdateInterval (..),
-    HasUpdateJobDurationHistogram (..),
   )
 where
 
-import Core.Lib (DataUpdateIntervalSeconds (..), HasBuildStatuses (..), HasGetPipelines (..), HasGetProjects (..), updateStatuses)
-import Katip
-import Prometheus (Histogram, MonadMonitor, observeDuration)
-import RIO
+import Core.Effects (Delay, Logger, ParTraverse, addContext, addNamespace, delaySeconds, logInfo)
+import Core.Lib (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, ProjectsApi, updateStatuses)
+import Data.Coerce (coerce)
+import Metrics.Metrics
+import Polysemy
+import RIO hiding (logInfo)
 
-updateStatusesRegularly :: (HasGetProjects env, HasGetPipelines env, HasDataUpdateInterval env, HasBuildStatuses env, HasUpdateJobDurationHistogram env, MonadMonitor (RIO env), KatipContext (RIO env)) => RIO env ()
-updateStatusesRegularly =
-  katipAddNamespace "update" $ do
-    updateInterval <- view dataUpdateIntervalL
+updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member Delay r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> Sem r ()
+updateStatusesRegularly groupId updateInterval =
+  addNamespace "update" $ do
     forever $ do
-      updateWithDurationObservation
-      threadDelay $ calculateDelay updateInterval
+      updateWithDurationObservation groupId
+      delaySeconds $ coerce updateInterval
 
-updateWithDurationObservation :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, HasUpdateJobDurationHistogram env, MonadMonitor (RIO env), KatipContext (RIO env)) => RIO env ()
-updateWithDurationObservation = do
-  histogram <- view hasUpdateJobDurationHistogramL
-  observeDuration histogram $ do
-    logLocM InfoS "updating build statuses"
-    results <- updateStatuses
-    katipAddContext (sl "numResults" $ show $ length results) $ logLocM InfoS "Done updating"
-
-calculateDelay :: DataUpdateIntervalSeconds -> Int
-calculateDelay (DataUpdateIntervalSeconds mins) = mins * oneSecond
-
-oneSecond :: Int
-oneSecond = 1000000
-
-type UpdateJobDurationHistogram = Histogram
-
-class HasDataUpdateInterval env where
-  dataUpdateIntervalL :: SimpleGetter env DataUpdateIntervalSeconds
-
-class HasUpdateJobDurationHistogram env where
-  hasUpdateJobDurationHistogramL :: SimpleGetter env UpdateJobDurationHistogram
+updateWithDurationObservation :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r ()
+updateWithDurationObservation groupId =
+  observeDuration $ do
+    logInfo "updating build statuses"
+    results <- updateStatuses groupId
+    addContext "numResults" (show $ length results) $ logInfo "Done updating"

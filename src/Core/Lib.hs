@@ -1,10 +1,15 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Core.Lib
@@ -12,15 +17,15 @@ module Core.Lib
     BuildStatus (..),
     BuildStatuses (..),
     DataUpdateIntervalSeconds (..),
-    MaxConcurrency (..),
     Result (..),
     Group,
     Id (..),
     Url (..),
     ProjectName (..),
-    HasGetProjects (..),
-    HasBuildStatuses (..),
-    HasGetPipelines (..),
+    ProjectsApi (..),
+    BuildStatusesApi (..),
+    getStatuses,
+    PipelinesApi (..),
     UpdateError (..),
     DetailedPipeline,
     Pipeline,
@@ -30,6 +35,7 @@ module Core.Lib
   )
 where
 
+import Core.Effects (Logger, ParTraverse, addContext, addContexts, logInfo, logWarn, traverseP)
 import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
@@ -37,10 +43,10 @@ import Data.List
 import Data.List.Extra (enumerate)
 import qualified Data.Text as T hiding (partition)
 import Data.Time (UTCTime (..))
-import Katip
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
-import RIO hiding (id, logError, logInfo)
+import Polysemy
+import RIO hiding (id, logError, logInfo, logWarn)
 
 data Group
 
@@ -52,69 +58,6 @@ data UpdateError
   deriving (Show)
 
 newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int deriving (Show)
-
-updateStatuses :: (HasGetProjects env, HasGetPipelines env, HasBuildStatuses env, KatipContext (RIO env)) => RIO env [Result]
-updateStatuses = do
-  currentStatuses <- currentKnownBuildStatuses
-  _ <- setStatuses currentStatuses
-  logCurrentBuildStatuses
-  pure currentStatuses
-
-currentKnownBuildStatuses :: (HasGetProjects env, HasGetPipelines env, KatipContext (RIO env)) => RIO env [Result]
-currentKnownBuildStatuses = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses
-
-currentBuildStatuses :: (HasGetProjects env, HasGetPipelines env, KatipContext (RIO env)) => RIO env [Result]
-currentBuildStatuses = do
-  projects <- findProjects
-  (MaxConcurrency concurrency) <- view maxConcurrencyL
-  results <- pooledMapConcurrentlyN concurrency evalProject projects
-  pure $ sortOn (T.toLower . coerce . name) results
-
-logCurrentBuildStatuses :: (HasBuildStatuses env, KatipContext (RIO env)) => RIO env ()
-logCurrentBuildStatuses = do
-  statuses <- getStatuses
-  logCurrentBuildStatuses' statuses
-
-logCurrentBuildStatuses' :: (KatipContext (RIO env)) => BuildStatuses -> RIO env ()
-logCurrentBuildStatuses' NoSuccessfulUpdateYet = logLocM InfoS "There was no successful update yet, so there are no pipeline statuses available"
-logCurrentBuildStatuses' (Statuses statuses) = do
-  let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd statuses)
-  if null known
-    then logLocM WarningS "No valid Pipeline statuses found"
-    else katipAddContext (sl "projectIds" $ concatIds known) $ logLocM InfoS "Pipeline statuses found "
-  unless (null unknown) (logLocM InfoS . ls $ "No pipelines found for projects " <> concatIds unknown)
-  where
-    concatIds :: [Result] -> T.Text
-    concatIds rs = T.intercalate ", " (tshow . projId <$> rs)
-
-evalProject :: (HasGetPipelines env, KatipContext (RIO env)) => Project -> RIO env Result
-evalProject Project {..} = do
-  result <- getStatusForProject projectId projectDefaultBranch
-  pure $ case result of
-    Nothing -> Result projectId projectName Unknown (Left projectWebUrl)
-    Just (status, url) -> Result projectId projectName status (Right url)
-
-getStatusForProject :: (HasGetPipelines env, KatipContext (RIO env)) => Id Project -> Maybe Ref -> RIO env (Maybe (BuildStatus, Url Pipeline))
-getStatusForProject _ Nothing = pure Nothing
-getStatusForProject projectId (Just defaultBranch) = do
-  pipeline <- getLatestPipelineForRef projectId defaultBranch
-  case pipeline of
-    Left EmptyPipelinesResult -> pure Nothing
-    Left NoPipelineForDefaultBranch -> pure Nothing
-    Left uError -> do
-      logLocM InfoS . ls $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
-      pure Nothing
-    Right p -> do
-      let st = pipelineStatus p
-      detailedStatus <-
-        if st == Successful
-          then detailedStatusForPipeline projectId (pipelineId p)
-          else pure Nothing
-      pure $ Just (fromMaybe st detailedStatus, pipelineWebUrl p)
-
-class HasGetPipelines env where
-  getLatestPipelineForRef :: Id Project -> Ref -> RIO env (Either UpdateError Pipeline)
-  getSinglePipeline :: Id Project -> Id Pipeline -> RIO env (Either UpdateError DetailedPipeline)
 
 data DetailedPipeline = DetailedPipeline
   { detailedPipelineId :: Id Pipeline,
@@ -130,30 +73,6 @@ instance FromJSON DetailedPipeline where
     detailedPipelineWebUrl <- dp .: "web_url"
     detailedPipelineStatus <- dp .: "detailed_status" >>= \ds -> ds .: "group"
     pure DetailedPipeline {..}
-
-class HasGetProjects env where
-  getProjects :: RIO env (Either UpdateError [Project])
-  maxConcurrencyL :: SimpleGetter env MaxConcurrency
-
-newtype MaxConcurrency = MaxConcurrency Int deriving (Show)
-
-findProjects :: (HasGetProjects env, KatipContext (RIO env)) => RIO env [Project]
-findProjects = do
-  result <- getProjects
-  case result of
-    Left err -> do
-      logLocM InfoS . ls $ T.unwords ["Couldn't load projects. Error was", tshow err]
-      pure []
-    Right ps -> pure ps
-
-detailedStatusForPipeline :: (HasGetPipelines env, KatipContext (RIO env)) => Id Project -> Id Pipeline -> RIO env (Maybe BuildStatus)
-detailedStatusForPipeline projectId pipelineId = katipAddContext (sl "projectId" projectId <> sl "pipelineId" pipelineId) $ do
-  singlePipelineResult <- getSinglePipeline projectId pipelineId
-  case singlePipelineResult of
-    Left uError -> do
-      logLocM WarningS . ls $ T.unwords ["Couldn't get details for pipeline, error was", tshow uError]
-      pure Nothing
-    Right dp -> pure . Just $ detailedPipelineStatus dp
 
 data Project = Project
   { projectId :: Id Project,
@@ -178,7 +97,7 @@ data Pipeline = Pipeline
 
 newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
 
-newtype Url a = Url URI deriving (Show)
+newtype Url a = Url URI deriving newtype (Show)
 
 instance FromJSON (Url a) where
   parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
@@ -239,6 +158,99 @@ data BuildStatus
   | WaitingForResource
   deriving (Bounded, Enum, Eq, Show, Ord)
 
+data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
+
+data PipelinesApi m a where
+  GetLatestPipelineForRef :: Id Project -> Ref -> PipelinesApi m (Either UpdateError Pipeline)
+  GetSinglePipeline :: Id Project -> Id Pipeline -> PipelinesApi m (Either UpdateError DetailedPipeline)
+
+makeSem ''PipelinesApi
+
+data ProjectsApi m a where
+  GetProjects :: Id Group -> ProjectsApi m (Either UpdateError [Project])
+
+makeSem ''ProjectsApi
+
+data BuildStatusesApi m a where
+  GetStatuses :: BuildStatusesApi m BuildStatuses
+  SetStatuses :: [Result] -> BuildStatusesApi m BuildStatuses
+
+makeSem ''BuildStatusesApi
+
+updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
+updateStatuses groupId = do
+  currentStatuses <- currentKnownBuildStatuses groupId
+  _ <- setStatuses currentStatuses
+  logCurrentBuildStatuses
+  pure currentStatuses
+
+currentKnownBuildStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
+currentKnownBuildStatuses groupId = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses groupId
+
+currentBuildStatuses :: (Member ParTraverse r, Member ProjectsApi r, Member PipelinesApi r, Member Logger r) => Id Group -> Sem r [Result]
+currentBuildStatuses groupId = do
+  projects <- findProjects groupId
+  results <- traverseP evalProject projects
+  pure $ sortOn (T.toLower . coerce . name) results
+
+logCurrentBuildStatuses :: (Member BuildStatusesApi r, Member Logger r) => Sem r ()
+logCurrentBuildStatuses = do
+  statuses <- getStatuses
+  logCurrentBuildStatuses' statuses
+
+logCurrentBuildStatuses' :: (Member Logger r) => BuildStatuses -> Sem r ()
+logCurrentBuildStatuses' NoSuccessfulUpdateYet = logInfo "There was no successful update yet, so there are no pipeline statuses available"
+logCurrentBuildStatuses' (Statuses statuses) = do
+  let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd statuses)
+  if null known
+    then logWarn "No valid Pipeline statuses found"
+    else addContext "projectIds" (concatIds known) $ logInfo "Pipeline statuses found "
+  unless (null unknown) (logInfo $ "No pipelines found for projects " <> concatIds unknown)
+  where
+    concatIds :: [Result] -> T.Text
+    concatIds rs = T.intercalate ", " (tshow . projId <$> rs)
+
+evalProject :: (Member PipelinesApi r, Member Logger r) => Project -> Sem r Result
+evalProject Project {..} = do
+  result <- getStatusForProject projectId projectDefaultBranch
+  pure $ case result of
+    Nothing -> Result projectId projectName Unknown (Left projectWebUrl)
+    Just (status, url) -> Result projectId projectName status (Right url)
+
+getStatusForProject :: (Member PipelinesApi r, Member Logger r) => Id Project -> Maybe Ref -> Sem r (Maybe (BuildStatus, Url Pipeline))
+getStatusForProject _ Nothing = pure Nothing
+getStatusForProject projectId (Just defaultBranch) = do
+  pipeline <- getLatestPipelineForRef projectId defaultBranch
+  case pipeline of
+    Left EmptyPipelinesResult -> pure Nothing
+    Left NoPipelineForDefaultBranch -> pure Nothing
+    Left uError -> do
+      logInfo $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
+      pure Nothing
+    Right p -> do
+      let st = pipelineStatus p
+      detailedStatus <- if st == Successful then detailedStatusForPipeline projectId (pipelineId p) else pure Nothing
+      pure $ Just (fromMaybe st detailedStatus, pipelineWebUrl p)
+
+findProjects :: (Member ProjectsApi r, Member Logger r) => Id Group -> Sem r [Project]
+findProjects groupId = do
+  result <- getProjects groupId
+  case result of
+    Left err -> do
+      logInfo $ T.unwords ["Couldn't load projects. Error was", tshow err]
+      pure []
+    Right ps -> pure ps
+
+detailedStatusForPipeline :: (Member PipelinesApi r, Member Logger r) => Id Project -> Id Pipeline -> Sem r (Maybe BuildStatus)
+detailedStatusForPipeline projectId pipelineId =
+  addContexts [("projectId", show projectId), ("pipelineId", show pipelineId)] $ do
+    singlePipelineResult <- getSinglePipeline projectId pipelineId
+    case singlePipelineResult of
+      Left uError -> do
+        logWarn $ T.unwords ["Couldn't get details for pipeline, error was", tshow uError]
+        pure Nothing
+      Right dp -> pure . Just $ detailedPipelineStatus dp
+
 isHealthy :: BuildStatus -> Bool
 isHealthy Unknown = False
 isHealthy Cancelled = False
@@ -253,9 +265,3 @@ isHealthy Skipped = False
 isHealthy Successful = True
 isHealthy SuccessfulWithWarnings = False
 isHealthy WaitingForResource = True
-
-class HasBuildStatuses env where
-  getStatuses :: RIO env BuildStatuses
-  setStatuses :: [Result] -> RIO env BuildStatuses
-
-data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
