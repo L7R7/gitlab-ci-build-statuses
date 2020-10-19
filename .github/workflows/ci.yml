@@ -66,6 +66,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
+          no-cache: true
           tags: l7r7/gitlab-ci-build-statuses:latest
 
       - name: Image digest
