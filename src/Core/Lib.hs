@@ -59,6 +59,58 @@ data UpdateError
 
 newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int deriving (Show)
 
+data Pipeline = Pipeline
+  { pipelineId :: Id Pipeline,
+    pipelineRef :: Ref,
+    pipelineStatus :: BuildStatus,
+    pipelineWebUrl :: Url Pipeline
+  }
+  deriving (Generic, Show)
+
+newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
+
+newtype Url a = Url URI deriving newtype (Show)
+
+instance FromJSON (Url a) where
+  parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
+
+newtype Ref = Ref T.Text deriving newtype (Eq, FromJSON, Show)
+
+instance Eq Pipeline where
+  (==) p p' = pipelineId p == pipelineId p'
+
+instance Ord Pipeline where
+  (<=) p p' = pipelineId p <= pipelineId p'
+
+instance FromJSON Pipeline where
+  parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+data Result = Result
+  { projId :: Id Project,
+    name :: ProjectName,
+    buildStatus :: BuildStatus,
+    url :: Either (Url Project) (Url Pipeline)
+  }
+  deriving (Show)
+
+data BuildStatus
+  = Unknown
+  | Cancelled
+  | Created
+  | Failed
+  | Manual
+  | Pending
+  | Preparing
+  | Running
+  | Scheduled
+  | Skipped
+  | Successful
+  | SuccessfulWithWarnings
+  | WaitingForResource
+  deriving (Bounded, Enum, Eq, Show, Ord)
+
+data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
+
 data DetailedPipeline = DetailedPipeline
   { detailedPipelineId :: Id Pipeline,
     detailedPipelineRef :: Ref,
@@ -86,79 +138,6 @@ newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
-
-data Pipeline = Pipeline
-  { pipelineId :: Id Pipeline,
-    pipelineRef :: Ref,
-    pipelineStatus :: BuildStatus,
-    pipelineWebUrl :: Url Pipeline
-  }
-  deriving (Generic, Show)
-
-newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
-
-newtype Url a = Url URI deriving newtype (Show)
-
-instance FromJSON (Url a) where
-  parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
-
-newtype Ref = Ref T.Text deriving newtype (Eq, FromJSON, Show)
-
-instance Eq Pipeline where
-  (==) p p' = pipelineId p == pipelineId p'
-
-instance Ord Pipeline where
-  (<=) p p' = pipelineId p <= pipelineId p'
-
-instance FromJSON Pipeline where
-  parseJSON = genericParseJSON $ aesonPrefix snakeCase
-
-instance FromJSON BuildStatus where
-  parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
-
-buildStatusToApiString :: IsString p => BuildStatus -> p
-buildStatusToApiString Unknown = "unknown"
-buildStatusToApiString Cancelled = "canceled"
-buildStatusToApiString Created = "created"
-buildStatusToApiString Failed = "failed"
-buildStatusToApiString Manual = "manual"
-buildStatusToApiString Pending = "pending"
-buildStatusToApiString Preparing = "preparing"
-buildStatusToApiString Running = "running"
-buildStatusToApiString Scheduled = "scheduled"
-buildStatusToApiString Skipped = "skipped"
-buildStatusToApiString Successful = "success"
-buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
-buildStatusToApiString WaitingForResource = "waiting_for_resource"
-
-inverseMap :: forall e s. (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
-inverseMap f s = find ((== s) . f) enumerate
-
-data Result = Result
-  { projId :: Id Project,
-    name :: ProjectName,
-    buildStatus :: BuildStatus,
-    url :: Either (Url Project) (Url Pipeline)
-  }
-  deriving (Show)
-
-data BuildStatus
-  = Unknown
-  | Cancelled
-  | Created
-  | Failed
-  | Manual
-  | Pending
-  | Preparing
-  | Running
-  | Scheduled
-  | Skipped
-  | Successful
-  | SuccessfulWithWarnings
-  | WaitingForResource
-  deriving (Bounded, Enum, Eq, Show, Ord)
-
-data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
 
 data PipelinesApi m a where
   GetLatestPipelineForRef :: Id Project -> Ref -> PipelinesApi m (Either UpdateError Pipeline)
@@ -192,6 +171,15 @@ currentBuildStatuses groupId = do
   projects <- findProjects groupId
   results <- traverseP evalProject projects
   pure $ sortOn (T.toLower . coerce . name) results
+
+findProjects :: (Member ProjectsApi r, Member Logger r) => Id Group -> Sem r [Project]
+findProjects groupId = do
+  result <- getProjects groupId
+  case result of
+    Left err -> do
+      logWarn $ T.unwords ["Couldn't load projects. Error was", tshow err]
+      pure []
+    Right ps -> pure ps
 
 logCurrentBuildStatuses :: (Member BuildStatusesApi r, Member Logger r) => Sem r ()
 logCurrentBuildStatuses = do
@@ -232,14 +220,8 @@ getStatusForProject projectId (Just defaultBranch) = do
       detailedStatus <- if st == Successful then detailedStatusForPipeline projectId (pipelineId p) else pure Nothing
       pure $ Just (fromMaybe st detailedStatus, pipelineWebUrl p)
 
-findProjects :: (Member ProjectsApi r, Member Logger r) => Id Group -> Sem r [Project]
-findProjects groupId = do
-  result <- getProjects groupId
-  case result of
-    Left err -> do
-      logWarn $ T.unwords ["Couldn't load projects. Error was", tshow err]
-      pure []
-    Right ps -> pure ps
+instance FromJSON BuildStatus where
+  parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
 
 detailedStatusForPipeline :: (Member PipelinesApi r, Member Logger r) => Id Project -> Id Pipeline -> Sem r (Maybe BuildStatus)
 detailedStatusForPipeline projectId pipelineId =
@@ -250,6 +232,24 @@ detailedStatusForPipeline projectId pipelineId =
         logWarn $ T.unwords ["Couldn't get details for pipeline, error was", tshow uError]
         pure Nothing
       Right dp -> pure . Just $ detailedPipelineStatus dp
+
+buildStatusToApiString :: IsString p => BuildStatus -> p
+buildStatusToApiString Unknown = "unknown"
+buildStatusToApiString Cancelled = "canceled"
+buildStatusToApiString Created = "created"
+buildStatusToApiString Failed = "failed"
+buildStatusToApiString Manual = "manual"
+buildStatusToApiString Pending = "pending"
+buildStatusToApiString Preparing = "preparing"
+buildStatusToApiString Running = "running"
+buildStatusToApiString Scheduled = "scheduled"
+buildStatusToApiString Skipped = "skipped"
+buildStatusToApiString Successful = "success"
+buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
+buildStatusToApiString WaitingForResource = "waiting_for_resource"
+
+inverseMap :: forall e s. (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
+inverseMap f s = find ((== s) . f) enumerate
 
 isHealthy :: BuildStatus -> Bool
 isHealthy Unknown = False
