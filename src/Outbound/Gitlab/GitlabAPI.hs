@@ -19,7 +19,7 @@ import Data.Aeson (FromJSON)
 import Data.List (find)
 import Data.Text (pack, unpack)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
-import Network.HTTP.Client.Conduit (HttpExceptionContent, requestFromURI_, requestHeaders, responseTimeout, responseTimeoutMicro)
+import Network.HTTP.Client.Conduit (HttpExceptionContent, requestFromURI, requestHeaders, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
 import Network.HTTP.Simple (HttpException (..), JSONException (..), Request, RequestHeaders, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
@@ -77,7 +77,7 @@ fetchDataPaginated' apiToken request template histogram acc = do
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
 parseNextRequest :: Response a -> Maybe Request
-parseNextRequest response = requestFromURI_ <$> parseNextHeader response
+parseNextRequest response = parseNextHeader response >>= requestFromURI
 
 parseNextHeader :: Response a -> Maybe URI
 parseNextHeader response = href <$> find isNextLink ((parseLinkHeaderBS <$> getResponseHeader "link" response) >>= concat)
