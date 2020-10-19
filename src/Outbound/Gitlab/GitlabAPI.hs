@@ -14,11 +14,11 @@ module Outbound.Gitlab.GitlabAPI (projectsApiToIO, pipelinesApiToIO) where
 import Burrito
 import Config (ApiToken (..), GitlabHost)
 import Control.Lens (Prism', Traversal', filtered, prism', _1, _2)
-import Core.Lib
+import Core.Lib (Id (Id), PipelinesApi (..), ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
 import Data.Aeson (FromJSON)
 import Data.List (find)
 import Data.Text (pack, unpack)
-import Metrics.Metrics hiding (observeDuration)
+import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Client.Conduit (HttpExceptionContent, requestFromURI_, requestHeaders, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
