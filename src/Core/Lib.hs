@@ -225,7 +225,7 @@ getStatusForProject projectId (Just defaultBranch) = do
     Left EmptyPipelinesResult -> pure Nothing
     Left NoPipelineForDefaultBranch -> pure Nothing
     Left uError -> do
-      logInfo $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
+      logWarn $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
       pure Nothing
     Right p -> do
       let st = pipelineStatus p
@@ -237,7 +237,7 @@ findProjects groupId = do
   result <- getProjects groupId
   case result of
     Left err -> do
-      logInfo $ T.unwords ["Couldn't load projects. Error was", tshow err]
+      logWarn $ T.unwords ["Couldn't load projects. Error was", tshow err]
       pure []
     Right ps -> pure ps
 
