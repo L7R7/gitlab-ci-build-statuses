@@ -180,7 +180,7 @@ makeSem ''BuildStatusesApi
 updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
 updateStatuses groupId = do
   currentStatuses <- currentKnownBuildStatuses groupId
-  _ <- setStatuses currentStatuses
+  unless (null currentStatuses) $ setStatuses currentStatuses >> pure ()
   logCurrentBuildStatuses
   pure currentStatuses
 
