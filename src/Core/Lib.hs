@@ -109,6 +109,27 @@ data BuildStatus
   | WaitingForResource
   deriving (Bounded, Enum, Eq, Show, Ord)
 
+instance FromJSON BuildStatus where
+  parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
+
+buildStatusToApiString :: IsString p => BuildStatus -> p
+buildStatusToApiString Unknown = "unknown"
+buildStatusToApiString Cancelled = "canceled"
+buildStatusToApiString Created = "created"
+buildStatusToApiString Failed = "failed"
+buildStatusToApiString Manual = "manual"
+buildStatusToApiString Pending = "pending"
+buildStatusToApiString Preparing = "preparing"
+buildStatusToApiString Running = "running"
+buildStatusToApiString Scheduled = "scheduled"
+buildStatusToApiString Skipped = "skipped"
+buildStatusToApiString Successful = "success"
+buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
+buildStatusToApiString WaitingForResource = "waiting_for_resource"
+
+inverseMap :: forall e s. (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
+inverseMap f s = find ((== s) . f) enumerate
+
 data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
 
 data DetailedPipeline = DetailedPipeline
@@ -220,9 +241,6 @@ getStatusForProject projectId (Just defaultBranch) = do
       detailedStatus <- if st == Successful then detailedStatusForPipeline projectId (pipelineId p) else pure Nothing
       pure $ Just (fromMaybe st detailedStatus, pipelineWebUrl p)
 
-instance FromJSON BuildStatus where
-  parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
-
 detailedStatusForPipeline :: (Member PipelinesApi r, Member Logger r) => Id Project -> Id Pipeline -> Sem r (Maybe BuildStatus)
 detailedStatusForPipeline projectId pipelineId =
   addContexts [("projectId", show projectId), ("pipelineId", show pipelineId)] $ do
@@ -232,24 +250,6 @@ detailedStatusForPipeline projectId pipelineId =
         logWarn $ T.unwords ["Couldn't get details for pipeline, error was", tshow uError]
         pure Nothing
       Right dp -> pure . Just $ detailedPipelineStatus dp
-
-buildStatusToApiString :: IsString p => BuildStatus -> p
-buildStatusToApiString Unknown = "unknown"
-buildStatusToApiString Cancelled = "canceled"
-buildStatusToApiString Created = "created"
-buildStatusToApiString Failed = "failed"
-buildStatusToApiString Manual = "manual"
-buildStatusToApiString Pending = "pending"
-buildStatusToApiString Preparing = "preparing"
-buildStatusToApiString Running = "running"
-buildStatusToApiString Scheduled = "scheduled"
-buildStatusToApiString Skipped = "skipped"
-buildStatusToApiString Successful = "success"
-buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
-buildStatusToApiString WaitingForResource = "waiting_for_resource"
-
-inverseMap :: forall e s. (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
-inverseMap f s = find ((== s) . f) enumerate
 
 isHealthy :: BuildStatus -> Bool
 isHealthy Unknown = False
