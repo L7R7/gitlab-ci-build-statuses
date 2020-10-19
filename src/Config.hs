@@ -10,6 +10,7 @@ module Config
     Config (..),
     ConfigError (..),
     GitlabHost,
+    GitCommit (..),
     LogConfig (LogConfig),
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
@@ -24,11 +25,12 @@ where
 import Control.Lens
 import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
-import Data.List (find)
-import Data.List.NonEmpty hiding (group, toList)
+import Data.List (find, intercalate)
+import Data.List.NonEmpty hiding (group, intersperse, toList)
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Validation
+import GitHash
 import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
@@ -55,7 +57,7 @@ envMaxConcurrency :: T.Text
 envMaxConcurrency = "MAX_CONCURRENCY"
 
 parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> ProcessContext -> Validation (NonEmpty ConfigError) Config
-parseConfigFromEnv metrics ioref lC pc =
+parseConfigFromEnv metrics ioref logConfig pc =
   Config <$> readApiTokenFromEnv pc
     <*> readGroupIdFromEnv pc
     <*> readBaseUrlFromEnv pc
@@ -64,7 +66,10 @@ parseConfigFromEnv metrics ioref lC pc =
     <*> pure (readMaxConcurrencyFromEnv pc)
     <*> pure metrics
     <*> pure ioref
-    <*> pure lC
+    <*> pure logConfig
+    <*> pure (GitCommit $ giBranch gitCommit <> "@" <> giHash gitCommit)
+  where
+    gitCommit = $$tGitInfoCwd
 
 showErrors :: NonEmpty ConfigError -> T.Text
 showErrors errs = T.intercalate ", " $ fmap tshow (toList errs)
@@ -78,7 +83,8 @@ data Config = Config
     maxConcurrency :: MaxConcurrency,
     metrics :: Metrics,
     statuses :: IORef BuildStatuses,
-    logConfig :: LogConfig
+    logConfig :: LogConfig,
+    gitCommit :: GitCommit
   }
 
 data LogConfig = LogConfig
@@ -90,15 +96,15 @@ data LogConfig = LogConfig
 instance Show Config where
   show Config {..} =
     "Config: GroupId "
-      <> show groupId
-      <> ", Base URL "
-      <> show gitlabBaseUrl
-      <> ", "
-      <> show dataUpdateIntervalSecs
-      <> ", "
-      <> show uiUpdateIntervalSecs
-      <> ", "
-      <> show maxConcurrency
+      <> intercalate
+        ", "
+        [ show groupId,
+          "Base URL " <> show gitlabBaseUrl,
+          show dataUpdateIntervalSecs,
+          show uiUpdateIntervalSecs,
+          show maxConcurrency,
+          show gitCommit
+        ]
 
 newtype ApiToken = ApiToken B.ByteString
 
@@ -115,6 +121,8 @@ instance Show ConfigError where
   show (GitlabBaseUrlInvalid url) = "Gitlab base URL set via " <> show envBaseUrl <> "is invalid. The value is: " <> show url
 
 newtype MaxConcurrency = MaxConcurrency Int deriving (Show)
+
+newtype GitCommit = GitCommit String deriving (Show)
 
 readApiTokenFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) ApiToken
 readApiTokenFromEnv pc = do

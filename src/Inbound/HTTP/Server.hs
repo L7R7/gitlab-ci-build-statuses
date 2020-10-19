@@ -14,7 +14,7 @@ module Inbound.HTTP.Server
   )
 where
 
-import Config (Config (..), UiUpdateIntervalSeconds)
+import Config (Config (..), GitCommit, UiUpdateIntervalSeconds)
 import Control.Monad.Except (ExceptT (..))
 import Core.Effects (Timer)
 import Core.Lib (BuildStatuses, BuildStatusesApi)
@@ -35,12 +35,12 @@ type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> Get '[HTML] H.
 api :: Proxy API
 api = Proxy
 
-server :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> ServerT API (Sem r)
-server uiUpdateInterval = return "UP" :<|> template uiUpdateInterval :<|> serveDirectoryWebApp "/service/static"
+server :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
+server uiUpdateInterval gitCommit = return "UP" :<|> template uiUpdateInterval gitCommit :<|> serveDirectoryWebApp "/service/static"
 
 hoist :: Config -> ServerT API Handler
 hoist Config {..} = do
-  hoistServer api (liftServer statuses) (server uiUpdateIntervalSecs)
+  hoistServer api (liftServer statuses) (server uiUpdateIntervalSecs gitCommit)
 
 liftServer :: IORef BuildStatuses -> Sem '[BuildStatusesApi, Timer, Embed IO] a -> Handler a
 liftServer statuses sem =

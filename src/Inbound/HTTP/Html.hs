@@ -13,24 +13,25 @@ where
 import Config
 import Core.Effects (Timer, getCurrentTime)
 import Core.Lib
+import Data.Text (pack)
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Polysemy
 import RIO hiding (link)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
-template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> Sem r Html
-template updateInterval = do
+template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> Sem r Html
+template updateInterval gitCommit = do
   now <- getCurrentTime
-  template' now updateInterval <$> getStatuses
+  template' now updateInterval gitCommit <$> getStatuses
 
-template' :: UTCTime -> UiUpdateIntervalSeconds -> BuildStatuses -> Html
-template' now updateInterval buildStatuses = do
-  pageHeader updateInterval buildStatuses
+template' :: UTCTime -> UiUpdateIntervalSeconds -> GitCommit -> BuildStatuses -> Html
+template' now updateInterval gitCommit buildStatuses = do
+  pageHeader updateInterval gitCommit buildStatuses
   pageBody now buildStatuses
 
-pageHeader :: UiUpdateIntervalSeconds -> BuildStatuses -> Html
-pageHeader (UiUpdateIntervalSeconds updateInterval) buildStatuses =
+pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> BuildStatuses -> Html
+pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit buildStatuses =
   docTypeHtml ! lang "en" $
     H.head $
       do
@@ -39,6 +40,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) buildStatuses =
         H.title $ titleIcon buildStatuses <> " Build Statuses"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses.css"
+        textComment . pack $ "Version: " <> show gitCommit
 
 titleIcon :: BuildStatuses -> Html
 titleIcon NoSuccessfulUpdateYet = mempty

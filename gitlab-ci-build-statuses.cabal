@@ -55,6 +55,7 @@ library
     , containers
     , either
     , extra
+    , githash
     , http-conduit
     , http-link-header
     , http-types
