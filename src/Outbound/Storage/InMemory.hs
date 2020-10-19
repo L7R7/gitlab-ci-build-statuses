@@ -1,22 +1,26 @@
-{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Outbound.Storage.InMemory () where
+module Outbound.Storage.InMemory (initStorage, buildStatusesApiToIO) where
 
-import App
-import Core.Lib (BuildStatuses (..), HasBuildStatuses (..), Result)
+import Core.Lib (BuildStatuses (..), BuildStatusesApi (..))
 import Data.Time (getCurrentTime)
+import Polysemy
 import RIO
 
-instance HasBuildStatuses App where
-  getStatuses :: RIO App BuildStatuses
-  getStatuses = view readBuildStatuses >>= readIORef
-  setStatuses :: [Result] -> RIO App BuildStatuses
-  setStatuses results = do
-    store <- view readBuildStatuses
-    updateTime <- liftIO getCurrentTime
-    let res = Statuses (updateTime, results)
-    liftIO $ atomicModifyIORef' store (const (res, res))
+initStorage :: IO (IORef BuildStatuses)
+initStorage = newIORef NoSuccessfulUpdateYet
 
-readBuildStatuses :: SimpleGetter App (IORef BuildStatuses)
-readBuildStatuses = to statuses
+buildStatusesApiToIO :: (Member (Embed IO) r) => IORef BuildStatuses -> Sem (BuildStatusesApi ': r) a -> Sem r a
+buildStatusesApiToIO ioRef = interpret $ \case
+  GetStatuses -> readIORef ioRef
+  SetStatuses results -> embed $ do
+    updateTime <- getCurrentTime
+    let res = Statuses (updateTime, results)
+    atomicModifyIORef' ioRef (const (res, res))

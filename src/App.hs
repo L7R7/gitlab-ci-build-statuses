@@ -1,63 +1,50 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module App (App (..)) where
+module App (startWithConfig) where
 
 import Config
-import Core.Lib
-import Env
-import Inbound.HTTP.Metrics (HasOutgoingHttpRequestsHistogram (..), HasPipelinesOverviewGauge (..), Metrics (..), currentPipelinesOverview)
-import Inbound.Jobs.Inbound.Jobs.Updating (HasDataUpdateInterval (..), HasUpdateJobDurationHistogram (..))
-import Katip
-import Prometheus (MonadMonitor (..))
-import RIO
+import Control.Concurrent (forkIO)
+import Inbound.HTTP.Server (startServer)
+import Inbound.Jobs.Inbound.Jobs.Updating (updateStatusesRegularly)
+import Logger
+import Metrics.Metrics
+import Outbound.Gitlab.GitlabAPI (pipelinesApiToIO, projectsApiToIO)
+import Outbound.Storage.InMemory (buildStatusesApiToIO)
+import Polysemy
+import Polysemy.Reader
+import RIO hiding (runReader)
+import Util (delayToIO, parTraverseToIO)
 
-data App = App
-  { statuses :: !(IORef BuildStatuses),
-    config :: !Config,
-    logNamespace :: !Namespace,
-    logContext :: !LogContexts,
-    logEnv :: !LogEnv,
-    metrics :: !Metrics
-  }
+startMetricsUpdatingJob :: Config -> IO ()
+startMetricsUpdatingJob config =
+  runM
+    . metricsApiToIO (metrics config)
+    . buildStatusesApiToIO (statuses config)
+    . delayToIO
+    $ updateMetricsRegularly
 
-instance Katip (RIO App) where
-  getLogEnv = asks logEnv
-  localLogEnv f (RIO a) = RIO (local (\s -> s {logEnv = f (logEnv s)}) a)
+startStatusUpdatingJob :: Config -> IO ()
+startStatusUpdatingJob Config {..} =
+  runFinal
+    . embedToFinal @IO
+    . buildStatusesApiToIO statuses
+    . pipelinesApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics)
+    . projectsApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics)
+    . parTraverseToIO maxConcurrency
+    . delayToIO
+    . runReader logConfig
+    . loggerToIO
+    . observeDurationToIO (updateJobDurationHistogram metrics)
+    $ updateStatusesRegularly groupId dataUpdateIntervalSecs
 
-instance KatipContext (RIO App) where
-  getKatipContext = asks logContext
-  localKatipContext f (RIO app) = RIO (local (\s -> s {logContext = f (logContext s)}) app)
-  getKatipNamespace = asks logNamespace
-  localKatipNamespace f (RIO app) = RIO (local (\s -> s {logNamespace = f (logNamespace s)}) app)
-
-instance HasConfig App where
-  configL = to config
-
-instance HasApiToken App where
-  apiTokenL = to (apiToken . config)
-
-instance HasBaseUrl App where
-  baseUrlL = to (gitlabBaseUrl . config)
-
-instance HasGroupId App where
-  groupIdL = to (groupId . config)
-
-instance HasDataUpdateInterval App where
-  dataUpdateIntervalL = to (dataUpdateIntervalSecs . config)
-
-instance HasUiUpdateInterval App where
-  uiUpdateIntervalL = to (uiUpdateIntervalSecs . config)
-
-instance HasPipelinesOverviewGauge App where
-  pipelinesOverviewGaugeL = to (currentPipelinesOverview . metrics)
-
-instance HasOutgoingHttpRequestsHistogram App where
-  outgoingHttpRequestsHistogramL = to (outgoingHttpRequestsHistogram . metrics)
-
-instance HasUpdateJobDurationHistogram App where
-  hasUpdateJobDurationHistogramL = to (updateJobDurationHistogram . metrics)
-
-instance MonadMonitor (RIO App) where
-  doIO = liftIO
+startWithConfig :: Config -> IO ()
+startWithConfig config = do
+  _ <- forkIO $ startMetricsUpdatingJob config
+  _ <- forkIO $ startStatusUpdatingJob config
+  startServer config

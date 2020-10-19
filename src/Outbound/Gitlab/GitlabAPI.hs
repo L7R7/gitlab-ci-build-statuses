@@ -1,101 +1,79 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Outbound.Gitlab.GitlabAPI () where
+module Outbound.Gitlab.GitlabAPI (projectsApiToIO, pipelinesApiToIO) where
 
-import App
 import Burrito
-import Config (ApiToken (..), maxConcurrency)
+import Config (ApiToken (..), GitlabHost)
 import Control.Lens (Prism', Traversal', filtered, prism', _1, _2)
-import Core.Lib (DetailedPipeline, HasGetPipelines (..), HasGetProjects (..), Id (..), Pipeline, Project, Ref (..), UpdateError (..), Url (..))
+import Core.Lib (Id (Id), PipelinesApi (..), ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
 import Data.Aeson (FromJSON)
 import Data.List (find)
 import Data.Text (pack, unpack)
-import Env (HasApiToken, HasBaseUrl, apiTokenL, baseUrlL, groupIdL)
-import Inbound.HTTP.Metrics
+import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Client.Conduit (HttpExceptionContent, requestFromURI_, requestHeaders, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
 import Network.HTTP.Simple (HttpException (..), JSONException (..), Request, RequestHeaders, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
 import Network.HTTP.Types.Header (HeaderName)
 import Network.URI (URI)
+import Polysemy
 import Prometheus (observeDuration)
 import RIO
 
-instance HasGetProjects App where
-  getProjects :: RIO App (Either UpdateError [Project])
-  getProjects = do
-    group <- view groupIdL
+projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Sem (ProjectsApi ': r) a -> Sem r a
+projectsApiToIO baseUrl apiToken histogram = interpret $ \case
+  GetProjects groupId -> do
     let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false|]
-    fetchDataPaginated template [("groupId", (stringValue . show) group)]
-  maxConcurrencyL = to (maxConcurrency . config)
+    embed $ fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] histogram
 
-instance HasGetPipelines App where
-  getLatestPipelineForRef :: Id Project -> Ref -> RIO App (Either UpdateError Pipeline)
-  getLatestPipelineForRef (Id project) (Ref ref) = do
+pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Sem (PipelinesApi ': r) a -> Sem r a
+pipelinesApiToIO baseUrl apiToken histogram = interpret $ \case
+  GetLatestPipelineForRef (Id project) (Ref ref) -> do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines?ref={ref}&per_page=1|]
-    headOrUpdateError <$> fetchData template [("projectId", (stringValue . show) project), ("ref", (stringValue . unpack) ref)]
-  getSinglePipeline :: Id Project -> Id Pipeline -> RIO App (Either UpdateError DetailedPipeline)
-  getSinglePipeline project pipeline = do
+    embed $ headOrUpdateError <$> fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("ref", (stringValue . unpack) ref)] histogram
+  GetSinglePipeline (Id project) (Id pipeline) -> do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
-    fetchData template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)]
+    embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)] histogram
 
 headOrUpdateError :: Either UpdateError [a] -> Either UpdateError a
 headOrUpdateError (Right (a : _)) = Right a
 headOrUpdateError (Right []) = Left NoPipelineForDefaultBranch
 headOrUpdateError (Left e) = Left e
 
-fetchData ::
-  (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) =>
-  Template ->
-  [(String, Value)] ->
-  RIO env (Either UpdateError a)
-fetchData template vars = do
-  (Url baseUrl) <- view baseUrlL
+fetchData :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
+fetchData baseUrl apiToken template vars histogram = do
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
-    (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
-    Right request -> fetchData' request template
+    Left invalidUrl -> pure $ Left $ HttpError invalidUrl
+    Right request -> fetchData' apiToken request template histogram
 
-fetchData' :: (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a) => Request -> Template -> RIO env (Either UpdateError a)
-fetchData' request template = do
-  token <- view apiTokenL
-  histogram <- view outgoingHttpRequestsHistogramL
-  result <- measure histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken token request)))
+fetchData' :: (FromJSON a) => ApiToken -> Request -> Template -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
+fetchData' apiToken request template histogram = do
+  result <- measure histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken apiToken request)))
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
-fetchDataPaginated ::
-  (HasApiToken env, HasOutgoingHttpRequestsHistogram env, HasBaseUrl env, FromJSON a) =>
-  Template ->
-  [(String, Value)] ->
-  RIO env (Either UpdateError [a])
-fetchDataPaginated template vars = do
-  token <- view apiTokenL
-  (Url baseUrl) <- view baseUrlL
-  histogram <- view outgoingHttpRequestsHistogramL
+fetchDataPaginated :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError [a])
+fetchDataPaginated baseUrl apiToken template vars histogram = do
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
     (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
-    Right request -> fetchDataPaginated' token histogram template request []
+    Right request -> fetchDataPaginated' apiToken request template histogram []
 
-fetchDataPaginated' ::
-  (HasApiToken env, HasOutgoingHttpRequestsHistogram env, FromJSON a) =>
-  ApiToken ->
-  OutgoingHttpRequestsHistogram ->
-  Template ->
-  Request ->
-  [a] ->
-  RIO env (Either UpdateError [a])
-fetchDataPaginated' apiToken histogram template request acc = do
+fetchDataPaginated' :: (FromJSON a) => ApiToken -> Request -> Template -> OutgoingHttpRequestsHistogram -> [a] -> IO (Either UpdateError [a])
+fetchDataPaginated' apiToken request template histogram acc = do
   result <- try $ do
     response <- measure histogram template $ httpJSONEither (setTimeout $ addToken apiToken request)
     let next = parseNextRequest response
     case mapLeft ConversionError $ getResponseBody response of
       Left err -> pure $ Left err
-      Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken histogram template req (as <> acc)) next
+      Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken req template histogram (as <> acc)) next
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
 parseNextRequest :: Response a -> Maybe Request
@@ -114,8 +92,8 @@ addToken (ApiToken token) = setRequestHeader privateToken [token]
 setTimeout :: Request -> Request
 setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 
-measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> RIO env a
-measure histogram template action = liftIO $ observeDuration (VectorWithLabel histogram ((pack . render) template)) action
+measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
+measure histogram template = observeDuration (VectorWithLabel histogram ((pack . render) template))
 
 -- TODO: 2020-08-31 can we use lenses for that (does it make sense to do that?)
 removeApiTokenFromUpdateError :: UpdateError -> UpdateError

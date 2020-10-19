@@ -29,19 +29,21 @@ library
   exposed-modules:
     App
     , Config
+    , Core.Effects
     , Core.Lib
-    , Env
     , Inbound.HTTP.Html
-    , Inbound.HTTP.Metrics
+    , Logger
+    , Metrics.Metrics
     , Inbound.Jobs.Inbound.Jobs.Updating
     , Inbound.HTTP.Server
     , Outbound.Gitlab.GitlabAPI
     , Outbound.Storage.InMemory
+    , Util
   other-modules:
       Paths_gitlab_ci_build_statuses
   hs-source-dirs:
       src
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -fno-warn-orphans -fwrite-ide-info -hiedir=.hie
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -fno-warn-orphans -fwrite-ide-info -hiedir=.hie -O2 -flate-specialise -fspecialise-aggressively
   build-depends:
       base >=4.7 && <5
     , aeson
@@ -61,6 +63,8 @@ library
     , microlens
     , mtl
     , network-uri
+    , polysemy
+    , polysemy-plugin
     , prometheus-client
     , prometheus-metrics-ghc
     , rio
@@ -70,6 +74,7 @@ library
     , text
     , time
     , transformers
+    , unliftio
     , validation
     , wai
     , wai-middleware-prometheus

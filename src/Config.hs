@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Config
@@ -9,20 +10,27 @@ module Config
     Config (..),
     ConfigError (..),
     GitlabHost,
+    LogConfig (LogConfig),
+    MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
     parseConfigFromEnv,
     showErrors,
+    logContext,
+    logEnv,
+    logNamespace,
   )
 where
 
 import Control.Lens
-import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), MaxConcurrency (..), Url (..))
+import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
 import Data.List (find)
 import Data.List.NonEmpty hiding (group, toList)
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Validation
+import Katip (LogContexts, LogEnv, Namespace)
+import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
 import RIO hiding (logError, logInfo)
 import qualified RIO.Map as Map
@@ -46,14 +54,17 @@ envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 envMaxConcurrency :: T.Text
 envMaxConcurrency = "MAX_CONCURRENCY"
 
-parseConfigFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) Config
-parseConfigFromEnv pc =
+parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> ProcessContext -> Validation (NonEmpty ConfigError) Config
+parseConfigFromEnv metrics ioref lC pc =
   Config <$> readApiTokenFromEnv pc
     <*> readGroupIdFromEnv pc
     <*> readBaseUrlFromEnv pc
     <*> pure (readDataUpdateIntervalFromEnv pc)
     <*> pure (readUiUpdateIntervalFromEnv pc)
     <*> pure (readMaxConcurrencyFromEnv pc)
+    <*> pure metrics
+    <*> pure ioref
+    <*> pure lC
 
 showErrors :: NonEmpty ConfigError -> T.Text
 showErrors errs = T.intercalate ", " $ fmap tshow (toList errs)
@@ -64,7 +75,16 @@ data Config = Config
     gitlabBaseUrl :: Url GitlabHost,
     dataUpdateIntervalSecs :: DataUpdateIntervalSeconds,
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
-    maxConcurrency :: MaxConcurrency
+    maxConcurrency :: MaxConcurrency,
+    metrics :: Metrics,
+    statuses :: IORef BuildStatuses,
+    logConfig :: LogConfig
+  }
+
+data LogConfig = LogConfig
+  { _logNamespace :: Namespace,
+    _logContext :: LogContexts,
+    _logEnv :: LogEnv
   }
 
 instance Show Config where
@@ -93,6 +113,8 @@ instance Show ConfigError where
   show GroupIdMissing = "Group ID is missing. Set it via " <> show envGroupId
   show GitlabBaseUrlMissing = "Gitlab base URL is missing. Set it via " <> show envBaseUrl
   show (GitlabBaseUrlInvalid url) = "Gitlab base URL set via " <> show envBaseUrl <> "is invalid. The value is: " <> show url
+
+newtype MaxConcurrency = MaxConcurrency Int deriving (Show)
 
 readApiTokenFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) ApiToken
 readApiTokenFromEnv pc = do
@@ -138,3 +160,5 @@ envFromPC :: ProcessContext -> Text -> Maybe Text
 envFromPC pc key = Map.lookup key envVars
   where
     envVars = RIO.view envVarsL pc
+
+makeLenses ''LogConfig
