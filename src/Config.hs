@@ -148,19 +148,16 @@ readBaseUrlFromEnv pc = do
     urlMissing = _Failure # single GitlabBaseUrlMissing
 
 readDataUpdateIntervalFromEnv :: ProcessContext -> DataUpdateIntervalSeconds
-readDataUpdateIntervalFromEnv pc = DataUpdateIntervalSeconds $ fromMaybe 60 maybeUpdateInterval
-  where
-    maybeUpdateInterval = find (> 0) (envFromPC pc envDataUpdateInterval >>= (readMaybe . T.unpack))
+readDataUpdateIntervalFromEnv pc = DataUpdateIntervalSeconds $ fromMaybe 60 $ parsePositive pc envDataUpdateInterval
 
 readUiUpdateIntervalFromEnv :: ProcessContext -> UiUpdateIntervalSeconds
-readUiUpdateIntervalFromEnv pc = UiUpdateIntervalSeconds $ fromMaybe 5 maybeUpdateInterval
-  where
-    maybeUpdateInterval = find (> 0) (envFromPC pc envUiUpdateInterval >>= (readMaybe . T.unpack))
+readUiUpdateIntervalFromEnv pc = UiUpdateIntervalSeconds $ fromMaybe 5 $ parsePositive pc envUiUpdateInterval
 
 readMaxConcurrencyFromEnv :: ProcessContext -> MaxConcurrency
-readMaxConcurrencyFromEnv pc = MaxConcurrency $ fromMaybe 2 maybeMaxConcurrency
-  where
-    maybeMaxConcurrency = find (> 0) (envFromPC pc envMaxConcurrency >>= (readMaybe . T.unpack))
+readMaxConcurrencyFromEnv pc = MaxConcurrency $ fromMaybe 2 $ parsePositive pc envMaxConcurrency
+
+parsePositive :: ProcessContext -> Text -> Maybe Int
+parsePositive pc text = find (> 0) (envFromPC pc text >>= (readMaybe . T.unpack))
 
 single :: a -> NonEmpty a
 single a = a :| []
