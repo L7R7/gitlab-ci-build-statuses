@@ -4,8 +4,7 @@
 module Main (main) where
 
 import App (startWithConfig)
-import Config (LogConfig (..), parseConfigFromEnv, showErrors)
-import Data.Validation (Validation (Failure, Success))
+import Config (LogConfig (..), Validation (Failure, Success), parseConfigFromEnv, showErrors)
 import Katip
 import Metrics.Metrics (registerMetrics)
 import Outbound.Storage.InMemory (initStorage)

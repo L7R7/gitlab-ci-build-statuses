@@ -15,6 +15,7 @@ module Config
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
     parseConfigFromEnv,
+    Validation (Failure, Success),
     showErrors,
     logContext,
     logEnv,
