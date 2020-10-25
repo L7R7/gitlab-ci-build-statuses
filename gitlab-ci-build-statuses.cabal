@@ -37,6 +37,7 @@ library
     , Inbound.Jobs.Inbound.Jobs.Updating
     , Inbound.HTTP.Server
     , Outbound.Gitlab.GitlabAPI
+    , Outbound.Gitlab.RequestResponseUtils
     , Outbound.Storage.InMemory
     , Util
   other-modules:

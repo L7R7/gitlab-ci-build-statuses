@@ -13,18 +13,17 @@ module Outbound.Gitlab.GitlabAPI (projectsApiToIO, pipelinesApiToIO) where
 
 import Burrito
 import Config (ApiToken (..), GitlabHost)
-import Control.Lens (Prism', Traversal', filtered, prism', _1, _2)
 import Core.Lib (Id (Id), PipelinesApi (..), ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
 import Data.Aeson (FromJSON)
 import Data.List (find)
 import Data.Text (pack, unpack)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
-import Network.HTTP.Client.Conduit (HttpExceptionContent, requestFromURI, requestHeaders, responseTimeout, responseTimeoutMicro)
+import Network.HTTP.Client.Conduit (requestFromURI, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
-import Network.HTTP.Simple (HttpException (..), JSONException (..), Request, RequestHeaders, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
-import Network.HTTP.Types.Header (HeaderName)
+import Network.HTTP.Simple (Request, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
 import Network.URI (URI)
+import Outbound.Gitlab.RequestResponseUtils
 import Polysemy
 import Prometheus (observeDuration)
 import RIO
@@ -94,38 +93,3 @@ setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 
 measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
 measure histogram template = observeDuration (VectorWithLabel histogram ((pack . render) template))
-
--- TODO: 2020-08-31 can we use lenses for that (does it make sense to do that?)
-removeApiTokenFromUpdateError :: UpdateError -> UpdateError
-removeApiTokenFromUpdateError (HttpError httpException) = HttpError (removeApiTokenFromHttpException httpException)
-removeApiTokenFromUpdateError (ConversionError jsonException) = ConversionError (removeApiTokenFromJsonException jsonException)
-removeApiTokenFromUpdateError EmptyPipelinesResult = EmptyPipelinesResult
-removeApiTokenFromUpdateError NoPipelineForDefaultBranch = NoPipelineForDefaultBranch
-
-removeApiTokenFromHttpException :: HttpException -> HttpException
-removeApiTokenFromHttpException = set (reqPrism . _1 . headers . tokenHeader) "xxxxx"
-
-reqPrism :: Prism' HttpException (Request, HttpExceptionContent)
-reqPrism = prism' (uncurry HttpExceptionRequest) extract
-  where
-    extract (HttpExceptionRequest request reason) = Just (request, reason)
-    extract _ = Nothing
-
-tokenHeader :: Traversal' RequestHeaders ByteString
-tokenHeader = traverse . filtered (\header -> fst header == privateToken) . _2
-
-privateToken :: HeaderName
-privateToken = "PRIVATE-TOKEN"
-
-headers :: Lens' Request RequestHeaders
-headers = lens getter setter
-  where
-    getter = requestHeaders
-    setter r h = r {requestHeaders = h}
-
-removeApiTokenFromJsonException :: JSONException -> JSONException
-removeApiTokenFromJsonException (JSONParseException request response parseError) = JSONParseException (removeApiTokenFromRequest request) response parseError
-removeApiTokenFromJsonException (JSONConversionException request response s) = JSONConversionException (removeApiTokenFromRequest request) response s
-
-removeApiTokenFromRequest :: Request -> Request
-removeApiTokenFromRequest = set (headers . tokenHeader) "xxxxx"
