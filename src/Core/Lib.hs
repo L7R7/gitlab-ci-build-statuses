@@ -14,6 +14,7 @@
 
 module Core.Lib
   ( updateStatuses,
+    currentBuildStatuses,
     BuildStatus (..),
     BuildStatuses (..),
     DataUpdateIntervalSeconds (..),
@@ -69,7 +70,7 @@ data Pipeline = Pipeline
 
 newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
 
-newtype Url a = Url URI deriving newtype (Show)
+newtype Url a = Url URI deriving newtype (Eq, Show)
 
 instance FromJSON (Url a) where
   parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
@@ -91,7 +92,7 @@ data Result = Result
     buildStatus :: BuildStatus,
     url :: Either (Url Project) (Url Pipeline)
   }
-  deriving (Show)
+  deriving (Eq, Show)
 
 data BuildStatus
   = Unknown
@@ -155,7 +156,7 @@ data Project = Project
   }
   deriving (Generic, Show)
 
-newtype ProjectName = ProjectName T.Text deriving (FromJSON, Show)
+newtype ProjectName = ProjectName T.Text deriving (Eq, FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
