@@ -48,6 +48,8 @@ extra-deps:
       - wai-middleware-prometheus
   - burrito-1.2.0.0@sha256:13490e501d3ce017cc9ba7774d0b1263f72f22e8f755c8f0b7cbd2e8d555f2ae,2877
   - polysemy-plugin-0.2.5.1@sha256:61c6c0aad2852377aa5d5a8f9639a437905e3a6f0e2a99a41e96fb231dc86836,2952
+  - github: polysemy-research/polysemy
+    commit: 3399de172b34891180f8967eb4fdfd2b556b5723
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
