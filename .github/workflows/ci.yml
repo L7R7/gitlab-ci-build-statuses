@@ -25,7 +25,7 @@ jobs:
         with:
           ghc-version: '8.8.4'
           enable-stack: true
-          stack-version: '2.3.3'
+          stack-version: '2.5.1'
 
       - name: Install dependencies
         run: stack --no-terminal --install-ghc test --only-dependencies
