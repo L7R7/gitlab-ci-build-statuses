@@ -13,9 +13,10 @@ module Outbound.Gitlab.GitlabAPI (projectsApiToIO, pipelinesApiToIO) where
 
 import Burrito
 import Config (ApiToken (..), GitlabHost)
+import Control.Exception (try)
 import Core.Lib (Id (Id), PipelinesApi (..), ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
 import Data.Aeson (FromJSON)
-import Data.List (find)
+import Data.Either.Combinators (mapLeft)
 import Data.Text (pack, unpack)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Client.Conduit (requestFromURI, responseTimeout, responseTimeoutMicro)
@@ -26,7 +27,7 @@ import Network.URI (URI)
 import Outbound.Gitlab.RequestResponseUtils
 import Polysemy
 import Prometheus (observeDuration)
-import RIO
+import Relude
 
 projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Sem (ProjectsApi ': r) a -> Sem r a
 projectsApiToIO baseUrl apiToken histogram = interpret $ \case

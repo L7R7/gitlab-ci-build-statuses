@@ -15,7 +15,7 @@ module Inbound.HTTP.Server
 where
 
 import Config (Config (..), GitCommit, UiUpdateIntervalSeconds)
-import Control.Monad.Except (ExceptT (..))
+import Control.Exception (try)
 import Core.Effects (Timer)
 import Core.Lib (BuildStatuses, BuildStatusesApi)
 import qualified Data.Text as T
@@ -24,7 +24,7 @@ import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Prometheus (def, prometheus)
 import Outbound.Storage.InMemory (buildStatusesApiToIO)
 import Polysemy hiding (run)
-import RIO hiding (Handler, logInfo)
+import Relude
 import Servant
 import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H

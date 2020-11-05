@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -16,7 +17,7 @@ import Core.Lib
 import Data.Text (pack)
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Polysemy
-import RIO hiding (link)
+import Relude
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
@@ -82,7 +83,7 @@ resultToHtml Result {..} =
 lastUpdatedToHtml :: UTCTime -> UTCTime -> Html
 lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $ do
   p "Last Update at:"
-  p (toHtml $ unwords [formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
+  p (toHtml $ unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
   where
     lastUpdateTooOld = diffUTCTime now lastUpdate > 360
     staleDataTitle
@@ -99,7 +100,7 @@ instance ToMarkup ProjectName where
   toMarkup (ProjectName pN) = toMarkup pN
 
 instance ToValue (Url a) where
-  toValue (Url url) = toValue $ show url
+  toValue (Url url) = toValue @String (show url)
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"
@@ -117,4 +118,4 @@ instance ToMarkup BuildStatus where
   toMarkup WaitingForResource = string "waiting for resource"
 
 instance ToValue BuildStatus where
-  toValue = toValue . show
+  toValue = toValue @String . show

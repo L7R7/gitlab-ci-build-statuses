@@ -13,10 +13,9 @@ where
 
 import Core.Effects (Delay, Logger, ParTraverse, addContext, addNamespace, delaySeconds, logInfo)
 import Core.Lib (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, ProjectsApi, updateStatuses)
-import Data.Coerce (coerce)
 import Metrics.Metrics
 import Polysemy
-import RIO hiding (logInfo)
+import Relude
 
 updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member Delay r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> Sem r ()
 updateStatusesRegularly groupId updateInterval =
@@ -30,4 +29,4 @@ updateWithDurationObservation groupId =
   observeDuration $ do
     logInfo "updating build statuses"
     results <- updateStatuses groupId
-    addContext "numResults" (show $ length results) $ logInfo "Done updating"
+    addContext "numResults" (length results) $ logInfo "Done updating"

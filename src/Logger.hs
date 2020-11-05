@@ -11,11 +11,12 @@
 module Logger (loggerToIO) where
 
 import Config (LogConfig (..), logContext, logEnv, logNamespace)
+import Control.Lens (over, view)
 import Core.Effects (Logger (..))
 import Katip
 import Polysemy
 import Polysemy.Reader (Reader, asks, local)
-import RIO hiding (Reader, asks, local)
+import Relude hiding (Reader, asks, local)
 
 loggerToIO :: KatipContext (Sem r) => Sem (Logger ': r) a -> Sem r a
 loggerToIO = do

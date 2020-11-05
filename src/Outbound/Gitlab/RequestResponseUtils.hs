@@ -3,12 +3,12 @@
 
 module Outbound.Gitlab.RequestResponseUtils (privateToken, removeApiTokenFromUpdateError) where
 
-import Control.Lens (Prism', Traversal', filtered, prism', _1, _2)
+import Control.Lens (Lens', Prism', Traversal', filtered, lens, prism', set, _1, _2)
 import Core.Lib (UpdateError (..))
 import Network.HTTP.Conduit (HttpExceptionContent, requestHeaders)
 import Network.HTTP.Simple (HttpException (HttpExceptionRequest), JSONException (..), Request, RequestHeaders)
 import Network.HTTP.Types (HeaderName)
-import RIO
+import Relude
 
 -- TODO: 2020-08-31 can we use lenses for that (does it make sense to do that?)
 removeApiTokenFromUpdateError :: UpdateError -> UpdateError

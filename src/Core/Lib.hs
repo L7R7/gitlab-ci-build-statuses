@@ -26,28 +26,29 @@ module Core.Lib
     ProjectsApi (..),
     BuildStatusesApi (..),
     getStatuses,
+    getStatusForProject,
     PipelinesApi (..),
     UpdateError (..),
-    DetailedPipeline,
-    Pipeline,
+    DetailedPipeline (..),
+    Pipeline (..),
     Project (..),
     Ref (..),
     isHealthy,
   )
 where
 
-import Core.Effects (Logger, ParTraverse, addContext, addContexts, logInfo, logWarn, traverseP)
+import Core.Effects (Logger, ParTraverse, addContext, logInfo, logWarn, traverseP)
 import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
-import Data.List
-import Data.List.Extra (enumerate)
-import qualified Data.Text as T hiding (partition)
+import Data.List hiding (unwords)
+import qualified Data.Text as T (intercalate, toLower, unpack)
 import Data.Time (UTCTime (..))
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import Polysemy
-import RIO hiding (id, logError, logInfo, logWarn)
+import Relude
+import Relude.Extra.Enum (inverseMap)
 
 data Group
 
@@ -75,7 +76,7 @@ newtype Url a = Url URI deriving newtype (Eq, Show)
 instance FromJSON (Url a) where
   parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
 
-newtype Ref = Ref T.Text deriving newtype (Eq, FromJSON, Show)
+newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Show)
 
 instance Eq Pipeline where
   (==) p p' = pipelineId p == pipelineId p'
@@ -128,9 +129,6 @@ buildStatusToApiString Successful = "success"
 buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
 buildStatusToApiString WaitingForResource = "waiting_for_resource"
 
-inverseMap :: forall e s. (Bounded e, Enum e, Ord s) => (e -> s) -> s -> Maybe e
-inverseMap f s = find ((== s) . f) enumerate
-
 data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
 
 data DetailedPipeline = DetailedPipeline
@@ -156,7 +154,7 @@ data Project = Project
   }
   deriving (Generic, Show)
 
-newtype ProjectName = ProjectName T.Text deriving (Eq, FromJSON, Show)
+newtype ProjectName = ProjectName Text deriving (Eq, FromJSON, Show)
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
@@ -199,7 +197,7 @@ findProjects groupId = do
   result <- getProjects groupId
   case result of
     Left err -> do
-      logWarn $ T.unwords ["Couldn't load projects. Error was", tshow err]
+      logWarn $ unwords ["Couldn't load projects. Error was", show err]
       pure []
     Right ps -> pure ps
 
@@ -217,8 +215,8 @@ logCurrentBuildStatuses' (Statuses statuses) = do
     else addContext "projectIds" (concatIds known) $ logInfo "Pipeline statuses found "
   unless (null unknown) (logInfo $ "No pipelines found for projects " <> concatIds unknown)
   where
-    concatIds :: [Result] -> T.Text
-    concatIds rs = T.intercalate ", " (tshow . projId <$> rs)
+    concatIds :: [Result] -> Text
+    concatIds rs = T.intercalate ", " (show . projId <$> rs)
 
 evalProject :: (Member PipelinesApi r, Member Logger r) => Project -> Sem r Result
 evalProject Project {..} = do
@@ -235,7 +233,7 @@ getStatusForProject projectId (Just defaultBranch) = do
     Left EmptyPipelinesResult -> pure Nothing
     Left NoPipelineForDefaultBranch -> pure Nothing
     Left uError -> do
-      logWarn $ T.unwords ["Couldn't eval project with id", tshow projectId, "- error was", tshow uError]
+      logWarn $ unwords ["Couldn't eval project with id", show projectId, "- error was", show uError]
       pure Nothing
     Right p -> do
       let st = pipelineStatus p
@@ -244,13 +242,14 @@ getStatusForProject projectId (Just defaultBranch) = do
 
 detailedStatusForPipeline :: (Member PipelinesApi r, Member Logger r) => Id Project -> Id Pipeline -> Sem r (Maybe BuildStatus)
 detailedStatusForPipeline projectId pipelineId =
-  addContexts [("projectId", show projectId), ("pipelineId", show pipelineId)] $ do
-    singlePipelineResult <- getSinglePipeline projectId pipelineId
-    case singlePipelineResult of
-      Left uError -> do
-        logWarn $ T.unwords ["Couldn't get details for pipeline, error was", tshow uError]
-        pure Nothing
-      Right dp -> pure . Just $ detailedPipelineStatus dp
+  addContext "projectId" projectId $
+    addContext "pipelineId" pipelineId $ do
+      singlePipelineResult <- getSinglePipeline projectId pipelineId
+      case singlePipelineResult of
+        Left uError -> do
+          logWarn $ unwords ["Couldn't get details for pipeline, error was", show uError]
+          pure Nothing
+        Right dp -> pure . Just $ detailedPipelineStatus dp
 
 isHealthy :: BuildStatus -> Bool
 isHealthy Unknown = False

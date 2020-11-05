@@ -12,7 +12,7 @@ module Outbound.Storage.InMemory (initStorage, buildStatusesApiToIO) where
 import Core.Lib (BuildStatuses (..), BuildStatusesApi (..))
 import Data.Time (getCurrentTime)
 import Polysemy
-import RIO
+import Relude
 
 initStorage :: IO (IORef BuildStatuses)
 initStorage = newIORef NoSuccessfulUpdateYet

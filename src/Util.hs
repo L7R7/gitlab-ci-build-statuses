@@ -11,11 +11,12 @@
 module Util (delayToIO, timerToIO, parTraverseToIO) where
 
 import Config (MaxConcurrency (..))
+import Control.Concurrent (threadDelay)
 import Core.Effects
 import qualified Data.Time as T (getCurrentTime)
 import Polysemy
 import Polysemy.Final (withWeavingToFinal)
-import RIO hiding (UnliftIO)
+import Relude
 import UnliftIO.Internals.Async
 
 delayToIO :: (Member (Embed IO) r) => Sem (Delay ': r) a -> Sem r a

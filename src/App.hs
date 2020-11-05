@@ -18,7 +18,7 @@ import Outbound.Gitlab.GitlabAPI (pipelinesApiToIO, projectsApiToIO)
 import Outbound.Storage.InMemory (buildStatusesApiToIO)
 import Polysemy
 import Polysemy.Reader
-import RIO hiding (runReader)
+import Relude hiding (runReader)
 import Util (delayToIO, parTraverseToIO)
 
 startMetricsUpdatingJob :: Config -> IO ()

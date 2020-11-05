@@ -29,7 +29,7 @@ where
 import Data.Aeson (ToJSON)
 import Data.Time (UTCTime)
 import Polysemy
-import RIO hiding (logError, logInfo, logWarn)
+import Relude
 
 data Delay m a where
   DelaySeconds :: Int -> Delay m ()

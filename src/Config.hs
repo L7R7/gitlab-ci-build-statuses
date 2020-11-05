@@ -26,7 +26,6 @@ where
 import Control.Lens
 import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
-import Data.List (find, intercalate)
 import Data.List.NonEmpty hiding (group, intersperse, toList)
 import Data.Maybe
 import qualified Data.Text as T
@@ -35,9 +34,10 @@ import GitHash
 import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
-import RIO hiding (logError, logInfo)
 import qualified RIO.Map as Map
 import RIO.Process
+import Relude
+import qualified Text.Show
 
 envGroupId :: T.Text
 envGroupId = "GITLAB_GROUP_ID"
@@ -73,7 +73,7 @@ parseConfigFromEnv metrics ioref logConfig pc =
     gitCommit = $$tGitInfoCwd
 
 showErrors :: NonEmpty ConfigError -> T.Text
-showErrors errs = T.intercalate ", " $ fmap tshow (toList errs)
+showErrors errs = T.intercalate ", " $ fmap show (toList errs)
 
 data Config = Config
   { apiToken :: ApiToken,
@@ -165,6 +165,6 @@ single a = a :| []
 envFromPC :: ProcessContext -> Text -> Maybe Text
 envFromPC pc key = Map.lookup key envVars
   where
-    envVars = RIO.view envVarsL pc
+    envVars = view envVarsL pc
 
 makeLenses ''LogConfig

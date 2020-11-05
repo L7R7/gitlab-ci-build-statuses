@@ -14,9 +14,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Metrics.Metrics
-  ( HasPipelinesOverviewGauge (..),
-    HasOutgoingHttpRequestsHistogram (..),
-    OutgoingHttpRequestsHistogram,
+  ( OutgoingHttpRequestsHistogram,
     Metrics (..),
     registerMetrics,
     updateMetricsRegularly,
@@ -34,11 +32,12 @@ import Core.Lib (BuildStatus, BuildStatuses (..), BuildStatusesApi, Result (..),
 import Data.List (partition)
 import Data.List.Extra (enumerate)
 import Data.Map hiding (partition)
+import Data.Text (toLower)
+import GHC.Clock (getMonotonicTime)
 import Polysemy
 import Prometheus hiding (observeDuration)
 import Prometheus.Metric.GHC
-import RIO hiding (Vector, toList)
-import RIO.Text (toLower)
+import Relude
 
 registerMetrics :: IO Metrics
 registerMetrics = do
@@ -83,10 +82,10 @@ makeSem ''DurationObservation
 observeDurationToIO :: (Member (Embed IO) r) => UpdateJobDurationHistogram -> Sem (DurationObservation ': r) a -> Sem r a
 observeDurationToIO jobDurationHistogram = interpretH $ \case
   ObserveDuration fb -> do
-    start <- getMonotonicTime
+    start <- liftIO getMonotonicTime
     a <- runT fb
     res <- raise $ observeDurationToIO jobDurationHistogram a
-    end <- getMonotonicTime
+    end <- liftIO getMonotonicTime
     let !timeTaken = end - start
     embed (observe jobDurationHistogram timeTaken :: IO ())
     pure res
@@ -106,16 +105,16 @@ metricsApiToIO Metrics {..} = interpret $ \case
 
 updatePipelinesOverviewMetricIO :: PipelinesOverviewGauge -> BuildStatuses -> IO ()
 updatePipelinesOverviewMetricIO _ NoSuccessfulUpdateYet = pure ()
-updatePipelinesOverviewMetricIO overviewGauge (Statuses (_, results)) = traverse_ (updateSingle overviewGauge) (toList (countByBuildStatus results))
+updatePipelinesOverviewMetricIO overviewGauge (Statuses (_, results)) = traverse_ (updateSingle overviewGauge) (Data.Map.toList (countByBuildStatus results))
 
 updateSingle :: PipelinesOverviewGauge -> (BuildStatus, Double) -> IO ()
-updateSingle overviewGauge (status, count) = withLabel overviewGauge ((toLower . tshow) status) (`setGauge` count)
+updateSingle overviewGauge (status, count) = withLabel overviewGauge ((toLower . show) status) (`setGauge` count)
 
 countByBuildStatus :: [Result] -> Map BuildStatus Double
 countByBuildStatus results = countOccurrences buildStatus results `union` resetValues
 
 resetValues :: Map BuildStatus Double
-resetValues = fromList $ (,0) <$> enumerate
+resetValues = Data.Map.fromList $ (,0) <$> enumerate
 
 updateMetricsRegularly :: (Member BuildStatusesApi r, Member MetricsApi r, Member Delay r) => Sem r ()
 updateMetricsRegularly = forever $ do
@@ -137,12 +136,6 @@ updateHealthyUnhealthy results = do
 resultsFromBuildStatuses :: BuildStatuses -> [Result]
 resultsFromBuildStatuses (Statuses (_, res)) = res
 resultsFromBuildStatuses NoSuccessfulUpdateYet = []
-
-class HasPipelinesOverviewGauge env where
-  pipelinesOverviewGaugeL :: SimpleGetter env PipelinesOverviewGauge
-
-class HasOutgoingHttpRequestsHistogram env where
-  outgoingHttpRequestsHistogramL :: SimpleGetter env OutgoingHttpRequestsHistogram
 
 countOccurrences :: (Ord k, Num a) => (t -> k) -> [t] -> Map k a
 countOccurrences f xs = fromListWith (+) [(f x, 1) | x <- xs]
