@@ -65,7 +65,7 @@ library
     , microlens
     , mtl
     , network-uri
-    , polysemy
+    , polysemy >= 1.4.0.0
     , polysemy-plugin
     , prometheus-client
     , prometheus-metrics-ghc
