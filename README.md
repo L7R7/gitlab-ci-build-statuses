@@ -16,8 +16,10 @@ Some of them are mandatory, others are optional:
 * `DATA_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the cached data should be updated.
 Default value is 60 seconds.
 The higher the value, the lower the number of requests to the Gitlab API, the lower the value the less stale will the in-memory data be.
-* `UI_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the HTML page will refresh itself.
-Default value is 5 seconds.
+* `UI_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the HTML page will refresh
+  itself. Default value is 5 seconds.
+* `LOG_LEVEL` (optional): Set the minimum log level for log output. Defaults to Info if the value is not set or can't be
+  parsed. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
 
 The app won't start if not all mandatory configuration properties are set.
 There will be a log message with the details before the application exits.

@@ -20,6 +20,7 @@ module Config
     logContext,
     logEnv,
     logNamespace,
+    parseLogLevelWithDefault,
   )
 where
 
@@ -31,7 +32,7 @@ import Data.Maybe
 import qualified Data.Text as T (intercalate, unpack)
 import Data.Validation
 import GitHash
-import Katip (LogContexts, LogEnv, Namespace)
+import Katip (LogContexts, LogEnv, Namespace, Severity (..))
 import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
 import qualified RIO.Map as Map
@@ -56,6 +57,9 @@ envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
 envMaxConcurrency :: Text
 envMaxConcurrency = "MAX_CONCURRENCY"
+
+envLogLevel :: Text
+envLogLevel = "LOG_LEVEL"
 
 parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> ProcessContext -> Validation (NonEmpty ConfigError) Config
 parseConfigFromEnv metrics ioref logConfig pc =
@@ -158,6 +162,15 @@ readMaxConcurrencyFromEnv pc = MaxConcurrency $ parsePositiveWithDefault pc envM
 
 parsePositiveWithDefault :: ProcessContext -> Text -> Int -> Int
 parsePositiveWithDefault pc text fallback = fromMaybe fallback $ find (> 0) (envFromPC pc text >>= (readMaybe . T.unpack))
+
+parseLogLevelWithDefault :: ProcessContext -> (Severity, Maybe Text)
+parseLogLevelWithDefault pc = case envFromPC pc envLogLevel of
+  Nothing -> (InfoS, Just "Couldn't parse log level from env. Using Info as fallback")
+  Just "DEBUG" -> (DebugS, Nothing)
+  Just "INFO" -> (InfoS, Nothing)
+  Just "WARN" -> (WarningS, Nothing)
+  Just "ERROR" -> (ErrorS, Nothing)
+  Just s -> (InfoS, Just (s <> " s no valid log level. Using Info as fallback"))
 
 single :: a -> NonEmpty a
 single a = a :| []

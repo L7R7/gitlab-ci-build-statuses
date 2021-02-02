@@ -5,7 +5,7 @@
 module Main (main) where
 
 import App (startWithConfig)
-import Config (LogConfig (..), Validation (Failure, Success), parseConfigFromEnv, showErrors)
+import Config (LogConfig (..), Validation (Failure, Success), parseConfigFromEnv, parseLogLevelWithDefault, showErrors)
 import Control.Exception (bracket)
 import Katip
 import Metrics.Metrics (registerMetrics)
@@ -15,10 +15,14 @@ import Relude
 
 main :: IO ()
 main = do
-  handleScribe <- mkHandleScribeWithFormatter jsonFormat (ColorLog False) stdout (permitItem InfoS) V2
+  processContext <- mkDefaultProcessContext
+  let (logLevel, logLevelParseError) = parseLogLevelWithDefault processContext
+  handleScribe <- mkHandleScribeWithFormatter jsonFormat (ColorLog False) stdout (permitItem logLevel) V2
   let mkLogEnv = registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "gitlab-ci-build-statuses" "production"
   bracket mkLogEnv closeScribes $ \logEnv -> do
-    processContext <- mkDefaultProcessContext
+    case logLevelParseError of
+      Nothing -> pure ()
+      Just err -> runKatipContextT logEnv () mempty $ logLocM WarningS . ls $ err
     statuses <- initStorage
     metrics <- registerMetrics
     case parseConfigFromEnv metrics statuses (LogConfig mempty mempty logEnv) processContext of
