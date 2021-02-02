@@ -32,6 +32,9 @@ jobs:
       - name: Build executable
         run: stack build --system-ghc --test --copy-bins --local-bin-path .
 
+      - name: Stan static analysis
+        uses: kowainik/stan-action@v0
+
       - uses: actions/upload-artifact@v2
         with:
           name: gitlab-ci-build-statuses-exe
