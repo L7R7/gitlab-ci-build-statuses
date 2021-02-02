@@ -28,7 +28,7 @@ import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), 
 import qualified Data.ByteString as B hiding (pack)
 import Data.List.NonEmpty hiding (group, intersperse, toList)
 import Data.Maybe
-import qualified Data.Text as T
+import qualified Data.Text as T (intercalate, unpack)
 import Data.Validation
 import GitHash
 import Katip (LogContexts, LogEnv, Namespace)
@@ -39,22 +39,22 @@ import RIO.Process
 import Relude
 import qualified Text.Show
 
-envGroupId :: T.Text
+envGroupId :: Text
 envGroupId = "GITLAB_GROUP_ID"
 
-envApiToken :: T.Text
+envApiToken :: Text
 envApiToken = "GITLAB_API_TOKEN"
 
-envBaseUrl :: T.Text
+envBaseUrl :: Text
 envBaseUrl = "GITLAB_BASE_URL"
 
-envDataUpdateInterval :: T.Text
+envDataUpdateInterval :: Text
 envDataUpdateInterval = "DATA_UPDATE_INTERVAL_SECS"
 
-envUiUpdateInterval :: T.Text
+envUiUpdateInterval :: Text
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
-envMaxConcurrency :: T.Text
+envMaxConcurrency :: Text
 envMaxConcurrency = "MAX_CONCURRENCY"
 
 parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> ProcessContext -> Validation (NonEmpty ConfigError) Config
@@ -72,7 +72,7 @@ parseConfigFromEnv metrics ioref logConfig pc =
   where
     gitCommit = $$tGitInfoCwd
 
-showErrors :: NonEmpty ConfigError -> T.Text
+showErrors :: NonEmpty ConfigError -> Text
 showErrors errs = T.intercalate ", " $ fmap show (toList errs)
 
 data Config = Config
@@ -113,7 +113,7 @@ data GitlabHost
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
 
-data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid T.Text
+data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid Text
 
 instance Show ConfigError where
   show ApiTokenMissing = "API Token is missing. Set it via " <> show envApiToken
