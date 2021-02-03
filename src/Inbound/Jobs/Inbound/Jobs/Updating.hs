@@ -11,7 +11,7 @@ module Inbound.Jobs.Inbound.Jobs.Updating
   )
 where
 
-import Core.Effects (Delay, Logger, ParTraverse, addContext, addNamespace, delaySeconds, logInfo)
+import Core.Effects (Delay, Logger, ParTraverse, addContext, addNamespace, delaySeconds, logDebug, logInfo)
 import Core.Lib (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, ProjectsApi, updateStatuses)
 import Metrics.Metrics
 import Polysemy
@@ -27,6 +27,6 @@ updateStatusesRegularly groupId updateInterval =
 updateWithDurationObservation :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r ()
 updateWithDurationObservation groupId =
   observeDuration $ do
-    logInfo "updating build statuses"
+    logDebug "updating build statuses"
     results <- updateStatuses groupId
     addContext "numResults" (length results) $ logInfo "Done updating"
