@@ -20,7 +20,7 @@ main = do
   handleScribe <- mkHandleScribeWithFormatter jsonFormat (ColorLog False) stdout (permitItem logLevel) V2
   let mkLogEnv = registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "gitlab-ci-build-statuses" "production"
   bracket mkLogEnv closeScribes $ \logEnv -> do
-    traverse_ (\err -> runKatipContextT logEnv () mempty $ logLocM WarningS . ls $ err) logLevelParseError
+    traverse_ (runKatipContextT logEnv () mempty . logLocM WarningS . ls) logLevelParseError
     statuses <- initStorage
     metrics <- registerMetrics
     case parseConfigFromEnv metrics statuses (LogConfig mempty mempty logEnv) processContext of

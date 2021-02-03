@@ -21,6 +21,9 @@ import Relude hiding (Reader, asks, local)
 loggerToIO :: KatipContext (Sem r) => Sem (Logger ': r) a -> Sem r a
 loggerToIO = do
   interpretH $ \case
+    LogDebug msg -> do
+      raise $ logFM DebugS $ ls msg
+      pureT ()
     LogInfo msg -> do
       raise $ logFM InfoS $ ls msg
       pureT ()

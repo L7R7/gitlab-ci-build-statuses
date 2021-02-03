@@ -37,7 +37,7 @@ module Core.Lib
   )
 where
 
-import Core.Effects (Logger, ParTraverse, addContext, logInfo, logWarn, traverseP)
+import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
@@ -207,13 +207,13 @@ logCurrentBuildStatuses = do
   logCurrentBuildStatuses' statuses
 
 logCurrentBuildStatuses' :: (Member Logger r) => BuildStatuses -> Sem r ()
-logCurrentBuildStatuses' NoSuccessfulUpdateYet = logInfo "There was no successful update yet, so there are no pipeline statuses available"
+logCurrentBuildStatuses' NoSuccessfulUpdateYet = logDebug "There was no successful update yet, so there are no pipeline statuses available"
 logCurrentBuildStatuses' (Statuses statuses) = do
   let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd statuses)
   if null known
     then logWarn "No valid Pipeline statuses found"
-    else addContext "projectIds" (concatIds known) $ logInfo "Pipeline statuses found "
-  unless (null unknown) (logInfo $ "No pipelines found for projects " <> concatIds unknown)
+    else addContext "projectIds" (concatIds known) $ logDebug "Pipeline statuses found "
+  unless (null unknown) (logDebug $ "No pipelines found for projects " <> concatIds unknown)
   where
     concatIds :: [Result] -> Text
     concatIds rs = T.intercalate ", " (show . projId <$> rs)

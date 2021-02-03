@@ -20,6 +20,7 @@ module Core.Effects
     addContext,
     addContexts,
     addNamespace,
+    logDebug,
     logInfo,
     logWarn,
     logError,
@@ -48,6 +49,7 @@ data ParTraverse m a where
 makeSem ''ParTraverse
 
 data Logger m a where
+  LogDebug :: Text -> Logger m ()
   LogInfo :: Text -> Logger m ()
   LogWarn :: Text -> Logger m ()
   LogError :: Text -> Logger m ()
