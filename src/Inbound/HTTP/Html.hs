@@ -39,8 +39,8 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit noRefresh buildSta
         meta ! charset "UTF-8"
         unless noRefresh $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
         H.title $ titleIcon buildStatuses <> " Build Statuses"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-ee32aa4aac.css"
         textComment . pack $ "Version: " <> show gitCommit
 
 titleIcon :: BuildStatuses -> Html

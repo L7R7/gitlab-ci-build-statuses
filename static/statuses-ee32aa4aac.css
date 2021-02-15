@@ -1,3 +1,5 @@
+@import url(http://fonts.googleapis.com/css?family=Noto+Sans:400,900);
+
 .status {
     padding: 1em;
     text-align: center;
@@ -8,6 +10,11 @@
 .empty-results, .no-successful-update, .timestamp {
     background-color: transparent;
     color: white
+}
+
+.timestamp {
+    line-height: 1.2;
+    font-size: smaller;
 }
 
 .successful {
@@ -44,13 +51,14 @@
 
 a {
     text-decoration: none;
+    font-weight: bold;
     color: black;
 }
 
 html {
     height: 100%;
-    font-family: Noto Sans, sans-serif;
-    background: black;
+    font-family: 'Noto Sans', sans-serif;
+    background: #0b0c0e;
 }
 
 body {
