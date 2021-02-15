@@ -30,7 +30,7 @@ import Servant.HTML.Blaze
 import qualified Text.Blaze.Html5 as H
 import Util (timerToIO)
 
-type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> Get '[HTML] H.Html :<|> "static" :> Raw
+type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html :<|> "static" :> Raw
 
 api :: Proxy API
 api = Proxy

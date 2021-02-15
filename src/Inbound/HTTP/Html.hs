@@ -21,23 +21,23 @@ import Relude
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
-template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> Sem r Html
-template updateInterval gitCommit = do
+template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> Bool -> Sem r Html
+template updateInterval gitCommit noRefresh = do
   now <- getCurrentTime
-  template' now updateInterval gitCommit <$> getStatuses
+  template' now updateInterval gitCommit noRefresh <$> getStatuses
 
-template' :: UTCTime -> UiUpdateIntervalSeconds -> GitCommit -> BuildStatuses -> Html
-template' now updateInterval gitCommit buildStatuses = do
-  pageHeader updateInterval gitCommit buildStatuses
+template' :: UTCTime -> UiUpdateIntervalSeconds -> GitCommit -> Bool -> BuildStatuses -> Html
+template' now updateInterval gitCommit noRefresh buildStatuses = do
+  pageHeader updateInterval gitCommit noRefresh buildStatuses
   pageBody now buildStatuses
 
-pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> BuildStatuses -> Html
-pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit buildStatuses =
+pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> Bool -> BuildStatuses -> Html
+pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit noRefresh buildStatuses =
   docTypeHtml ! lang "en" $
     H.head $
       do
         meta ! charset "UTF-8"
-        meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
+        unless noRefresh $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
         H.title $ titleIcon buildStatuses <> " Build Statuses"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses.css"
