@@ -36,7 +36,11 @@ api :: Proxy API
 api = Proxy
 
 server :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
-server uiUpdateInterval gitCommit = return "UP" :<|> template uiUpdateInterval gitCommit :<|> serveDirectoryWebApp "/service/static"
+server uiUpdateInterval gitCommit = return "UP" :<|> (template uiUpdateInterval gitCommit . norefreshFlag) :<|> serveDirectoryWebApp "/service/static"
+
+norefreshFlag :: Bool -> AutoRefresh
+norefreshFlag True = NoRefresh
+norefreshFlag False = Refresh
 
 hoist :: Config -> ServerT API Handler
 hoist Config {..} = do

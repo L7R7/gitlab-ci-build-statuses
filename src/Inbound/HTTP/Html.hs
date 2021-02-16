@@ -8,6 +8,7 @@
 
 module Inbound.HTTP.Html
   ( template,
+    AutoRefresh (..),
   )
 where
 
@@ -21,23 +22,25 @@ import Relude
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
-template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> Bool -> Sem r Html
-template updateInterval gitCommit noRefresh = do
-  now <- getCurrentTime
-  template' now updateInterval gitCommit noRefresh <$> getStatuses
+data AutoRefresh = Refresh | NoRefresh deriving (Eq)
 
-template' :: UTCTime -> UiUpdateIntervalSeconds -> GitCommit -> Bool -> BuildStatuses -> Html
-template' now updateInterval gitCommit noRefresh buildStatuses = do
-  pageHeader updateInterval gitCommit noRefresh buildStatuses
+template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
+template updateInterval gitCommit autoRefresh = do
+  now <- getCurrentTime
+  template' now updateInterval gitCommit autoRefresh <$> getStatuses
+
+template' :: UTCTime -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
+template' now updateInterval gitCommit autoRefresh buildStatuses = do
+  pageHeader updateInterval gitCommit autoRefresh buildStatuses
   pageBody now buildStatuses
 
-pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> Bool -> BuildStatuses -> Html
-pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit noRefresh buildStatuses =
+pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
+pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildStatuses =
   docTypeHtml ! lang "en" $
     H.head $
       do
         meta ! charset "UTF-8"
-        unless noRefresh $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
+        unless (autoRefresh == NoRefresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
         H.title $ titleIcon buildStatuses <> " Build Statuses"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-db81976afd.css"
