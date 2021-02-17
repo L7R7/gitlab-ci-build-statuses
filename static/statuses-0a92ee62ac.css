@@ -5,11 +5,26 @@
     text-align: center;
     background: white;
     justify-content: center;
+    display: grid;
+}
+
+.status::before {
+    content: "";
+    padding-bottom: 60%;
+    display: block;
+}
+
+.status::before, .status > div {
+  grid-area: 1 / 1 / 2 / 2;
+}
+
+.status > div {
+    margin: auto;
 }
 
 .empty-results, .no-successful-update, .timestamp {
     background-color: transparent;
-    color: white
+    color: white;
 }
 
 .timestamp {

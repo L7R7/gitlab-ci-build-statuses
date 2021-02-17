@@ -43,7 +43,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         unless (autoRefresh == NoRefresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
         H.title $ titleIcon buildStatuses <> " Build Statuses"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-db81976afd.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-0a92ee62ac.css"
         textComment . pack $ "Version: " <> show gitCommit
 
 titleIcon :: BuildStatuses -> Html
@@ -67,7 +67,7 @@ statusesToHtml now (Statuses (lastUpdated, results)) = do
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
-  a ! href (either toValue toValue url) ! target "_blank" ! classesForStatus buildStatus ! A.title (toValue buildStatus) $ h3 (toHtml name)
+  a ! href (either toValue toValue url) ! target "_blank" ! classesForStatus buildStatus ! A.title (toValue buildStatus) $ H.div (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Cancelled = class_ "status cancelled"
@@ -84,7 +84,7 @@ resultToHtml Result {..} =
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
 lastUpdatedToHtml :: UTCTime -> UTCTime -> Html
-lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $ do
+lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $ H.div $ do
   p "Last Update at:"
   p (toHtml $ unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
   where
