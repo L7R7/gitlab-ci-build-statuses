@@ -38,6 +38,11 @@ jobs:
           name: gitlab-ci-build-statuses-exe
           path: gitlab-ci-build-statuses-exe
 
+      - name: Markdown Lint
+        uses: avto-dev/markdown-lint@v1.5.0
+        with:
+          args: ['./ChangeLog.md', 'README.md']
+
   docker:
     name: Docker build & push
     needs: build
