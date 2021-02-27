@@ -44,8 +44,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: markdownlint
-        uses: actionshub/markdownlint@2.0.2
+      - name: Markdown Lint
+        uses: avto-dev/markdown-lint@v1
+        with:
+          config: '.markdownlint.json'
+          args: '.'
 
   docker:
     name: Docker build & push
