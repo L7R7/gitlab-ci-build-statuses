@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: MarkdownLint mdl Action
+      - name: markdownlint
         uses: actionshub/markdownlint@2.0.2
 
   docker:

@@ -1,6 +1,6 @@
-[![GitHub CI](https://github.com/l7r7/gitlab-ci-build-statuses/workflows/CI/badge.svg)](https://github.com/l7r7/gitlab-ci-build-statuses/actions)
-
 # gitlab-ci-build-statuses
+
+[![GitHub CI](https://github.com/l7r7/gitlab-ci-build-statuses/workflows/CI/badge.svg)](https://github.com/l7r7/gitlab-ci-build-statuses/actions)
 
 Fetch the current statuses of the latest Gitlab CI pipelines for all default branches in a Gitlab group and show them on an HTML page.
 
@@ -10,6 +10,7 @@ Fetch the current statuses of the latest Gitlab CI pipelines for all default bra
 
 The application has to be configured via environment variables.
 Some of them are mandatory, others are optional:
+
 * `GITLAB_BASE_URL`: The base URL for the Gitlab instance you want to fetch the data from, e.g. `https://www.gitlab.com/`
 * `GITLAB_GROUP_ID`: The ID of the group in Gitlab for which the build statuses to get.
 * `GITLAB_API_TOKEN`: The Access Token for the Gitlab API
@@ -30,12 +31,10 @@ The most straightforward way to use this is to run the Docker image that's provi
 
     docker run -p 8282:8282 -e GITLAB_API_TOKEN=<...> -e GITLAB_BASE_URL=<...>> -e GITLAB_GROUP_ID=<...> l7r7/gitlab-ci-build-statuses:latest
 
-### Released versions
-
-tbd....
-
 ### API
+
 The app exposes the following endpoints:
+
 * `/statuses`: Responds with an HTML page that shows the current statuses of the pipelines
 * `/health`: Responds with a status indicating if the app is ready to serve requests
 * `/metrics`: Returns [Prometheus](https://prometheus.io/) application metrics
