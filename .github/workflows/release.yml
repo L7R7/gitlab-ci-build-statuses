@@ -1,7 +1,7 @@
 on:
   push:
     tags:
-      - '*' # todo: match only semantic version tags
+      - 'v*'
 
 name: Create Release
 
