@@ -19,7 +19,7 @@ import Relude
 
 updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member Delay r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> Sem r ()
 updateStatusesRegularly groupId updateInterval =
-  addNamespace "update" $ do
+  addNamespace "update" $
     forever $ do
       updateWithDurationObservation groupId
       delaySeconds $ coerce updateInterval
