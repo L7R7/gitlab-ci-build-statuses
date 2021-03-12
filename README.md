@@ -35,6 +35,8 @@ The most straightforward way to use this is to run the Docker image that's provi
 
 The app exposes the following endpoints:
 
-* `/statuses`: Responds with an HTML page that shows the current statuses of the pipelines
+* `/statuses`: Responds with an HTML page that shows the current statuses of the pipelines.
+This page will automatically refresh using the configured UI update interval.
+You can use the query flag `norefresh` to disable that (this is probably only helpful for debugging)
 * `/health`: Responds with a status indicating if the app is ready to serve requests
 * `/metrics`: Returns [Prometheus](https://prometheus.io/) application metrics
