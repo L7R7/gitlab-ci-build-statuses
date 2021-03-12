@@ -84,9 +84,10 @@ resultToHtml Result {..} =
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
 lastUpdatedToHtml :: UTCTime -> UTCTime -> Html
-lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $ H.div $ do
-  p "Last Update at:"
-  p (toHtml $ unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
+lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $
+  H.div $ do
+    p "Last Update at:"
+    p (toHtml $ unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
   where
     lastUpdateTooOld = diffUTCTime now lastUpdate > 360
     staleDataTitle
