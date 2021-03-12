@@ -7,23 +7,23 @@ module Main (main) where
 import App (startWithConfig)
 import Config (LogConfig (..), Validation (Failure, Success), parseConfigFromEnv, parseLogLevelWithDefault, showErrors)
 import Control.Exception (bracket)
-import Katip
+import Katip hiding (getEnvironment)
 import Metrics.Metrics (registerMetrics)
 import Outbound.Storage.InMemory (initStorage)
-import RIO.Process (mkDefaultProcessContext)
 import Relude
+import System.Environment
 
 main :: IO ()
 main = do
-  processContext <- mkDefaultProcessContext
-  let (logLevel, logLevelParseError) = parseLogLevelWithDefault processContext
+  environment <- getEnvironment
+  let (logLevel, logLevelParseError) = parseLogLevelWithDefault environment
   handleScribe <- mkHandleScribeWithFormatter jsonFormat (ColorLog False) stdout (permitItem logLevel) V2
   let mkLogEnv = registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "gitlab-ci-build-statuses" "production"
   bracket mkLogEnv closeScribes $ \logEnv -> do
     traverse_ (runKatipContextT logEnv () mempty . logLocM WarningS . ls) logLevelParseError
     statuses <- initStorage
     metrics <- registerMetrics
-    case parseConfigFromEnv metrics statuses (LogConfig mempty mempty logEnv) processContext of
+    case parseConfigFromEnv metrics statuses (LogConfig mempty mempty logEnv) environment of
       Success config -> do
         runKatipContextT logEnv () mempty $ logLocM InfoS . ls $ "Using config: " <> (show @Text) config
         startWithConfig config

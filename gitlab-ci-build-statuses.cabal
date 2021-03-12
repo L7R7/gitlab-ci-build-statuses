@@ -67,7 +67,6 @@ library
     , prometheus-client
     , prometheus-metrics-ghc
     , relude
-    , rio
     , servant
     , servant-blaze
     , servant-server
@@ -93,7 +92,6 @@ executable gitlab-ci-build-statuses-exe
     , gitlab-ci-build-statuses
     , katip
     , relude
-    , rio
   default-language: Haskell2010
 
 test-suite gitlab-ci-build-statuses-test

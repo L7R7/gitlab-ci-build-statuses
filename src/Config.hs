@@ -35,8 +35,6 @@ import GitHash
 import Katip (LogContexts, LogEnv, Namespace, Severity (..))
 import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
-import qualified RIO.Map as Map
-import RIO.Process
 import Relude
 import qualified Text.Show
 
@@ -61,14 +59,14 @@ envMaxConcurrency = "MAX_CONCURRENCY"
 envLogLevel :: Text
 envLogLevel = "LOG_LEVEL"
 
-parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> ProcessContext -> Validation (NonEmpty ConfigError) Config
-parseConfigFromEnv metrics ioref logConfig pc =
-  Config <$> readApiTokenFromEnv pc
-    <*> readGroupIdFromEnv pc
-    <*> readBaseUrlFromEnv pc
-    <*> pure (readDataUpdateIntervalFromEnv pc)
-    <*> pure (readUiUpdateIntervalFromEnv pc)
-    <*> pure (readMaxConcurrencyFromEnv pc)
+parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> [(String, String)] -> Validation (NonEmpty ConfigError) Config
+parseConfigFromEnv metrics ioref logConfig env =
+  Config <$> readApiTokenFromEnv env
+    <*> readGroupIdFromEnv env
+    <*> readBaseUrlFromEnv env
+    <*> pure (readDataUpdateIntervalFromEnv env)
+    <*> pure (readUiUpdateIntervalFromEnv env)
+    <*> pure (readMaxConcurrencyFromEnv env)
     <*> pure metrics
     <*> pure ioref
     <*> pure logConfig
@@ -129,21 +127,21 @@ newtype MaxConcurrency = MaxConcurrency Int deriving (Show)
 
 newtype GitCommit = GitCommit String deriving (Show)
 
-readApiTokenFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) ApiToken
-readApiTokenFromEnv pc = do
-  let maybeGroupId = encodeUtf8 <$> envFromPC pc envApiToken
+readApiTokenFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) ApiToken
+readApiTokenFromEnv env = do
+  let maybeGroupId = encodeUtf8 <$> lookupEnv env envApiToken
   maybe (_Failure # single ApiTokenMissing) (\token -> _Success # ApiToken token) maybeGroupId
 
-readGroupIdFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) (Id Group)
-readGroupIdFromEnv pc = do
+readGroupIdFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) (Id Group)
+readGroupIdFromEnv env = do
   let maybeGroupId = do
-        groupIdString <- T.unpack <$> envFromPC pc envGroupId
+        groupIdString <- T.unpack <$> lookupEnv env envGroupId
         readMaybe groupIdString
   maybe (_Failure # single GroupIdMissing) (\gId -> _Success # Id gId) maybeGroupId
 
-readBaseUrlFromEnv :: ProcessContext -> Validation (NonEmpty ConfigError) (Url GitlabHost)
-readBaseUrlFromEnv pc = do
-  let valueFromEnv = envFromPC pc envBaseUrl
+readBaseUrlFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) (Url GitlabHost)
+readBaseUrlFromEnv env = do
+  let valueFromEnv = lookupEnv env envBaseUrl
   let baseUrl = valueFromEnv >>= parseAbsoluteURI . T.unpack
   if isJust baseUrl
     then maybe urlMissing (\url -> _Success # Url url) baseUrl
@@ -151,20 +149,20 @@ readBaseUrlFromEnv pc = do
   where
     urlMissing = _Failure # single GitlabBaseUrlMissing
 
-readDataUpdateIntervalFromEnv :: ProcessContext -> DataUpdateIntervalSeconds
-readDataUpdateIntervalFromEnv pc = DataUpdateIntervalSeconds $ parsePositiveWithDefault pc envDataUpdateInterval 60
+readDataUpdateIntervalFromEnv :: [(String, String)] -> DataUpdateIntervalSeconds
+readDataUpdateIntervalFromEnv env = DataUpdateIntervalSeconds $ parsePositiveWithDefault env envDataUpdateInterval 60
 
-readUiUpdateIntervalFromEnv :: ProcessContext -> UiUpdateIntervalSeconds
-readUiUpdateIntervalFromEnv pc = UiUpdateIntervalSeconds $ parsePositiveWithDefault pc envUiUpdateInterval 5
+readUiUpdateIntervalFromEnv :: [(String, String)] -> UiUpdateIntervalSeconds
+readUiUpdateIntervalFromEnv env = UiUpdateIntervalSeconds $ parsePositiveWithDefault env envUiUpdateInterval 5
 
-readMaxConcurrencyFromEnv :: ProcessContext -> MaxConcurrency
-readMaxConcurrencyFromEnv pc = MaxConcurrency $ parsePositiveWithDefault pc envMaxConcurrency 2
+readMaxConcurrencyFromEnv :: [(String, String)] -> MaxConcurrency
+readMaxConcurrencyFromEnv env = MaxConcurrency $ parsePositiveWithDefault env envMaxConcurrency 2
 
-parsePositiveWithDefault :: ProcessContext -> Text -> Int -> Int
-parsePositiveWithDefault pc text fallback = fromMaybe fallback $ find (> 0) (envFromPC pc text >>= (readMaybe . T.unpack))
+parsePositiveWithDefault :: [(String, String)] -> Text -> Int -> Int
+parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . T.unpack))
 
-parseLogLevelWithDefault :: ProcessContext -> (Severity, Maybe Text)
-parseLogLevelWithDefault pc = case envFromPC pc envLogLevel of
+parseLogLevelWithDefault :: [(String, String)] -> (Severity, Maybe Text)
+parseLogLevelWithDefault env = case lookupEnv env envLogLevel of
   Nothing -> (InfoS, Just "Couldn't parse log level from env. Using Info as fallback")
   Just "DEBUG" -> (DebugS, Nothing)
   Just "INFO" -> (InfoS, Nothing)
@@ -175,9 +173,7 @@ parseLogLevelWithDefault pc = case envFromPC pc envLogLevel of
 single :: a -> NonEmpty a
 single a = a :| []
 
-envFromPC :: ProcessContext -> Text -> Maybe Text
-envFromPC pc key = Map.lookup key envVars
-  where
-    envVars = view envVarsL pc
+lookupEnv :: [(String, String)] -> Text -> Maybe Text
+lookupEnv env key = fromString . snd <$> find (\(k, _) -> k == toString key) env
 
 makeLenses ''LogConfig
