@@ -80,7 +80,7 @@ parseNextRequest :: Response a -> Maybe Request
 parseNextRequest response = parseNextHeader response >>= requestFromURI
 
 parseNextHeader :: Response a -> Maybe URI
-parseNextHeader response = href <$> find isNextLink ((parseLinkHeaderBS <$> getResponseHeader "link" response) >>= concat)
+parseNextHeader response = href <$> find isNextLink (getResponseHeader "link" response >>= concat . parseLinkHeaderBS)
 
 isNextLink :: Link -> Bool
 isNextLink (Link _ [(Rel, "next")]) = True
