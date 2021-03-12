@@ -28,6 +28,7 @@ parTraversePure =
 noOpLogger :: InterpreterFor Logger r
 noOpLogger = do
   interpretH $ \case
+    LogDebug _ -> pureT ()
     LogInfo _ -> pureT ()
     LogWarn _ -> pureT ()
     LogError _ -> pureT ()
