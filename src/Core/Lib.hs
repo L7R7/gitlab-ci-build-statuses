@@ -41,7 +41,7 @@ import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, travers
 import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Coerce
-import Data.List hiding (unwords)
+import Data.List (partition)
 import qualified Data.Text as T (intercalate, toLower, unpack)
 import Data.Time (UTCTime (..))
 import Network.HTTP.Simple (HttpException, JSONException)
