@@ -99,14 +99,18 @@ test-suite gitlab-ci-build-statuses-test
   main-is: Spec.hs
   other-modules:
       Paths_gitlab_ci_build_statuses
+      GetStatusForProjectSpec
+      TestUtils
   hs-source-dirs:
       test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N  -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wunused-packages
   build-depends:
       base >=4.7 && <5
     , gitlab-ci-build-statuses
+    , containers
     , hspec
     , network-uri
     , polysemy
     , polysemy-plugin
+    , relude
   default-language: Haskell2010
