@@ -76,7 +76,7 @@ newtype Url a = Url URI deriving newtype (Eq, Show)
 instance FromJSON (Url a) where
   parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
 
-newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Show)
+newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Ord, Show)
 
 instance Eq Pipeline where
   (==) p p' = pipelineId p == pipelineId p'
