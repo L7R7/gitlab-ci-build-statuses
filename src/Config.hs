@@ -35,7 +35,7 @@ import GitHash
 import Katip (LogContexts, LogEnv, Namespace, Severity (..))
 import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
-import Relude
+import Relude hiding (lookupEnv)
 import qualified Text.Show
 
 envGroupId :: Text
@@ -106,7 +106,7 @@ instance Show Config where
           show dataUpdateIntervalSecs,
           show uiUpdateIntervalSecs,
           show maxConcurrency,
-          show gitCommit
+          coerce gitCommit
         ]
 
 newtype ApiToken = ApiToken B.ByteString

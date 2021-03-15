@@ -48,7 +48,6 @@ import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import Polysemy
 import Relude
-import Relude.Extra.Enum (inverseMap)
 
 data Group
 
