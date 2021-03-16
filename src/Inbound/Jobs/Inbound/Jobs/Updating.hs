@@ -18,11 +18,8 @@ import Polysemy
 import Relude
 
 updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member Delay r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> Sem r ()
-updateStatusesRegularly groupId updateInterval =
-  addNamespace "update" $
-    forever $ do
-      updateWithDurationObservation groupId
-      delaySeconds $ coerce updateInterval
+updateStatusesRegularly groupId (DataUpdateIntervalSeconds updateInterval) =
+  addNamespace "update" $ pass <$> infinitely (updateWithDurationObservation groupId >> delaySeconds updateInterval)
 
 updateWithDurationObservation :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r ()
 updateWithDurationObservation groupId =

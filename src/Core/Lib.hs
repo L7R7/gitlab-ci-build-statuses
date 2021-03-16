@@ -40,9 +40,8 @@ where
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Data.Aeson hiding (Result)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
-import Data.Coerce
 import Data.List (partition)
-import qualified Data.Text as T (intercalate, toLower, unpack)
+import qualified Data.Text as T (intercalate, toLower)
 import Data.Time (UTCTime (..))
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
@@ -73,7 +72,7 @@ newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
 newtype Url a = Url URI deriving newtype (Eq, Show)
 
 instance FromJSON (Url a) where
-  parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (T.unpack v))
+  parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (toString v))
 
 newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Ord, Show)
 
@@ -178,7 +177,7 @@ makeSem ''BuildStatusesApi
 updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
 updateStatuses groupId = do
   currentStatuses <- currentKnownBuildStatuses groupId
-  unless (null currentStatuses) $ setStatuses currentStatuses >> pure ()
+  unless (null currentStatuses) $ setStatuses currentStatuses >> pass
   logCurrentBuildStatuses
   pure currentStatuses
 

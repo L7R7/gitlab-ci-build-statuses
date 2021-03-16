@@ -104,7 +104,7 @@ metricsApiToIO Metrics {..} = interpret $ \case
   UpdateUnhealthy unhealthyCount -> embed (withLabel currentPipelinesOverview "unhealthy" (`setGauge` fromIntegral unhealthyCount) :: IO ())
 
 updatePipelinesOverviewMetricIO :: PipelinesOverviewGauge -> BuildStatuses -> IO ()
-updatePipelinesOverviewMetricIO _ NoSuccessfulUpdateYet = pure ()
+updatePipelinesOverviewMetricIO _ NoSuccessfulUpdateYet = pass
 updatePipelinesOverviewMetricIO overviewGauge (Statuses (_, results)) = traverse_ (updateSingle overviewGauge) (Data.Map.toList (countByBuildStatus results))
 
 updateSingle :: PipelinesOverviewGauge -> (BuildStatus, Double) -> IO ()
@@ -117,9 +117,7 @@ resetValues :: Map BuildStatus Double
 resetValues = Data.Map.fromList $ (,0) <$> enumerate
 
 updateMetricsRegularly :: (Member BuildStatusesApi r, Member MetricsApi r, Member Delay r) => Sem r ()
-updateMetricsRegularly = forever $ do
-  updateMetrics
-  delaySeconds 10
+updateMetricsRegularly = pass <$> infinitely (updateMetrics >> delaySeconds 10)
 
 updateMetrics :: (Member BuildStatusesApi r, Member MetricsApi r) => Sem r ()
 updateMetrics = do

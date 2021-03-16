@@ -17,7 +17,6 @@ import Control.Exception (try)
 import Core.Lib (Id (Id), PipelinesApi (..), ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
 import Data.Aeson (FromJSON)
 import Data.Either.Combinators (mapLeft)
-import Data.Text (pack, unpack)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Client.Conduit (requestFromURI, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
@@ -39,7 +38,7 @@ pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> Outgoin
 pipelinesApiToIO baseUrl apiToken histogram = interpret $ \case
   GetLatestPipelineForRef (Id project) (Ref ref) -> do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines?ref={ref}&per_page=1|]
-    embed $ headOrUpdateError <$> fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("ref", (stringValue . unpack) ref)] histogram
+    embed $ headOrUpdateError <$> fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("ref", (stringValue . toString) ref)] histogram
   GetSinglePipeline (Id project) (Id pipeline) -> do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
     embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)] histogram
@@ -93,4 +92,4 @@ setTimeout :: Request -> Request
 setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 
 measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
-measure histogram template = observeDuration (VectorWithLabel histogram ((pack . render) template))
+measure histogram template = observeDuration (VectorWithLabel histogram ((toText . render) template))

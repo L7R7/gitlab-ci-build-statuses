@@ -15,7 +15,6 @@ where
 import Config
 import Core.Effects (Timer, getCurrentTime)
 import Core.Lib
-import Data.Text (pack)
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Polysemy
 import Relude
@@ -44,7 +43,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         H.title $ titleIcon buildStatuses <> " Build Statuses"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-0a92ee62ac.css"
-        textComment . pack $ "Version: " <> show gitCommit
+        textComment . toText $ ("Version: " <> show gitCommit :: String)
 
 titleIcon :: BuildStatuses -> Html
 titleIcon NoSuccessfulUpdateYet = mempty

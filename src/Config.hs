@@ -27,9 +27,7 @@ where
 import Control.Lens
 import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
-import Data.List.NonEmpty hiding (group, intersperse, toList)
-import Data.Maybe
-import qualified Data.Text as T (intercalate, unpack)
+import qualified Data.Text as T (intercalate)
 import Data.Validation
 import GitHash
 import Katip (LogContexts, LogEnv, Namespace, Severity (..))
@@ -135,14 +133,14 @@ readApiTokenFromEnv env = do
 readGroupIdFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) (Id Group)
 readGroupIdFromEnv env = do
   let maybeGroupId = do
-        groupIdString <- T.unpack <$> lookupEnv env envGroupId
+        groupIdString <- toString <$> lookupEnv env envGroupId
         readMaybe groupIdString
   maybe (_Failure # single GroupIdMissing) (\gId -> _Success # Id gId) maybeGroupId
 
 readBaseUrlFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) (Url GitlabHost)
 readBaseUrlFromEnv env = do
   let valueFromEnv = lookupEnv env envBaseUrl
-  let baseUrl = valueFromEnv >>= parseAbsoluteURI . T.unpack
+  let baseUrl = valueFromEnv >>= parseAbsoluteURI . toString
   if isJust baseUrl
     then maybe urlMissing (\url -> _Success # Url url) baseUrl
     else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) valueFromEnv
@@ -159,7 +157,7 @@ readMaxConcurrencyFromEnv :: [(String, String)] -> MaxConcurrency
 readMaxConcurrencyFromEnv env = MaxConcurrency $ parsePositiveWithDefault env envMaxConcurrency 2
 
 parsePositiveWithDefault :: [(String, String)] -> Text -> Int -> Int
-parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . T.unpack))
+parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . toString))
 
 parseLogLevelWithDefault :: [(String, String)] -> (Severity, Maybe Text)
 parseLogLevelWithDefault env = case lookupEnv env envLogLevel of
