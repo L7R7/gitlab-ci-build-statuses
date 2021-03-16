@@ -7,3 +7,6 @@ target/
 *.hie
 .hie/
 *~
+.hspec-failures
+tags
+
