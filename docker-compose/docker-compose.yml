@@ -1,10 +1,37 @@
-version: '3.2'
+version: '3.7'
+
+volumes:
+  prometheus_data: { }
+  grafana_data: { }
+
 services:
+  gitlab-ci-build-statuses:
+    container_name: gitlab-ci-build-statuses
+    image: l7r7/gitlab-ci-build-statuses:latest
+    ports:
+      - '8282:8282'
+    restart: always
+    environment:
+      - GITLAB_GROUP_ID=...
+      - GITLAB_API_TOKEN=...
+      - GITLAB_BASE_URL=...
+      - DATA_UPDATE_INTERVAL_SECS=...
+      - MAX_CONCURRENCY=...
+
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
+    container_name: grafana
     ports:
       - '3000:3000'
     network_mode: host
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    env_file:
+      - ./grafana/grafana.config
+    depends_on:
+      - prometheus
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -14,4 +41,36 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    restart: 'no'
+
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    ports:
+      - 9100:9100
+    restart: 'no'
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - 8080:8080
+    restart: 'no'
+    depends_on:
+      - gitlab-ci-build-statuses
