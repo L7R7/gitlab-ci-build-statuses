@@ -58,7 +58,7 @@ registerOutgoingHttpRequestsHistogram :: IO OutgoingHttpRequestsHistogram
 registerOutgoingHttpRequestsHistogram = register $ vector "path" $ histogram (Info "outgoing_http_requests_histogram" "Histogram indicating how long outgoing HTTP request durations") defaultBuckets
 
 registerUpdateJobDurationHistogram :: IO UpdateJobDurationHistogram
-registerUpdateJobDurationHistogram = register $ histogram (Info "update_job_duration_histogram" "Histogram indicating how long the update job took") (exponentialBuckets 1 1.25 15)
+registerUpdateJobDurationHistogram = register $ histogram (Info "update_job_duration_histogram" "Histogram indicating how long the update job took") (exponentialBuckets 0.5 1.25 20)
 
 type PipelinesOverviewGauge = Vector Label1 Gauge
 
