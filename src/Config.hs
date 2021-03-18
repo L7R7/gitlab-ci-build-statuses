@@ -53,7 +53,7 @@ envUiUpdateInterval :: Text
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
 envProjectCacheTtl :: Text
-envProjectCacheTtl = "PROJECT_CACHE_TTL"
+envProjectCacheTtl = "PROJECT_CACHE_TTL_SECS"
 
 envMaxConcurrency :: Text
 envMaxConcurrency = "MAX_CONCURRENCY"
