@@ -19,6 +19,9 @@ Default value is 60 seconds.
 The higher the value, the lower the number of requests to the Gitlab API, the lower the value the less stale will the in-memory data be.
 * `UI_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the HTML page will refresh
   itself. Default value is 5 seconds.
+* `PROJECT_CACHE_TTL_SECS` (optional): You can configure caching for the list of projects to reduce the load on the Gitlab API.
+The provided value must be positive and sets the TTL of cached values in seconds.
+By default, caching is disabled.
 * `LOG_LEVEL` (optional): Set the minimum log level for log output. Defaults to Info if the value is not set or can't be
   parsed. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
 

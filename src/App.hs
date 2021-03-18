@@ -14,7 +14,7 @@ import Inbound.HTTP.Server (startServer)
 import Inbound.Jobs.Inbound.Jobs.Updating (updateStatusesRegularly)
 import Logger
 import Metrics.Metrics
-import Outbound.Gitlab.GitlabAPI (pipelinesApiToIO, projectsApiToIO)
+import Outbound.Gitlab.GitlabAPI (initCache, pipelinesApiToIO, projectsApiToIO)
 import Outbound.Storage.InMemory (buildStatusesApiToIO)
 import Polysemy
 import Polysemy.Reader
@@ -30,12 +30,13 @@ startMetricsUpdatingJob config =
     $ updateMetricsRegularly
 
 startStatusUpdatingJob :: Config -> IO ()
-startStatusUpdatingJob Config {..} =
+startStatusUpdatingJob Config {..} = do
+  cache <- initCache projectCacheTtlSecs
   runFinal
     . embedToFinal @IO
     . buildStatusesApiToIO statuses
     . pipelinesApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics)
-    . projectsApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics)
+    . projectsApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics) cache
     . parTraverseToIO maxConcurrency
     . delayToIO
     . runReader logConfig

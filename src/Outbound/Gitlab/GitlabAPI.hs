@@ -9,13 +9,14 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Outbound.Gitlab.GitlabAPI (projectsApiToIO, pipelinesApiToIO) where
+module Outbound.Gitlab.GitlabAPI (initCache, projectsApiToIO, pipelinesApiToIO) where
 
 import Burrito
-import Config (ApiToken (..), GitlabHost)
+import Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds))
 import Control.Exception (try)
-import Core.Lib (Id (Id), PipelinesApi (..), ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
+import Core.Lib (Group, Id (Id), PipelinesApi (..), Project, ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
 import Data.Aeson (FromJSON)
+import Data.Cache
 import Data.Either.Combinators (mapLeft)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Client.Conduit (requestFromURI, responseTimeout, responseTimeoutMicro)
@@ -27,12 +28,22 @@ import Outbound.Gitlab.RequestResponseUtils
 import Polysemy
 import Prometheus (observeDuration)
 import Relude
+import System.Clock
 
-projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Sem (ProjectsApi ': r) a -> Sem r a
-projectsApiToIO baseUrl apiToken histogram = interpret $ \case
-  GetProjects groupId -> do
-    let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false|]
-    embed $ fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] histogram
+initCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Project])
+initCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
+
+projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Project] -> Sem (ProjectsApi ': r) a -> Sem r a
+projectsApiToIO baseUrl apiToken histogram cache = interpret $ \case
+  GetProjects groupId -> embed $ do
+    cached <- lookup cache groupId
+    case cached of
+      (Just projects) -> pure $ Right projects
+      Nothing -> do
+        let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false|]
+        result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] histogram
+        traverse_ (insert cache groupId) result
+        pure result
 
 pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Sem (PipelinesApi ': r) a -> Sem r a
 pipelinesApiToIO baseUrl apiToken histogram = interpret $ \case

@@ -14,6 +14,7 @@ module Config
     LogConfig (LogConfig),
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
+    ProjectCacheTtlSeconds(..),
     parseConfigFromEnv,
     Validation (Failure, Success),
     showErrors,
@@ -51,6 +52,9 @@ envDataUpdateInterval = "DATA_UPDATE_INTERVAL_SECS"
 envUiUpdateInterval :: Text
 envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
 
+envProjectCacheTtl :: Text
+envProjectCacheTtl = "PROJECT_CACHE_TTL"
+
 envMaxConcurrency :: Text
 envMaxConcurrency = "MAX_CONCURRENCY"
 
@@ -64,6 +68,7 @@ parseConfigFromEnv metrics ioref logConfig env =
     <*> readBaseUrlFromEnv env
     <*> pure (readDataUpdateIntervalFromEnv env)
     <*> pure (readUiUpdateIntervalFromEnv env)
+    <*> pure (readProjectCacheTtlSecondsFromEnv env)
     <*> pure (readMaxConcurrencyFromEnv env)
     <*> pure metrics
     <*> pure ioref
@@ -81,6 +86,7 @@ data Config = Config
     gitlabBaseUrl :: Url GitlabHost,
     dataUpdateIntervalSecs :: DataUpdateIntervalSeconds,
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
+    projectCacheTtlSecs :: ProjectCacheTtlSeconds,
     maxConcurrency :: MaxConcurrency,
     metrics :: Metrics,
     statuses :: IORef BuildStatuses,
@@ -103,6 +109,7 @@ instance Show Config where
           "Base URL " <> show gitlabBaseUrl,
           show dataUpdateIntervalSecs,
           show uiUpdateIntervalSecs,
+          show projectCacheTtlSecs,
           show maxConcurrency,
           coerce gitCommit
         ]
@@ -112,6 +119,8 @@ newtype ApiToken = ApiToken B.ByteString
 data GitlabHost
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
+
+newtype ProjectCacheTtlSeconds = ProjectCacheTtlSeconds Int64 deriving (Show)
 
 data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid Text
 
@@ -153,10 +162,13 @@ readDataUpdateIntervalFromEnv env = DataUpdateIntervalSeconds $ parsePositiveWit
 readUiUpdateIntervalFromEnv :: [(String, String)] -> UiUpdateIntervalSeconds
 readUiUpdateIntervalFromEnv env = UiUpdateIntervalSeconds $ parsePositiveWithDefault env envUiUpdateInterval 5
 
+readProjectCacheTtlSecondsFromEnv:: [(String, String)] -> ProjectCacheTtlSeconds
+readProjectCacheTtlSecondsFromEnv env = ProjectCacheTtlSeconds $ parsePositiveWithDefault env envProjectCacheTtl 0
+
 readMaxConcurrencyFromEnv :: [(String, String)] -> MaxConcurrency
 readMaxConcurrencyFromEnv env = MaxConcurrency $ parsePositiveWithDefault env envMaxConcurrency 2
 
-parsePositiveWithDefault :: [(String, String)] -> Text -> Int -> Int
+parsePositiveWithDefault :: (Ord a, Num a, Read a) => [(String, String)] -> Text -> a -> a
 parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . toString))
 
 parseLogLevelWithDefault :: [(String, String)] -> (Severity, Maybe Text)

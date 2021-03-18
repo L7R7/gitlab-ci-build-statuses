@@ -51,6 +51,8 @@ library
     , aeson-casing
     , blaze-html
     , burrito >= 1.2.0.0
+    , cache
+    , clock
     , containers
     , either
     , extra

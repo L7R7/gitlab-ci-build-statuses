@@ -67,7 +67,7 @@ data Pipeline = Pipeline
   }
   deriving (Generic, Show)
 
-newtype Id a = Id Int deriving newtype (Eq, FromJSON, Ord, Show, ToJSON)
+newtype Id a = Id Int deriving newtype (Eq, FromJSON, Hashable, Ord, Show, ToJSON)
 
 newtype Url a = Url URI deriving newtype (Eq, Show)
 
