@@ -9,4 +9,4 @@ target/
 *~
 .hspec-failures
 tags
-
+gitlab-ci-build-statuses-exe
