@@ -11,19 +11,20 @@ Fetch the current statuses of the latest Gitlab CI pipelines for all default bra
 The application has to be configured via environment variables.
 Some of them are mandatory, others are optional:
 
-* `GITLAB_BASE_URL`: The base URL for the Gitlab instance you want to fetch the data from, e.g. `https://www.gitlab.com/`
-* `GITLAB_GROUP_ID`: The ID of the group in Gitlab for which the build statuses to get.
-* `GITLAB_API_TOKEN`: The Access Token for the Gitlab API
-* `DATA_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the cached data should be updated.
+* `GCB_GITLAB_BASE_URL`: The base URL for the Gitlab instance you want to fetch the data from, e.g. `https://www.gitlab.com/`
+* `GCB_GITLAB_GROUP_ID`: The ID of the group in Gitlab for which the build statuses to get.
+* `GCB_GITLAB_API_TOKEN`: The Access Token for the Gitlab API
+* `GCB_DATA_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the cached data should be updated.
 Default value is 60 seconds.
-The higher the value, the lower the number of requests to the Gitlab API, the lower the value the less stale will the in-memory data be.
-* `UI_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the HTML page will refresh
-  itself. Default value is 5 seconds.
-* `PROJECT_CACHE_TTL_SECS` (optional): You can configure caching for the list of projects to reduce the load on the Gitlab API.
+The higher the value, the lower the number of requests to the Gitlab API. The lower the value, the less stale will the in-memory data be.
+* `GCB_UI_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the HTML page will refresh itself.
+Default value is 5 seconds.
+* `GCB_PROJECT_CACHE_TTL_SECS` (optional): You can configure caching for the list of projects to reduce the load on the Gitlab API.
 The provided value must be positive and sets the TTL of cached values in seconds.
 By default, caching is disabled.
-* `LOG_LEVEL` (optional): Set the minimum log level for log output. Defaults to Info if the value is not set or can't be
-  parsed. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
+* `GCB_LOG_LEVEL` (optional): Set the minimum log level for log output.
+Defaults to Info if the value is not set or can't be parsed.
+Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
 
 The app won't start if not all mandatory configuration properties are set.
 There will be a log message with the details before the application exits.

@@ -38,28 +38,28 @@ import Relude hiding (lookupEnv)
 import qualified Text.Show
 
 envGroupId :: Text
-envGroupId = "GITLAB_GROUP_ID"
+envGroupId = "GCB_GITLAB_GROUP_ID"
 
 envApiToken :: Text
-envApiToken = "GITLAB_API_TOKEN"
+envApiToken = "GCB_GITLAB_API_TOKEN"
 
 envBaseUrl :: Text
-envBaseUrl = "GITLAB_BASE_URL"
+envBaseUrl = "GCB_GITLAB_BASE_URL"
 
 envDataUpdateInterval :: Text
-envDataUpdateInterval = "DATA_UPDATE_INTERVAL_SECS"
+envDataUpdateInterval = "GCB_DATA_UPDATE_INTERVAL_SECS"
 
 envUiUpdateInterval :: Text
-envUiUpdateInterval = "UI_UPDATE_INTERVAL_SECS"
+envUiUpdateInterval = "GCB_UI_UPDATE_INTERVAL_SECS"
 
 envProjectCacheTtl :: Text
-envProjectCacheTtl = "PROJECT_CACHE_TTL_SECS"
+envProjectCacheTtl = "GCB_PROJECT_CACHE_TTL_SECS"
 
 envMaxConcurrency :: Text
-envMaxConcurrency = "MAX_CONCURRENCY"
+envMaxConcurrency = "GCB_MAX_CONCURRENCY"
 
 envLogLevel :: Text
-envLogLevel = "LOG_LEVEL"
+envLogLevel = "GCB_LOG_LEVEL"
 
 parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> [(String, String)] -> Validation (NonEmpty ConfigError) Config
 parseConfigFromEnv metrics ioref logConfig env =
@@ -178,7 +178,7 @@ parseLogLevelWithDefault env = case lookupEnv env envLogLevel of
   Just "INFO" -> (InfoS, Nothing)
   Just "WARN" -> (WarningS, Nothing)
   Just "ERROR" -> (ErrorS, Nothing)
-  Just s -> (InfoS, Just (s <> " s no valid log level. Using Info as fallback"))
+  Just s -> (InfoS, Just (s <> " is no valid log level. Using Info as fallback"))
 
 single :: a -> NonEmpty a
 single a = a :| []
