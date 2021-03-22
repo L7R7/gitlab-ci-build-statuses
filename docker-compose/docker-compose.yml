@@ -46,6 +46,14 @@ services:
       - prometheus_data:/prometheus
     restart: 'no'
 
+  promlens:
+    image: promlabs/promlens:latest
+    container_name: promlens
+    ports:
+      - 8080:8080
+    network_mode: host
+    restart: 'no'
+
   node-exporter:
     image: prom/node-exporter
     container_name: node-exporter
@@ -65,13 +73,15 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    command:
+      - -port=8081
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     ports:
-      - 8080:8080
+      - 8081:8081
     restart: 'no'
     depends_on:
       - gitlab-ci-build-statuses
