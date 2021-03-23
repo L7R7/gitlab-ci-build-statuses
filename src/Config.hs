@@ -73,7 +73,7 @@ parseConfigFromEnv metrics ioref logConfig env =
     <*> pure metrics
     <*> pure ioref
     <*> pure logConfig
-    <*> pure (GitCommit $ giBranch gitCommit <> "@" <> giHash gitCommit)
+    <*> pure (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit)
   where
     gitCommit = $$tGitInfoCwd
 
