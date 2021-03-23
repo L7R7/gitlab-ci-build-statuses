@@ -14,7 +14,7 @@ module Config
     LogConfig (LogConfig),
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
-    ProjectCacheTtlSeconds(..),
+    ProjectCacheTtlSeconds (..),
     parseConfigFromEnv,
     Validation (Failure, Success),
     showErrors,
@@ -162,7 +162,7 @@ readDataUpdateIntervalFromEnv env = DataUpdateIntervalSeconds $ parsePositiveWit
 readUiUpdateIntervalFromEnv :: [(String, String)] -> UiUpdateIntervalSeconds
 readUiUpdateIntervalFromEnv env = UiUpdateIntervalSeconds $ parsePositiveWithDefault env envUiUpdateInterval 5
 
-readProjectCacheTtlSecondsFromEnv:: [(String, String)] -> ProjectCacheTtlSeconds
+readProjectCacheTtlSecondsFromEnv :: [(String, String)] -> ProjectCacheTtlSeconds
 readProjectCacheTtlSecondsFromEnv env = ProjectCacheTtlSeconds $ parsePositiveWithDefault env envProjectCacheTtl 0
 
 readMaxConcurrencyFromEnv :: [(String, String)] -> MaxConcurrency
