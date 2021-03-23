@@ -5,6 +5,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -33,7 +34,7 @@ import System.Clock
 initCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Project])
 initCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
-projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Project] -> Sem (ProjectsApi ': r) a -> Sem r a
+projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Project] -> InterpreterFor ProjectsApi r
 projectsApiToIO baseUrl apiToken histogram cache = interpret $ \case
   GetProjects groupId -> embed $ do
     cached <- lookup cache groupId
@@ -45,7 +46,7 @@ projectsApiToIO baseUrl apiToken histogram cache = interpret $ \case
         traverse_ (insert cache groupId) result
         pure result
 
-pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Sem (PipelinesApi ': r) a -> Sem r a
+pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> InterpreterFor PipelinesApi r
 pipelinesApiToIO baseUrl apiToken histogram = interpret $ \case
   GetLatestPipelineForRef (Id project) (Ref ref) -> do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines?ref={ref}&per_page=1|]

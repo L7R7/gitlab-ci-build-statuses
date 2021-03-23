@@ -5,6 +5,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -77,7 +78,7 @@ data DurationObservation m a where
 
 makeSem ''DurationObservation
 
-observeDurationToIO :: (Member (Embed IO) r) => UpdateJobDurationHistogram -> Sem (DurationObservation ': r) a -> Sem r a
+observeDurationToIO :: (Member (Embed IO) r) => UpdateJobDurationHistogram -> InterpreterFor DurationObservation r
 observeDurationToIO jobDurationHistogram = interpretH $ \case
   ObserveDuration fb -> do
     start <- liftIO getMonotonicTime
@@ -95,7 +96,7 @@ data MetricsApi m a where
 
 makeSem ''MetricsApi
 
-metricsApiToIO :: (Member (Embed IO) r) => Metrics -> Sem (MetricsApi ': r) a -> Sem r a
+metricsApiToIO :: (Member (Embed IO) r) => Metrics -> InterpreterFor MetricsApi r
 metricsApiToIO Metrics {..} = interpret $ \case
   UpdatePipelinesOverviewMetric buildStatuses -> embed $ updatePipelinesOverviewMetricIO currentPipelinesOverview buildStatuses
   UpdateHealthy healthyCount -> embed (withLabel currentPipelinesOverview "healthy" (`setGauge` fromIntegral healthyCount) :: IO ())

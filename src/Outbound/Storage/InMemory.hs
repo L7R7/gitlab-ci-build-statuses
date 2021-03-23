@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
@@ -17,7 +18,7 @@ import Relude
 initStorage :: IO (IORef BuildStatuses)
 initStorage = newIORef NoSuccessfulUpdateYet
 
-buildStatusesApiToIO :: (Member (Embed IO) r) => IORef BuildStatuses -> Sem (BuildStatusesApi ': r) a -> Sem r a
+buildStatusesApiToIO :: (Member (Embed IO) r) => IORef BuildStatuses -> InterpreterFor BuildStatusesApi r
 buildStatusesApiToIO ioRef = interpret $ \case
   GetStatuses -> readIORef ioRef
   SetStatuses results -> embed $ do

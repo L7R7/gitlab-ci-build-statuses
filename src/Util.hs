@@ -19,14 +19,14 @@ import Polysemy.Final (withWeavingToFinal)
 import Relude
 import UnliftIO.Internals.Async
 
-delayToIO :: (Member (Embed IO) r) => Sem (Delay ': r) a -> Sem r a
+delayToIO :: (Member (Embed IO) r) => InterpreterFor Delay r
 delayToIO = interpret $ \case
   DelaySeconds i -> embed (threadDelay (i * oneSecond) :: IO ())
 
 oneSecond :: Int
 oneSecond = 1000000
 
-timerToIO :: (Member (Embed IO) r) => Sem (Timer ': r) a -> Sem r a
+timerToIO :: (Member (Embed IO) r) => InterpreterFor Timer r
 timerToIO = interpret $ \case
   GetCurrentTime -> embed T.getCurrentTime
 
