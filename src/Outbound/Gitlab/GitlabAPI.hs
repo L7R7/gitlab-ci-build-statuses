@@ -19,7 +19,8 @@ import Core.Lib (Group, Id (Id), PipelinesApi (..), Project, ProjectsApi (..), R
 import Data.Aeson (FromJSON)
 import Data.Cache
 import Data.Either.Combinators (mapLeft)
-import Metrics.Metrics (OutgoingHttpRequestsHistogram, VectorWithLabel (VectorWithLabel))
+import Metrics.Metrics (OutgoingHttpRequestsHistogram)
+import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Client.Conduit (requestFromURI, responseTimeout, responseTimeoutMicro)
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
@@ -42,49 +43,49 @@ projectsApiToIO baseUrl apiToken histogram cache = interpret $ \case
       (Just projects) -> pure $ Right projects
       Nothing -> do
         let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false|]
-        result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] histogram
+        result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
         traverse_ (insert cache groupId) result
         pure result
 
-pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> InterpreterFor PipelinesApi r
-pipelinesApiToIO baseUrl apiToken histogram = interpret $ \case
+pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> Id Group -> OutgoingHttpRequestsHistogram -> InterpreterFor PipelinesApi r
+pipelinesApiToIO baseUrl apiToken groupId histogram = interpret $ \case
   GetLatestPipelineForRef (Id project) (Ref ref) -> do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines?ref={ref}&per_page=1|]
-    embed $ headOrUpdateError <$> fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("ref", (stringValue . toString) ref)] histogram
+    embed $ headOrUpdateError <$> fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("ref", (stringValue . toString) ref)] groupId histogram
   GetSinglePipeline (Id project) (Id pipeline) -> do
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
-    embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)] histogram
+    embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)] groupId histogram
 
 headOrUpdateError :: Either UpdateError [a] -> Either UpdateError a
 headOrUpdateError (Right (a : _)) = Right a
 headOrUpdateError (Right []) = Left NoPipelineForDefaultBranch
 headOrUpdateError (Left e) = Left e
 
-fetchData :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
-fetchData baseUrl apiToken template vars histogram = do
+fetchData :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> Id Group -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
+fetchData baseUrl apiToken template vars groupId histogram = do
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
     Left invalidUrl -> pure $ Left $ HttpError invalidUrl
-    Right request -> fetchData' apiToken request template histogram
+    Right request -> fetchData' apiToken request template groupId histogram
 
-fetchData' :: (FromJSON a) => ApiToken -> Request -> Template -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
-fetchData' apiToken request template histogram = do
-  result <- measure histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken apiToken request)))
+fetchData' :: (FromJSON a) => ApiToken -> Request -> Template -> Id Group -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
+fetchData' apiToken request template groupId histogram = do
+  result <- measure groupId histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken apiToken request)))
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
-fetchDataPaginated :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError [a])
-fetchDataPaginated baseUrl apiToken template vars histogram = do
+fetchDataPaginated :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> Id Group -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError [a])
+fetchDataPaginated baseUrl apiToken template vars groupId histogram = do
   try (parseRequest (show baseUrl <> "/" <> expand vars template)) >>= \case
     (Left invalidUrl) -> pure $ Left $ HttpError invalidUrl
-    Right request -> fetchDataPaginated' apiToken request template histogram []
+    Right request -> fetchDataPaginated' apiToken request template groupId histogram []
 
-fetchDataPaginated' :: (FromJSON a) => ApiToken -> Request -> Template -> OutgoingHttpRequestsHistogram -> [a] -> IO (Either UpdateError [a])
-fetchDataPaginated' apiToken request template histogram acc = do
+fetchDataPaginated' :: (FromJSON a) => ApiToken -> Request -> Template -> Id Group -> OutgoingHttpRequestsHistogram -> [a] -> IO (Either UpdateError [a])
+fetchDataPaginated' apiToken request template groupId histogram acc = do
   result <- try $ do
-    response <- measure histogram template $ httpJSONEither (setTimeout $ addToken apiToken request)
+    response <- measure groupId histogram template $ httpJSONEither (setTimeout $ addToken apiToken request)
     let next = parseNextRequest response
     case mapLeft ConversionError $ getResponseBody response of
       Left err -> pure $ Left err
-      Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken req template histogram (as <> acc)) next
+      Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken req template groupId histogram (as <> acc)) next
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
 parseNextRequest :: Response a -> Maybe Request
@@ -103,5 +104,5 @@ addToken (ApiToken token) = setRequestHeader privateToken [token]
 setTimeout :: Request -> Request
 setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 
-measure :: OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
-measure histogram template = observeDuration (VectorWithLabel histogram ((toText . render) template))
+measure :: Id Group -> OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
+measure (Id groupId) histogram template = observeDuration (VectorWithLabel histogram (show groupId, (toText . render) template))

@@ -24,7 +24,7 @@ import Util (delayToIO, parTraverseToIO)
 startMetricsUpdatingJob :: Config -> IO ()
 startMetricsUpdatingJob config =
   runM
-    . metricsApiToIO (metrics config)
+    . metricsApiToIO (groupId config) (metrics config)
     . buildStatusesApiToIO (statuses config)
     . delayToIO
     $ updateMetricsRegularly
@@ -35,13 +35,13 @@ startStatusUpdatingJob Config {..} = do
   runFinal
     . embedToFinal @IO
     . buildStatusesApiToIO statuses
-    . pipelinesApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics)
+    . pipelinesApiToIO gitlabBaseUrl apiToken groupId (outgoingHttpRequestsHistogram metrics)
     . projectsApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics) cache
     . parTraverseToIO maxConcurrency
     . delayToIO
     . runReader logConfig
     . loggerToIO
-    . observeDurationToIO (updateJobDurationHistogram metrics)
+    . observeDurationToIO groupId (updateJobDurationHistogram metrics)
     $ updateStatusesRegularly groupId dataUpdateIntervalSecs
 
 startWithConfig :: Config -> IO ()
