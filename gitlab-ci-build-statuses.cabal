@@ -67,7 +67,7 @@ library
     , polysemy-plugin
     , prometheus-client
     , prometheus-metrics-ghc
-    , relude
+    , relude >= 1.0.0.1
     , servant
     , servant-blaze
     , servant-server
@@ -91,7 +91,7 @@ executable gitlab-ci-build-statuses-exe
       base >=4.7 && <5
     , gitlab-ci-build-statuses
     , katip
-    , relude
+    , relude >= 1.0.0.1
   default-language: Haskell2010
 
 test-suite gitlab-ci-build-statuses-test
@@ -112,5 +112,5 @@ test-suite gitlab-ci-build-statuses-test
     , network-uri
     , polysemy
     , polysemy-plugin
-    , relude
+    , relude >= 1.0.0.1
   default-language: Haskell2010
