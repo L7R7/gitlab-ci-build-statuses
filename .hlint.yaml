@@ -101,10 +101,10 @@
 - warn:
     lhs: "void (evaluateNF x)"
     rhs: evaluateNF_ x
-- hint:
-    lhs: Control.Exception.throw
-    note: "Use 'impureThrow'"
-    rhs: impureThrow
+# - hint:
+#     lhs: Control.Exception.throw
+#     note: "Use 'impureThrow'"
+#     rhs: impureThrow
 - warn:
     lhs: Data.Text.IO.readFile
     rhs: readFileText

@@ -33,6 +33,7 @@ library
     , Core.Lib
     , Inbound.HTTP.Html
     , Logger
+    , Metrics.Health
     , Metrics.Metrics
     , Metrics.PrometheusUtils
     , Inbound.Jobs.Inbound.Jobs.Updating

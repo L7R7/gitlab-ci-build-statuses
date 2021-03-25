@@ -24,6 +24,8 @@ module Core.Effects
     logInfo,
     logWarn,
     logError,
+    Health (..),
+    isHealthy,
   )
 where
 
@@ -58,3 +60,8 @@ data Logger m a where
   AddNamespace :: Text -> m b -> Logger m b
 
 makeSem ''Logger
+
+data Health m a where
+  IsHealthy :: Health m Bool
+
+makeSem ''Health

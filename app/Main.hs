@@ -9,6 +9,7 @@ import Config (LogConfig (..), Validation (Failure, Success), parseConfigFromEnv
 import Control.Exception (bracket)
 import Katip hiding (getEnvironment)
 import Metrics.Metrics (registerMetrics)
+import Metrics.Health(initThreads)
 import Outbound.Storage.InMemory (initStorage)
 import Relude
 import System.Environment
@@ -22,8 +23,9 @@ main = do
   bracket mkLogEnv closeScribes $ \logEnv -> do
     traverse_ (runKatipContextT logEnv () mempty . logLocM WarningS . ls) logLevelParseError
     statuses <- initStorage
+    healthThreads <- initThreads
     metrics <- registerMetrics
-    case parseConfigFromEnv metrics statuses (LogConfig mempty mempty logEnv) environment of
+    case parseConfigFromEnv metrics statuses healthThreads (LogConfig mempty mempty logEnv) environment of
       Success config -> do
         runKatipContextT logEnv () mempty $ logLocM InfoS . ls $ "Using config: " <> (show @Text) config
         startWithConfig config

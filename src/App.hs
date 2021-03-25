@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -46,6 +47,7 @@ startStatusUpdatingJob Config {..} = do
 
 startWithConfig :: Config -> IO ()
 startWithConfig config = do
-  _ <- forkIO $ startMetricsUpdatingJob config
-  _ <- forkIO $ startStatusUpdatingJob config
+  metrics <- forkIO $ startMetricsUpdatingJob config
+  statuses <- forkIO $ startStatusUpdatingJob config
+  atomicWriteIORef (threads config) [(metrics, "metrics"), (statuses, "statuses")]
   startServer config

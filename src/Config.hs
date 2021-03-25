@@ -36,6 +36,7 @@ import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
 import qualified Text.Show
+import Control.Concurrent (ThreadId)
 
 envGroupId :: Text
 envGroupId = "GCB_GITLAB_GROUP_ID"
@@ -61,8 +62,8 @@ envMaxConcurrency = "GCB_MAX_CONCURRENCY"
 envLogLevel :: Text
 envLogLevel = "GCB_LOG_LEVEL"
 
-parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> LogConfig -> [(String, String)] -> Validation (NonEmpty ConfigError) Config
-parseConfigFromEnv metrics ioref logConfig env =
+parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> IORef [(ThreadId, Text)] -> LogConfig -> [(String, String)] -> Validation (NonEmpty ConfigError) Config
+parseConfigFromEnv metrics iorefBuilds iorefThreads logConfig env =
   Config <$> readApiTokenFromEnv env
     <*> readGroupIdFromEnv env
     <*> readBaseUrlFromEnv env
@@ -71,9 +72,10 @@ parseConfigFromEnv metrics ioref logConfig env =
     <*> pure (readProjectCacheTtlSecondsFromEnv env)
     <*> pure (readMaxConcurrencyFromEnv env)
     <*> pure metrics
-    <*> pure ioref
+    <*> pure iorefBuilds
     <*> pure logConfig
     <*> pure (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit)
+    <*> pure iorefThreads
   where
     gitCommit = $$tGitInfoCwd
 
@@ -91,7 +93,8 @@ data Config = Config
     metrics :: Metrics,
     statuses :: IORef BuildStatuses,
     logConfig :: LogConfig,
-    gitCommit :: GitCommit
+    gitCommit :: GitCommit,
+    threads :: IORef [(ThreadId, Text)]
   }
 
 data LogConfig = LogConfig
