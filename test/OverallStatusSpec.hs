@@ -1,8 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module OverallStatusSpec where
 
-import Core.OverallStatus (OverallStatus (..))
+import Core.OverallStatus (OverallStatus (..), isRunning)
 import Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
@@ -12,18 +13,12 @@ import Test.Hspec.Hedgehog
 
 spec :: Spec
 spec = do
-  describe "OverallStatus" $ do
-    describe "Semigroup instance" $ do
-      it "adheres to identity" $ hedgehog $ semigroupIdentity overallStatusGen
-      it "adheres to associativity" $ hedgehog $ semigroupAssociativity overallStatusGen
-    describe "Monoid instance" $ do
-      it "adheres to left identity" $ hedgehog $ monoidLeftIdentity overallStatusGen
-      it "adheres to right identity" $ hedgehog $ monoidRightIdentity overallStatusGen
-      it "mappend behaves like (<>)" $ hedgehog $ monoidMappendCombine overallStatusGen
-    describe "folding" $ do
-      it "(<>) is commutative" $
-        hedgehog $ commutative overallStatusGen
-      it "folding respects the hierarchy of the statuses" $ hedgehog resultToOverallProps
+  monoidSpec overallStatusGen
+  describe "folding" $ do
+    it "(<>) is commutative" $ hedgehog $ commutative overallStatusGen
+    it "folding respects the hierarchy of the statuses" $ hedgehog resultToOverallProps
+  describe "isRunning" $ do
+    it "keeps the isRunning property when appending" $ hedgehog isRunningProps
 
 resultToOverallProps :: Monad m => PropertyT m ()
 resultToOverallProps = do
@@ -67,8 +62,32 @@ atLeastOneOf mustIncludes as = or ((`elem` as) <$> mustIncludes)
 noneOf :: (Functor t, Foldable t, Eq a) => t a -> [a] -> Bool
 noneOf mustNotIncludes as = and ((`notElem` as) <$> mustNotIncludes)
 
+isRunningProps :: Monad m => PropertyT m ()
+isRunningProps = do
+  s1 <- forAll overallStatusGen
+  s2 <- forAll overallStatusGen
+  cover 15 "both isRunning" (isRunning s1 && isRunning s2)
+  cover 15 "none isRunning" (not (isRunning s1) && not (isRunning s2))
+  cover 15 "only first one isRunning" (isRunning s1 && not (isRunning s2))
+  cover 15 "only second one isRunning" (not (isRunning s1) && isRunning s2)
+  assert $ (isRunning s1 || isRunning s2) == isRunning (s1 <> s2)
+
 overallStatusGen :: Gen OverallStatus
 overallStatusGen = Gen.enumBounded
+
+semigroupSpec :: (Show a, Eq a, Monoid a) => Gen a -> Spec
+semigroupSpec gen = do
+  describe "Semigroup" $ do
+    it "adheres to identity" $ hedgehog $ semigroupIdentity gen
+    it "adheres to associativity" $ hedgehog $ semigroupAssociativity gen
+
+monoidSpec :: (Show a, Eq a, Monoid a) => Gen a -> Spec
+monoidSpec gen = do
+  semigroupSpec gen
+  describe "Monoid" $ do
+    it "adheres to left identity" $ hedgehog $ monoidLeftIdentity gen
+    it "adheres to right identity" $ hedgehog $ monoidRightIdentity gen
+    it "mappend behaves like (<>)" $ hedgehog $ monoidMappendCombine gen
 
 semigroupIdentity :: (Monad m, Show a, Eq a, Monoid a) => Gen a -> PropertyT m ()
 semigroupIdentity gen = do
