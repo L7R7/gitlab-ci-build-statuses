@@ -13,16 +13,16 @@ import Test.Hspec.Hedgehog
 spec :: Spec
 spec = do
   describe "OverallStatus" $ do
-    describe "monoid instance" $ do
+    describe "Semigroup instance" $ do
+      it "adheres to identity" $ hedgehog $ semigroupIdentity overallStatusGen
+      it "adheres to associativity" $ hedgehog $ semigroupAssociativity overallStatusGen
+    describe "Monoid instance" $ do
       it "adheres to left identity" $ hedgehog $ monoidLeftIdentity overallStatusGen
       it "adheres to right identity" $ hedgehog $ monoidRightIdentity overallStatusGen
       it "mappend behaves like (<>)" $ hedgehog $ monoidMappendCombine overallStatusGen
     describe "folding" $ do
       it "(<>) is commutative" $
-        hedgehog $ do
-          s1 <- forAll overallStatusGen
-          s2 <- forAll overallStatusGen
-          s1 <> s2 === s2 <> s1
+        hedgehog $ commutative overallStatusGen
       it "folding respects the hierarchy of the statuses" $ hedgehog resultToOverallProps
 
 resultToOverallProps :: Monad m => PropertyT m ()
@@ -70,6 +70,18 @@ noneOf mustNotIncludes as = and ((`notElem` as) <$> mustNotIncludes)
 overallStatusGen :: Gen OverallStatus
 overallStatusGen = Gen.enumBounded
 
+semigroupIdentity :: (Monad m, Show a, Eq a, Monoid a) => Gen a -> PropertyT m ()
+semigroupIdentity gen = do
+  a <- forAll gen
+  a <> a === a
+
+semigroupAssociativity :: (Monad m, Show a, Eq a, Semigroup a) => Gen a -> PropertyT m ()
+semigroupAssociativity gen = do
+  a <- forAll gen
+  b <- forAll gen
+  c <- forAll gen
+  (a <> b) <> c === a <> (b <> c)
+
 monoidLeftIdentity :: (Monad m, Show a, Eq a, Monoid a) => Gen a -> PropertyT m ()
 monoidLeftIdentity gen = do
   a <- forAll gen
@@ -85,3 +97,9 @@ monoidMappendCombine gen = do
   a <- forAll gen
   b <- forAll gen
   a <> b === mappend a b
+
+commutative :: (Monad m, Show a, Eq a, Semigroup a) => Gen a -> PropertyT m ()
+commutative gen = do
+  s1 <- forAll gen
+  s2 <- forAll gen
+  s1 <> s2 === s2 <> s1
