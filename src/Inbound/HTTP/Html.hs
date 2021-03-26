@@ -43,7 +43,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         meta ! charset "UTF-8"
         unless (autoRefresh == NoRefresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
         H.title "Build Statuses"
-        link ! rel "icon" ! type_ "image/png" ! href ("static/" <> (trace (show ((overallStatus buildStatuses))) prefix) <> "-favicon.ico")
+        link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-0a92ee62ac.css"
         textComment . toText $ ("Version: " <> show gitCommit :: String)
