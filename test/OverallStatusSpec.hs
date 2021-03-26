@@ -66,10 +66,10 @@ isRunningProps :: Monad m => PropertyT m ()
 isRunningProps = do
   s1 <- forAll overallStatusGen
   s2 <- forAll overallStatusGen
-  cover 15 "both isRunning" (isRunning s1 && isRunning s2)
-  cover 15 "none isRunning" (not (isRunning s1) && not (isRunning s2))
-  cover 15 "only first one isRunning" (isRunning s1 && not (isRunning s2))
-  cover 15 "only second one isRunning" (not (isRunning s1) && isRunning s2)
+  cover 10 "both isRunning" (isRunning s1 && isRunning s2)
+  cover 10 "none isRunning" (not (isRunning s1) && not (isRunning s2))
+  cover 10 "only first one isRunning" (isRunning s1 && not (isRunning s2))
+  cover 10 "only second one isRunning" (not (isRunning s1) && isRunning s2)
   assert $ (isRunning s1 || isRunning s2) == isRunning (s1 <> s2)
 
 overallStatusGen :: Gen OverallStatus
