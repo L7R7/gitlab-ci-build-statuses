@@ -25,7 +25,7 @@ healthToIO ioref = interpret $ \case
     allM (isThreadHealthy . fst) threads
 
 isThreadHealthy :: ThreadId -> IO Bool
-isThreadHealthy = fmap (\st -> st /= ThreadFinished && st /= ThreadDied) . threadStatus
+isThreadHealthy = fmap (`notElem` [ThreadFinished, ThreadDied]) . threadStatus
 
 initThreads :: IO (IORef [(ThreadId, Text)])
 initThreads = newIORef []

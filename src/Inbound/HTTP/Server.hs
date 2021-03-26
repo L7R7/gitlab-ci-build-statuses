@@ -15,11 +15,13 @@ module Inbound.HTTP.Server
 where
 
 import Config (Config (..), GitCommit, UiUpdateIntervalSeconds)
+import Control.Concurrent (ThreadId)
 import Control.Exception (try)
-import Core.Effects (Timer)
+import Core.Effects (Health, Timer)
 import Core.Lib (BuildStatuses, BuildStatusesApi)
 import qualified Data.Text as T
 import Inbound.HTTP.Html
+import Metrics.Health (getCurrentHealthStatus, healthToIO)
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Prometheus (def, prometheus)
 import Outbound.Storage.InMemory (buildStatusesApiToIO)
@@ -35,8 +37,8 @@ type API = "health" :> Get '[PlainText] T.Text :<|> "statuses" :> QueryFlag "nor
 api :: Proxy API
 api = Proxy
 
-server :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
-server uiUpdateInterval gitCommit = return "UP" :<|> (template uiUpdateInterval gitCommit . norefreshFlag) :<|> serveDirectoryWebApp "/service/static"
+server :: (Member BuildStatusesApi r, Member Timer r, Member Health r) => UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
+server uiUpdateInterval gitCommit = getCurrentHealthStatus :<|> (template uiUpdateInterval gitCommit . norefreshFlag) :<|> serveDirectoryWebApp "/service/static"
 
 norefreshFlag :: Bool -> AutoRefresh
 norefreshFlag True = NoRefresh
@@ -44,13 +46,14 @@ norefreshFlag False = Refresh
 
 hoist :: Config -> ServerT API Handler
 hoist Config {..} = do
-  hoistServer api (liftServer statuses) (server uiUpdateIntervalSecs gitCommit)
+  hoistServer api (liftServer statuses threads) (server uiUpdateIntervalSecs gitCommit)
 
-liftServer :: IORef BuildStatuses -> Sem '[BuildStatusesApi, Timer, Embed IO] a -> Handler a
-liftServer statuses sem =
+liftServer :: IORef BuildStatuses -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, Timer, Health, Embed IO] a -> Handler a
+liftServer statuses threads sem =
   sem
     & buildStatusesApiToIO statuses
     & timerToIO
+    & healthToIO threads
     & runM
     & Handler . ExceptT . try
 
