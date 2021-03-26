@@ -1,11 +1,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Core.OverallStatus(
+module Core.OverallStatus
+  ( isRunning,
     overallStatus,
     OverallStatus (..),
-) where
+  )
+where
 
-import Core.Lib --(BuildStatuses(..))
+import Core.Lib
 import Relude
 
 data OverallStatus
@@ -24,21 +26,15 @@ instance Semigroup OverallStatus where
   s <> OverallUnknown = s
   OverallFailedRunning <> _ = OverallFailedRunning
   _ <> OverallFailedRunning = OverallFailedRunning
-  OverallFailed <> OverallRunning = OverallFailedRunning
-  OverallRunning <> OverallFailed = OverallFailedRunning
-  OverallFailed <> OverallWarningRunning = OverallFailedRunning
-  OverallFailed <> OverallSuccessfulRunning = OverallFailedRunning
+  OverallFailed <> status | isRunning status = OverallFailedRunning
   OverallFailed <> _ = OverallFailed
-  OverallWarningRunning <> OverallFailed = OverallFailedRunning
-  OverallSuccessfulRunning <> OverallFailed = OverallFailedRunning
+  status <> OverallFailed | isRunning status = OverallFailedRunning
   _ <> OverallFailed = OverallFailed
   OverallWarningRunning <> _ = OverallWarningRunning
   _ <> OverallWarningRunning = OverallWarningRunning
-  OverallWarning <> OverallRunning = OverallWarningRunning
-  OverallRunning <> OverallWarning = OverallWarningRunning
-  OverallWarning <> OverallSuccessfulRunning = OverallWarningRunning
-  OverallSuccessfulRunning <> OverallWarning = OverallWarningRunning
+  OverallWarning <> status | isRunning status = OverallWarningRunning
   OverallWarning <> _ = OverallWarning
+  status <> OverallWarning | isRunning status = OverallWarningRunning
   _ <> OverallWarning = OverallWarning
   OverallSuccessfulRunning <> _ = OverallSuccessfulRunning
   _ <> OverallSuccessfulRunning = OverallSuccessfulRunning
@@ -49,6 +45,11 @@ instance Semigroup OverallStatus where
 
 instance Monoid OverallStatus where
   mempty = OverallUnknown
+
+isRunning :: OverallStatus -> Bool
+isRunning status
+  | status `elem` [OverallSuccessfulRunning, OverallFailedRunning, OverallWarningRunning, OverallRunning] = True
+  | otherwise = False
 
 overallStatus :: BuildStatuses -> OverallStatus
 overallStatus NoSuccessfulUpdateYet = OverallUnknown

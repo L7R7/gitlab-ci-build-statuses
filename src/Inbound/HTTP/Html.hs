@@ -52,7 +52,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
 faviconPrefix :: IsString p => OverallStatus -> p
 faviconPrefix status
   | status == OverallSuccessful = "success"
-  | status `elem` [OverallSuccessfulRunning, OverallFailedRunning, OverallWarningRunning, OverallRunning] = "running"
+  | isRunning status = "running"
   | status `elem` [OverallWarning, OverallUnknown] = "warning"
   | otherwise = "failed"
 
