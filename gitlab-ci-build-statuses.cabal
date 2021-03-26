@@ -102,6 +102,7 @@ test-suite gitlab-ci-build-statuses-test
   other-modules:
       Paths_gitlab_ci_build_statuses
       GetStatusForProjectSpec
+      OverallStatusSpec
       TestUtils
   hs-source-dirs:
       test
@@ -110,7 +111,9 @@ test-suite gitlab-ci-build-statuses-test
       base >=4.7 && <5
     , gitlab-ci-build-statuses
     , containers
+    , hedgehog
     , hspec
+    , hspec-hedgehog
     , network-uri
     , polysemy
     , polysemy-plugin
