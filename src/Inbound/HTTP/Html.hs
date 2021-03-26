@@ -15,6 +15,7 @@ where
 import Config
 import Core.Effects (Timer, getCurrentTime)
 import Core.Lib
+import Core.OverallStatus
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Polysemy
 import Relude
@@ -40,17 +41,20 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
       do
         meta ! charset "UTF-8"
         unless (autoRefresh == NoRefresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
-        H.title $ titleIcon buildStatuses <> " Build Statuses"
+        H.title "Build Statuses"
+        link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-0a92ee62ac.css"
         textComment . toText $ ("Version: " <> show gitCommit :: String)
-
-titleIcon :: BuildStatuses -> Html
-titleIcon NoSuccessfulUpdateYet = mempty
-titleIcon (Statuses (_, results)) = H.preEscapedToHtml icon
   where
-    icon :: String
-    icon = if all (isHealthy . buildStatus) results then "&#10003;" else "&#10007"
+    prefix = faviconPrefix (overallStatus buildStatuses)
+
+faviconPrefix :: IsString p => OverallStatus -> p
+faviconPrefix status
+  | status == OverallSuccessful = "success"
+  | status `elem` [OverallSuccessfulRunning, OverallFailedRunning, OverallWarningRunning, OverallRunning] = "running"
+  | status `elem` [OverallWarning, OverallUnknown] = "warning"
+  | otherwise = "failed"
 
 pageBody :: UTCTime -> BuildStatuses -> Html
 pageBody now buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml now buildStatuses
