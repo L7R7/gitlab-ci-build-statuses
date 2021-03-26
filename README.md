@@ -1,6 +1,6 @@
 # gitlab-ci-build-statuses
 
-![build](https://github.com/l7r7/gitlab-ci-build-statuses/actions/workflows/build.yml/badge.svg)
+[![build](https://github.com/l7r7/gitlab-ci-build-statuses/actions/workflows/build.yml/badge.svg)](https://github.com/l7r7/gitlab-ci-build-statuses/actions)
 
 Fetch the current statuses of the latest Gitlab CI pipelines for all default branches in a Gitlab group and show them on an HTML page.
 
