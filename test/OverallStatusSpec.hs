@@ -2,7 +2,7 @@
 
 module OverallStatusSpec where
 
-import Core.Lib (OverallStatus (..))
+import Core.OverallStatus (OverallStatus (..))
 import Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range

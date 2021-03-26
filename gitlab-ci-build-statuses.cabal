@@ -31,6 +31,7 @@ library
     , Config
     , Core.Effects
     , Core.Lib
+    , Core.OverallStatus
     , Inbound.HTTP.Html
     , Logger
     , Metrics.Health
