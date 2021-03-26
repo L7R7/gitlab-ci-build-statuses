@@ -30,36 +30,36 @@ resultToOverallProps = do
   statuses <- forAll $ Gen.list (Range.linear 0 100) overallStatusGen
   let result = fold statuses
   case result of
-    OverallSuccessful -> assert $ all (== OverallSuccessful) statuses
-    OverallUnknown -> assert $ all (== OverallUnknown) statuses
-    OverallSuccessfulRunning ->
+    Successful -> assert $ all (== Successful) statuses
+    Unknown -> assert $ all (== Unknown) statuses
+    SuccessfulRunning ->
       assert $
-        all (`elem` [OverallSuccessful, OverallSuccessfulRunning, OverallRunning, OverallUnknown]) statuses
-          && atLeastOneOf [OverallSuccessfulRunning, OverallRunning] statuses
-    OverallFailed ->
+        all (`elem` [Successful, SuccessfulRunning, Running, Unknown]) statuses
+          && atLeastOneOf [SuccessfulRunning, Running] statuses
+    Failed ->
       assert $
-        all (`elem` [OverallSuccessful, OverallFailed, OverallWarning, OverallUnknown]) statuses
-          && noneOf [OverallRunning, OverallSuccessfulRunning, OverallWarningRunning, OverallFailedRunning] statuses
-          && elem OverallFailed statuses
-    OverallFailedRunning ->
+        all (`elem` [Successful, Failed, Warning, Unknown]) statuses
+          && noneOf [Running, SuccessfulRunning, WarningRunning, FailedRunning] statuses
+          && elem Failed statuses
+    FailedRunning ->
       assert $
-        all (`elem` [OverallSuccessful, OverallSuccessfulRunning, OverallFailed, OverallFailedRunning, OverallWarning, OverallWarningRunning, OverallRunning, OverallUnknown]) statuses
-          && atLeastOneOf [OverallFailed, OverallFailedRunning] statuses
-          && atLeastOneOf [OverallSuccessfulRunning, OverallFailedRunning, OverallWarningRunning, OverallRunning] statuses
-    OverallWarning ->
+        all (`elem` [Successful, SuccessfulRunning, Failed, FailedRunning, Warning, WarningRunning, Running, Unknown]) statuses
+          && atLeastOneOf [Failed, FailedRunning] statuses
+          && atLeastOneOf [SuccessfulRunning, FailedRunning, WarningRunning, Running] statuses
+    Warning ->
       assert $
-        all (`elem` [OverallSuccessful, OverallWarning, OverallUnknown]) statuses
-          && noneOf [OverallRunning, OverallSuccessfulRunning, OverallWarningRunning, OverallFailedRunning] statuses
-          && elem OverallWarning statuses
-    OverallWarningRunning ->
+        all (`elem` [Successful, Warning, Unknown]) statuses
+          && noneOf [Running, SuccessfulRunning, WarningRunning, FailedRunning] statuses
+          && elem Warning statuses
+    WarningRunning ->
       assert $
-        all (`elem` [OverallSuccessful, OverallSuccessfulRunning, OverallWarning, OverallWarningRunning, OverallRunning, OverallUnknown]) statuses
-          && atLeastOneOf [OverallWarning, OverallWarningRunning] statuses
-          && atLeastOneOf [OverallSuccessfulRunning, OverallWarningRunning, OverallRunning] statuses
-    OverallRunning ->
+        all (`elem` [Successful, SuccessfulRunning, Warning, WarningRunning, Running, Unknown]) statuses
+          && atLeastOneOf [Warning, WarningRunning] statuses
+          && atLeastOneOf [SuccessfulRunning, WarningRunning, Running] statuses
+    Running ->
       assert $
-        all (`elem` [OverallRunning, OverallUnknown]) statuses
-          && elem OverallRunning statuses
+        all (`elem` [Running, Unknown]) statuses
+          && elem Running statuses
 
 atLeastOneOf :: (Functor t, Foldable t, Eq a) => t a -> [a] -> Bool
 atLeastOneOf mustIncludes as = or ((`elem` as) <$> mustIncludes)

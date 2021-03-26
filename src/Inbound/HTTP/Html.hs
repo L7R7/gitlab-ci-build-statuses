@@ -15,7 +15,8 @@ where
 import Config
 import Core.Effects (Timer, getCurrentTime)
 import Core.Lib
-import Core.OverallStatus
+import Core.OverallStatus (isRunning, overallStatus)
+import qualified Core.OverallStatus as O (OverallStatus (Successful, Unknown, Warning))
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Polysemy
 import Relude
@@ -42,18 +43,18 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         meta ! charset "UTF-8"
         unless (autoRefresh == NoRefresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
         H.title "Build Statuses"
-        link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
+        link ! rel "icon" ! type_ "image/png" ! href ("static/" <> (trace (show ((overallStatus buildStatuses))) prefix) <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-0a92ee62ac.css"
         textComment . toText $ ("Version: " <> show gitCommit :: String)
   where
     prefix = faviconPrefix (overallStatus buildStatuses)
 
-faviconPrefix :: IsString p => OverallStatus -> p
+faviconPrefix :: IsString p => O.OverallStatus -> p
 faviconPrefix status
-  | status == OverallSuccessful = "success"
+  | status == O.Successful = "success"
   | isRunning status = "running"
-  | status `elem` [OverallWarning, OverallUnknown] = "warning"
+  | status `elem` [O.Warning, O.Unknown] = "warning"
   | otherwise = "failed"
 
 pageBody :: UTCTime -> BuildStatuses -> Html
