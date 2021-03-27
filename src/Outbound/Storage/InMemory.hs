@@ -20,4 +20,4 @@ buildStatusesApiToIO ioRef = interpret $ \case
   SetStatuses results -> embed $ do
     updateTime <- getCurrentTime
     let res = Statuses (updateTime, results)
-    atomicModifyIORef' ioRef (const (res, res))
+    atomicWriteIORef ioRef res

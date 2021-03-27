@@ -169,14 +169,14 @@ makeSem ''ProjectsApi
 
 data BuildStatusesApi m a where
   GetStatuses :: BuildStatusesApi m BuildStatuses
-  SetStatuses :: [Result] -> BuildStatusesApi m BuildStatuses
+  SetStatuses :: [Result] -> BuildStatusesApi m ()
 
 makeSem ''BuildStatusesApi
 
 updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
 updateStatuses groupId = do
   currentStatuses <- currentKnownBuildStatuses groupId
-  unless (null currentStatuses) $ setStatuses currentStatuses >> pass
+  unless (null currentStatuses) $ setStatuses currentStatuses
   logCurrentBuildStatuses
   pure currentStatuses
 
