@@ -76,10 +76,10 @@ instance FromJSON (Url a) where
 newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Ord, Show)
 
 instance Eq Pipeline where
-  (==) p p' = pipelineId p == pipelineId p'
+  p == p' = pipelineId p == pipelineId p'
 
 instance Ord Pipeline where
-  (<=) p p' = pipelineId p <= pipelineId p'
+  p <= p' = pipelineId p <= pipelineId p'
 
 instance FromJSON Pipeline where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
@@ -181,7 +181,7 @@ updateStatuses groupId = do
   pure currentStatuses
 
 currentKnownBuildStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
-currentKnownBuildStatuses groupId = filter (\r -> buildStatus r /= Unknown) <$> currentBuildStatuses groupId
+currentKnownBuildStatuses groupId = filter ((/= Unknown) . buildStatus) <$> currentBuildStatuses groupId
 
 currentBuildStatuses :: (Member ParTraverse r, Member ProjectsApi r, Member PipelinesApi r, Member Logger r) => Id Group -> Sem r [Result]
 currentBuildStatuses groupId = do
@@ -193,34 +193,30 @@ findProjects :: (Member ProjectsApi r, Member Logger r) => Id Group -> Sem r [Pr
 findProjects groupId = do
   result <- getProjects groupId
   case result of
-    Left err -> do
-      logWarn $ unwords ["Couldn't load projects. Error was", show err]
-      pure []
+    Left err -> [] <$ logWarn (unwords ["Couldn't load projects. Error was", show err])
     Right ps -> pure ps
 
 logCurrentBuildStatuses :: (Member BuildStatusesApi r, Member Logger r) => Sem r ()
 logCurrentBuildStatuses = do
-  statuses <- getStatuses
-  logCurrentBuildStatuses' statuses
-
-logCurrentBuildStatuses' :: (Member Logger r) => BuildStatuses -> Sem r ()
-logCurrentBuildStatuses' NoSuccessfulUpdateYet = logDebug "There was no successful update yet, so there are no pipeline statuses available"
-logCurrentBuildStatuses' (Statuses statuses) = do
-  let (unknown, known) = partition (\r -> buildStatus r == Unknown) (snd statuses)
-  if null known
-    then logWarn "No valid Pipeline statuses found"
-    else addContext "projectIds" (concatIds known) $ logDebug "Pipeline statuses found "
-  unless (null unknown) (logDebug $ "No pipelines found for projects " <> concatIds unknown)
+  result <- getStatuses
+  case result of
+    NoSuccessfulUpdateYet -> logDebug "There was no successful update yet, so there are no pipeline statuses available"
+    (Statuses (_, statuses)) -> do
+      let (unknown, known) = partition ((== Unknown) . buildStatus) statuses
+      if null known
+        then logWarn "No valid Pipeline statuses found"
+        else addContext "projectIds" (concatIds known) $ logDebug "Pipeline statuses found"
+      unless (null unknown) (logDebug $ "No pipelines found for projects " <> concatIds unknown)
   where
     concatIds :: [Result] -> Text
     concatIds rs = T.intercalate ", " (show . projId <$> rs)
 
 evalProject :: (Member PipelinesApi r, Member Logger r) => Project -> Sem r Result
-evalProject Project {..} = do
-  result <- getStatusForProject projectId projectDefaultBranch
-  pure $ case result of
-    Nothing -> Result projectId projectName Unknown (Left projectWebUrl)
-    Just (status, url) -> Result projectId projectName status (Right url)
+evalProject Project {..} = evalProject' <$> getStatusForProject projectId projectDefaultBranch
+  where
+    evalProject' :: Maybe (BuildStatus, Url Pipeline) -> Result
+    evalProject' Nothing = Result projectId projectName Unknown (Left projectWebUrl)
+    evalProject' (Just (status, url)) = Result projectId projectName status (Right url)
 
 getStatusForProject :: (Member PipelinesApi r, Member Logger r) => Id Project -> Maybe Ref -> Sem r (Maybe (BuildStatus, Url Pipeline))
 getStatusForProject _ Nothing = pure Nothing
@@ -229,9 +225,7 @@ getStatusForProject projectId (Just defaultBranch) = do
   case pipeline of
     Left EmptyPipelinesResult -> pure Nothing
     Left NoPipelineForDefaultBranch -> pure Nothing
-    Left uError -> do
-      logWarn $ unwords ["Couldn't eval project with id", show projectId, "- error was", show uError]
-      pure Nothing
+    Left uError -> Nothing <$ addContext "projectId" projectId (logWarn (unwords ["Couldn't eval project. Error was", show uError]))
     Right p -> do
       let st = pipelineStatus p
       detailedStatus <- if st == Successful then detailedStatusForPipeline projectId (pipelineId p) else pure Nothing
@@ -239,14 +233,11 @@ getStatusForProject projectId (Just defaultBranch) = do
 
 detailedStatusForPipeline :: (Member PipelinesApi r, Member Logger r) => Id Project -> Id Pipeline -> Sem r (Maybe BuildStatus)
 detailedStatusForPipeline projectId pipelineId =
-  addContext "projectId" projectId $
-    addContext "pipelineId" pipelineId $ do
-      singlePipelineResult <- getSinglePipeline projectId pipelineId
-      case singlePipelineResult of
-        Left uError -> do
-          logWarn $ unwords ["Couldn't get details for pipeline, error was", show uError]
-          pure Nothing
-        Right dp -> pure . Just $ detailedPipelineStatus dp
+  addContext "projectId" projectId . addContext "pipelineId" pipelineId $ do
+    singlePipelineResult <- getSinglePipeline projectId pipelineId
+    case singlePipelineResult of
+      Left uError -> Nothing <$ logWarn (unwords ["Couldn't get details for pipeline, error was", show uError])
+      Right dp -> pure . Just $ detailedPipelineStatus dp
 
 isHealthy :: BuildStatus -> Bool
 isHealthy Unknown = False
