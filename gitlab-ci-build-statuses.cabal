@@ -37,7 +37,7 @@ library
     , Metrics.Health
     , Metrics.Metrics
     , Metrics.PrometheusUtils
-    , Inbound.Jobs.Inbound.Jobs.Updating
+    , Inbound.Jobs.Updating
     , Inbound.HTTP.Server
     , Outbound.Gitlab.GitlabAPI
     , Outbound.Gitlab.RequestResponseUtils

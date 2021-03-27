@@ -12,7 +12,7 @@ module App (startWithConfig) where
 import Config
 import Control.Concurrent (forkIO)
 import Inbound.HTTP.Server (startServer)
-import Inbound.Jobs.Inbound.Jobs.Updating (updateStatusesRegularly)
+import Inbound.Jobs.Updating (updateStatusesRegularly)
 import Logger
 import Metrics.Metrics
 import Outbound.Gitlab.GitlabAPI (initCache, pipelinesApiToIO, projectsApiToIO)

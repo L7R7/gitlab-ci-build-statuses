@@ -1,12 +1,9 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Inbound.Jobs.Inbound.Jobs.Updating
+module Inbound.Jobs.Updating
   ( updateStatusesRegularly,
   )
 where
