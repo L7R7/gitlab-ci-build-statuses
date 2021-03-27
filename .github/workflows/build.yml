@@ -31,7 +31,7 @@ jobs:
         run: stack --no-terminal --install-ghc test --only-dependencies
 
       - name: Build executable
-        run: stack build --system-ghc --test --copy-bins --local-bin-path .
+        run: stack build --system-ghc --test --coverage --copy-bins --local-bin-path .
 
       - uses: actions/upload-artifact@v2
         with:
