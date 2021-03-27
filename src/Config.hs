@@ -1,5 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -25,6 +23,7 @@ module Config
   )
 where
 
+import Control.Concurrent (ThreadId)
 import Control.Lens
 import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
@@ -36,7 +35,6 @@ import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
 import qualified Text.Show
-import Control.Concurrent (ThreadId)
 
 envGroupId :: Text
 envGroupId = "GCB_GITLAB_GROUP_ID"
