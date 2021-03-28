@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Outbound.Gitlab.GitlabAPI (initCache, projectsApiToIO, pipelinesApiToIO) where
@@ -11,8 +12,9 @@ module Outbound.Gitlab.GitlabAPI (initCache, projectsApiToIO, pipelinesApiToIO) 
 import Burrito
 import Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds))
 import Control.Exception (try)
-import Core.Lib (Group, Id (Id), PipelinesApi (..), Project, ProjectsApi (..), Ref (Ref), UpdateError (..), Url)
-import Data.Aeson (FromJSON)
+import Core.Lib (BuildStatus (..), DetailedPipeline (..), Group, Id (Id), Pipeline, PipelinesApi (..), Project, ProjectsApi (..), Ref (Ref), UpdateError (..), Url (..))
+import Data.Aeson hiding (Result, Value)
+import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Cache
 import Data.Either.Combinators (mapLeft)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)
@@ -21,7 +23,7 @@ import Network.HTTP.Client.Conduit (requestFromURI, responseTimeout, responseTim
 import Network.HTTP.Link.Parser (parseLinkHeaderBS)
 import Network.HTTP.Link.Types (Link (..), LinkParam (Rel), href)
 import Network.HTTP.Simple (Request, Response, getResponseBody, getResponseHeader, httpJSONEither, parseRequest, setRequestHeader)
-import Network.URI (URI)
+import Network.URI (URI, parseURI)
 import Outbound.Gitlab.RequestResponseUtils
 import Polysemy
 import Prometheus (observeDuration)
@@ -102,3 +104,38 @@ setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 
 measure :: Id Group -> OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
 measure (Id groupId) histogram template = observeDuration (VectorWithLabel histogram (show groupId, (toText . render) template))
+
+instance FromJSON DetailedPipeline where
+  parseJSON = withObject "detailedPipeline" $ \dp -> do
+    detailedPipelineId <- dp .: "id"
+    detailedPipelineRef <- dp .: "ref"
+    detailedPipelineWebUrl <- dp .: "web_url"
+    detailedPipelineStatus <- dp .: "detailed_status" >>= \ds -> ds .: "group"
+    pure DetailedPipeline {..}
+
+instance FromJSON BuildStatus where
+  parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
+
+buildStatusToApiString :: IsString p => BuildStatus -> p
+buildStatusToApiString Unknown = "unknown"
+buildStatusToApiString Cancelled = "canceled"
+buildStatusToApiString Created = "created"
+buildStatusToApiString Failed = "failed"
+buildStatusToApiString Manual = "manual"
+buildStatusToApiString Pending = "pending"
+buildStatusToApiString Preparing = "preparing"
+buildStatusToApiString Running = "running"
+buildStatusToApiString Scheduled = "scheduled"
+buildStatusToApiString Skipped = "skipped"
+buildStatusToApiString Successful = "success"
+buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
+buildStatusToApiString WaitingForResource = "waiting_for_resource"
+
+instance FromJSON Pipeline where
+  parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+instance FromJSON (Url a) where
+  parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (toString v))
+
+instance FromJSON Project where
+  parseJSON = genericParseJSON $ aesonPrefix snakeCase

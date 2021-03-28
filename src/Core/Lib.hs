@@ -38,7 +38,6 @@ where
 
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Data.Aeson hiding (Result)
-import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.List (partition)
 import qualified Data.Text as T (intercalate, toLower)
 import Data.Time (UTCTime (..))
@@ -70,9 +69,6 @@ newtype Id a = Id Int deriving newtype (Eq, FromJSON, Hashable, Ord, Show, ToJSO
 
 newtype Url a = Url URI deriving newtype (Eq, Show)
 
-instance FromJSON (Url a) where
-  parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (toString v))
-
 newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Ord, Show)
 
 instance Eq Pipeline where
@@ -80,9 +76,6 @@ instance Eq Pipeline where
 
 instance Ord Pipeline where
   p <= p' = pipelineId p <= pipelineId p'
-
-instance FromJSON Pipeline where
-  parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
 data Result = Result
   { projId :: Id Project,
@@ -108,24 +101,6 @@ data BuildStatus
   | WaitingForResource
   deriving (Bounded, Enum, Eq, Show, Ord)
 
-instance FromJSON BuildStatus where
-  parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
-
-buildStatusToApiString :: IsString p => BuildStatus -> p
-buildStatusToApiString Unknown = "unknown"
-buildStatusToApiString Cancelled = "canceled"
-buildStatusToApiString Created = "created"
-buildStatusToApiString Failed = "failed"
-buildStatusToApiString Manual = "manual"
-buildStatusToApiString Pending = "pending"
-buildStatusToApiString Preparing = "preparing"
-buildStatusToApiString Running = "running"
-buildStatusToApiString Scheduled = "scheduled"
-buildStatusToApiString Skipped = "skipped"
-buildStatusToApiString Successful = "success"
-buildStatusToApiString SuccessfulWithWarnings = "success-with-warnings"
-buildStatusToApiString WaitingForResource = "waiting_for_resource"
-
 data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
 
 data DetailedPipeline = DetailedPipeline
@@ -134,14 +109,6 @@ data DetailedPipeline = DetailedPipeline
     detailedPipelineStatus :: BuildStatus,
     detailedPipelineWebUrl :: Url Pipeline
   }
-
-instance FromJSON DetailedPipeline where
-  parseJSON = withObject "detailedPipeline" $ \dp -> do
-    detailedPipelineId <- dp .: "id"
-    detailedPipelineRef <- dp .: "ref"
-    detailedPipelineWebUrl <- dp .: "web_url"
-    detailedPipelineStatus <- dp .: "detailed_status" >>= \ds -> ds .: "group"
-    pure DetailedPipeline {..}
 
 data Project = Project
   { projectId :: Id Project,
@@ -152,9 +119,6 @@ data Project = Project
   deriving (Generic, Show)
 
 newtype ProjectName = ProjectName Text deriving (Eq, FromJSON, Show)
-
-instance FromJSON Project where
-  parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
 data PipelinesApi m a where
   GetLatestPipelineForRef :: Id Project -> Ref -> PipelinesApi m (Either UpdateError Pipeline)
