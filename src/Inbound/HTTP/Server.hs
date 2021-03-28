@@ -19,6 +19,7 @@ import qualified Data.Text as T
 import Inbound.HTTP.Html
 import Metrics.Health (getCurrentHealthStatus, healthToIO)
 import Network.Wai.Handler.Warp
+import Network.Wai.Middleware.Gzip (gzip)
 import Network.Wai.Middleware.Prometheus (def, prometheus)
 import Outbound.Storage.InMemory (buildStatusesApiToIO)
 import Polysemy hiding (run)
@@ -41,8 +42,7 @@ norefreshFlag True = NoRefresh
 norefreshFlag False = Refresh
 
 hoist :: Config -> ServerT API Handler
-hoist Config {..} = do
-  hoistServer api (liftServer statuses threads) (server uiUpdateIntervalSecs gitCommit)
+hoist Config {..} = hoistServer api (liftServer statuses threads) (server uiUpdateIntervalSecs gitCommit)
 
 liftServer :: IORef BuildStatuses -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, Timer, Health, Embed IO] a -> Handler a
 liftServer statuses threads sem =
@@ -57,4 +57,5 @@ startServer :: Config -> IO ()
 startServer config =
   serve api (hoist config)
     & prometheus def
+    & gzip def
     & run 8282
