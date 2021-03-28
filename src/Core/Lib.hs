@@ -220,12 +220,12 @@ evalProject Project {..} = evalProject' <$> getStatusForProject projectId projec
 
 getStatusForProject :: (Member PipelinesApi r, Member Logger r) => Id Project -> Maybe Ref -> Sem r (Maybe (BuildStatus, Url Pipeline))
 getStatusForProject _ Nothing = pure Nothing
-getStatusForProject projectId (Just defaultBranch) = do
+getStatusForProject projectId (Just defaultBranch) = addContext "projectId" projectId $ do
   pipeline <- getLatestPipelineForRef projectId defaultBranch
   case pipeline of
     Left EmptyPipelinesResult -> pure Nothing
     Left NoPipelineForDefaultBranch -> pure Nothing
-    Left uError -> Nothing <$ addContext "projectId" projectId (logWarn (unwords ["Couldn't eval project. Error was", show uError]))
+    Left uError -> Nothing <$ logWarn (unwords ["Couldn't eval project. Error was", show uError])
     Right p -> do
       let st = pipelineStatus p
       detailedStatus <- if st == Successful then detailedStatusForPipeline projectId (pipelineId p) else pure Nothing
@@ -233,7 +233,7 @@ getStatusForProject projectId (Just defaultBranch) = do
 
 detailedStatusForPipeline :: (Member PipelinesApi r, Member Logger r) => Id Project -> Id Pipeline -> Sem r (Maybe BuildStatus)
 detailedStatusForPipeline projectId pipelineId =
-  addContext "projectId" projectId . addContext "pipelineId" pipelineId $ do
+  addContext "pipelineId" pipelineId $ do
     singlePipelineResult <- getSinglePipeline projectId pipelineId
     case singlePipelineResult of
       Left uError -> Nothing <$ logWarn (unwords ["Couldn't get details for pipeline, error was", show uError])
