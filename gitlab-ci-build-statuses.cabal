@@ -67,8 +67,8 @@ library
     , katip
     , lens
     , network-uri
-    , polysemy >= 1.4.0.0
-    , polysemy-plugin
+    , polysemy == 1.5.0.0
+    , polysemy-plugin == 0.3.0.0
     , prometheus-client
     , prometheus-metrics-ghc
     , relude >= 1.0.0.1
@@ -118,7 +118,7 @@ test-suite gitlab-ci-build-statuses-test
     , hspec
     , hspec-hedgehog
     , network-uri
-    , polysemy
-    , polysemy-plugin
+    , polysemy == 1.5.0.0
+    , polysemy-plugin == 0.3.0.0
     , relude >= 1.0.0.1
   default-language: Haskell2010

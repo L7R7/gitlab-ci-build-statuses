@@ -46,12 +46,12 @@ extra-deps:
   #     - prometheus-client
   #     - prometheus-metrics-ghc
   #     - wai-middleware-prometheus
-  - Cabal-3.0.2.0@sha256:f45ee078a8529d1ad3993767345ac83304c7f2ff5eec02c455a1dc200ad22c67,26714
-  - polysemy-plugin-0.2.5.1@sha256:61c6c0aad2852377aa5d5a8f9639a437905e3a6f0e2a99a41e96fb231dc86836,2952
-  - polysemy-1.4.0.0@sha256:0245a046eaf936557d4208b5a355df1a20799c9e274f91fa889ab2644ecbabae,6541
+  - polysemy-plugin-0.3.0.0@sha256:22e7553d0fddb48d9484ba1c71d2ed825213fcb214866d9b502ee02bfb960cb4,3121
+  - polysemy-1.5.0.0@sha256:7edb723e7f703fe273a40e43fe33f6e8f7659fe60759e8698def1481262d314d,6246
   - prometheus-metrics-ghc-1.0.1.1@sha256:d378a7186a967140fe0e09d325fe5e3bfd7b77a1123934b40f81fdfed2eacbdc,1233
   - wai-middleware-prometheus-1.0.0@sha256:1625792914fb2139f005685be8ce519111451cfb854816e430fbf54af46238b4,1314
   - relude-1.0.0.1@sha256:35bcdaf14018e79f11e712b0e2314c1aac79976f28f4adc179985457493557d5,11569
+
 # Override default flag values for local packages and extra-deps
 # flags: {}
 
