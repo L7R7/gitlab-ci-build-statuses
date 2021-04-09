@@ -14,8 +14,9 @@ import Test.Hspec.Hedgehog
 spec :: Spec
 spec = do
   monoidSpec overallStatusGen
-  describe "folding" $ do
+  describe "appending" $ do
     it "(<>) is commutative" $ hedgehog $ commutative overallStatusGen
+    it "(<>) is idempotent" $ hedgehog $ idempotent overallStatusGen
     it "folding respects the hierarchy of the statuses" $ hedgehog resultToOverallProps
   describe "isRunning" $ do
     it "keeps the isRunning property when appending" $ hedgehog isRunningProps
@@ -122,3 +123,8 @@ commutative gen = do
   s1 <- forAll gen
   s2 <- forAll gen
   s1 <> s2 === s2 <> s1
+
+idempotent :: (Monad m, Show a, Eq a, Semigroup a) => Gen a -> PropertyT m ()
+idempotent gen = do
+  s <- forAll gen
+  s <> s === s
