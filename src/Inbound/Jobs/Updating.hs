@@ -9,10 +9,11 @@ module Inbound.Jobs.Updating
 where
 
 import Core.Effects (Delay, Logger, ParTraverse, addContext, addNamespace, delaySeconds, logDebug, logInfo)
-import Core.Lib (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, ProjectsApi, updateStatuses)
+import Core.Lib (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, ProjectsApi)
 import Metrics.Metrics
 import Polysemy
 import Relude
+import Core.UseCases.Lib (updateStatuses)
 
 updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member Delay r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> Sem r ()
 updateStatusesRegularly groupId (DataUpdateIntervalSeconds updateInterval) =

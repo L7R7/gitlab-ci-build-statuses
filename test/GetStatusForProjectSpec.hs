@@ -13,6 +13,7 @@
 module GetStatusForProjectSpec where
 
 import Core.Lib
+import Core.UseCases.Lib
 import qualified Data.Map as M
 import Network.URI.Static
 import Polysemy
