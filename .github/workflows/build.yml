@@ -75,9 +75,8 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v2.3.0
         with:
           images: l7r7/gitlab-ci-build-statuses
-          tag-custom: latest
-          tag-semver: |
-            {{version}}
+          tags: |
+            type=semver,pattern={{version}}
 
       - name: Build and push
         id: docker_build
