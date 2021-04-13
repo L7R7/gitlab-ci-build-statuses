@@ -25,15 +25,15 @@ import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
 data AutoRefresh = Refresh | NoRefresh deriving (Eq)
 
-template :: (Member BuildStatusesApi r, Member Timer r) => UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
-template updateInterval gitCommit autoRefresh = do
+template :: (Member BuildStatusesApi r, Member Timer r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
+template dataUpdateInterval uiUpdateInterval gitCommit autoRefresh = do
   now <- getCurrentTime
-  template' now updateInterval gitCommit autoRefresh <$> getStatuses
+  template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> getStatuses
 
-template' :: UTCTime -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
-template' now updateInterval gitCommit autoRefresh buildStatuses = do
-  pageHeader updateInterval gitCommit autoRefresh buildStatuses
-  pageBody now buildStatuses
+template' :: UTCTime -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
+template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh buildStatuses = do
+  pageHeader uiUpdateInterval gitCommit autoRefresh buildStatuses
+  pageBody dataUpdateInterval now buildStatuses
 
 pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildStatuses =
@@ -57,17 +57,17 @@ faviconPrefix status
   | status `elem` [O.Warning, O.Unknown] = "warning"
   | otherwise = "failed"
 
-pageBody :: UTCTime -> BuildStatuses -> Html
-pageBody now buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml now buildStatuses
+pageBody :: DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Html
+pageBody dataUpdateInterval now buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml dataUpdateInterval now buildStatuses
 
-statusesToHtml :: UTCTime -> BuildStatuses -> Html
-statusesToHtml _ NoSuccessfulUpdateYet = H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
-statusesToHtml now (Statuses (lastUpdated, [])) = do
+statusesToHtml :: DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Html
+statusesToHtml _ _ NoSuccessfulUpdateYet = H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
+statusesToHtml dataUpdateInterval now (Statuses (lastUpdated, [])) = do
   emptyResults
-  lastUpdatedToHtml now lastUpdated
-statusesToHtml now (Statuses (lastUpdated, results)) = do
+  lastUpdatedToHtml dataUpdateInterval now lastUpdated
+statusesToHtml dataUpdateInterval now (Statuses (lastUpdated, results)) = do
   toHtml (resultToHtml <$> results)
-  lastUpdatedToHtml now lastUpdated
+  lastUpdatedToHtml dataUpdateInterval now lastUpdated
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
@@ -87,13 +87,13 @@ resultToHtml Result {..} =
     classesForStatus SuccessfulWithWarnings = class_ "status passed-with-warnings"
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
-lastUpdatedToHtml :: UTCTime -> UTCTime -> Html
-lastUpdatedToHtml now lastUpdate = H.div ! class_ classes ! staleDataTitle $
+lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> Html
+lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.div ! class_ classes ! staleDataTitle $
   H.div $ do
     p "Last Update at:"
     p (toHtml $ unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
   where
-    lastUpdateTooOld = diffUTCTime now lastUpdate > 360
+    lastUpdateTooOld = diffUTCTime now lastUpdate > fromIntegral (3 * updateInterval)
     staleDataTitle
       | lastUpdateTooOld = A.title "data is stale. Please check the logs"
       | otherwise = mempty

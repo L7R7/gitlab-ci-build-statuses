@@ -14,7 +14,7 @@ import Config (Config (..), GitCommit, UiUpdateIntervalSeconds)
 import Control.Concurrent (ThreadId)
 import Control.Exception (try)
 import Core.Effects (Health, Timer)
-import Core.Lib (BuildStatuses, BuildStatusesApi)
+import Core.Lib (BuildStatuses, BuildStatusesApi, DataUpdateIntervalSeconds)
 import Inbound.HTTP.Html
 import Metrics.Health (HealthStatus, getCurrentHealthStatus, healthToIO)
 import Network.Wai.Handler.Warp
@@ -33,15 +33,15 @@ type API = "health" :> Get '[JSON] HealthStatus :<|> "statuses" :> QueryFlag "no
 api :: Proxy API
 api = Proxy
 
-server :: (Member BuildStatusesApi r, Member Timer r, Member Health r) => UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
-server uiUpdateInterval gitCommit = getCurrentHealthStatus :<|> (template uiUpdateInterval gitCommit . norefreshFlag) :<|> serveDirectoryWebApp "/service/static"
+server :: (Member BuildStatusesApi r, Member Timer r, Member Health r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
+server dataUpdateInterval uiUpdateInterval gitCommit = getCurrentHealthStatus :<|> (template dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag) :<|> serveDirectoryWebApp "/service/static"
 
 norefreshFlag :: Bool -> AutoRefresh
 norefreshFlag True = NoRefresh
 norefreshFlag False = Refresh
 
 hoist :: Config -> ServerT API Handler
-hoist Config {..} = hoistServer api (liftServer statuses threads) (server uiUpdateIntervalSecs gitCommit)
+hoist Config {..} = hoistServer api (liftServer statuses threads) (server dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
 
 liftServer :: IORef BuildStatuses -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, Timer, Health, Embed IO] a -> Handler a
 liftServer statuses threads sem =
