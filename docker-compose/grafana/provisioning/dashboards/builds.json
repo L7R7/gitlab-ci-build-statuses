@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 1,
-  "iteration": 1615991934027,
+  "iteration": 1618313670386,
   "links": [],
   "panels": [
     {
@@ -36,7 +36,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "mappings": [
             {
               "from": "",
@@ -85,7 +84,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "targets": [
         {
           "expr": "max(build_pipelines_by_status_gauge{build_status=\"unhealthy\"})",
@@ -103,7 +102,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -143,7 +141,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "targets": [
         {
           "expr": "max(build_pipelines_by_status_gauge{build_status=\"healthy\"})",
@@ -173,13 +171,7 @@
       },
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": []
-          }
-        },
+        "defaults": {},
         "overrides": []
       },
       "fontSize": "80%",
@@ -224,7 +216,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "mappings": [
             {
               "id": 0,
@@ -272,10 +263,11 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "targets": [
         {
-          "expr": "sum(irate(http_request_duration_seconds_bucket{handler=\"app\"}[$__range]))",
+          "exemplar": true,
+          "expr": "sum(irate(http_request_duration_seconds_count{handler=\"app\"}[$__range]))",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -294,9 +286,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -325,7 +315,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -335,7 +325,8 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(increase(http_request_duration_seconds_bucket[2m])) by(path, handler)",
+          "exemplar": true,
+          "expr": "sum(increase(http_request_duration_seconds_count[2m])) by(path, handler)",
           "interval": "",
           "legendFormat": "{{path}}",
           "refId": "A"
@@ -391,9 +382,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -422,7 +411,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -488,9 +477,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -519,7 +506,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -591,9 +578,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -622,7 +607,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -712,9 +697,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -743,7 +726,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -832,9 +815,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -863,7 +844,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -967,9 +948,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -999,7 +978,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1098,9 +1077,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -1130,12 +1107,12 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "repeatDirection": "h",
-      "repeatIteration": 1615991934027,
+      "repeatIteration": 1618313670386,
       "repeatPanelId": 5,
       "scopedVars": {
         "path": {
@@ -1230,9 +1207,7 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": {},
         "overrides": []
       },
       "fill": 1,
@@ -1262,12 +1237,12 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.3",
+      "pluginVersion": "7.5.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "repeatDirection": "h",
-      "repeatIteration": 1615991934027,
+      "repeatIteration": 1618313670386,
       "repeatPanelId": 5,
       "scopedVars": {
         "path": {
@@ -1989,5 +1964,5 @@
   "timezone": "",
   "title": "Build Statuses",
   "uid": "oD7GwCVMk",
-  "version": 3
+  "version": 1
 }
