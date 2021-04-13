@@ -75,6 +75,8 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v2.3.0
         with:
           images: l7r7/gitlab-ci-build-statuses
+          flavor: |
+            latest=auto
           tags: |
             type=schedule
             type=ref,event=branch
