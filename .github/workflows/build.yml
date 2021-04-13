@@ -76,6 +76,10 @@ jobs:
         with:
           images: l7r7/gitlab-ci-build-statuses
           tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
             type=semver,pattern={{version}}
 
       - name: Build and push
