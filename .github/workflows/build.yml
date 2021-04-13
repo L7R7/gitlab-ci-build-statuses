@@ -76,7 +76,7 @@ jobs:
         with:
           images: l7r7/gitlab-ci-build-statuses
           flavor: |
-            latest=auto
+            latest=true
           tags: |
             type=schedule
             type=ref,event=branch
