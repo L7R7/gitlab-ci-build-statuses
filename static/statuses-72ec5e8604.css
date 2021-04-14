@@ -32,6 +32,10 @@
     font-size: smaller;
 }
 
+.timestamp .cancelled {
+    color: black;
+}
+
 .successful {
     background-color: #388729;
 }

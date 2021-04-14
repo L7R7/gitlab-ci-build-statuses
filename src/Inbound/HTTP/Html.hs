@@ -45,7 +45,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         H.title "Build Statuses"
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-0a92ee62ac.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-72ec5e8604.css"
         textComment . toText $ ("Version: " <> show gitCommit :: String)
   where
     prefix = faviconPrefix (overallStatus buildStatuses)
