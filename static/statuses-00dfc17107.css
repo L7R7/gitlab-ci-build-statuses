@@ -15,7 +15,7 @@
 }
 
 .status::before, .status > div {
-  grid-area: 1 / 1 / 2 / 2;
+    grid-area: 1 / 1 / 2 / 2;
 }
 
 .status > div {
@@ -32,7 +32,7 @@
     font-size: smaller;
 }
 
-.timestamp .cancelled {
+.timestamp.cancelled {
     color: black;
 }
 
