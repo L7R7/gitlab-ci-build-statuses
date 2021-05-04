@@ -48,7 +48,7 @@ library
       Paths_gitlab_ci_build_statuses
   hs-source-dirs:
       src
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -Wunused-packages -fno-warn-orphans -fwrite-ide-info -hiedir=.hie -O2 -flate-specialise -fspecialise-aggressively
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-export-lists -Wunused-packages -fno-warn-orphans -fwrite-ide-info -hiedir=.hie -O2 -flate-specialise -fspecialise-aggressively -fplugin=Polysemy.Plugin
   build-depends:
       base >=4.7 && <5
     , aeson
@@ -69,6 +69,7 @@ library
     , network-uri
     , polysemy == 1.5.0.0
     , polysemy-plugin == 0.3.0.0
+    , polysemy-time
     , prometheus-client
     , prometheus-metrics-ghc
     , relude >= 1.0.0.1

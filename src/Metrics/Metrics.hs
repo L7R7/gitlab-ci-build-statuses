@@ -25,7 +25,6 @@ module Metrics.Metrics
   )
 where
 
-import Core.Effects (Delay, delaySeconds)
 import Core.Lib (BuildStatus, BuildStatuses (..), BuildStatusesApi, Group, Id (..), Result (..), getStatuses, isHealthy)
 import Data.List (partition)
 import Data.List.Extra (enumerate)
@@ -34,6 +33,8 @@ import Data.Text (toLower)
 import GHC.Clock (getMonotonicTime)
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
 import Polysemy
+import Polysemy.Time (Seconds (Seconds), Time)
+import qualified Polysemy.Time as Time
 import Prometheus hiding (observeDuration)
 import Prometheus.Metric.GHC
 import Relude
@@ -113,8 +114,8 @@ countByBuildStatus results = countOccurrences buildStatus results `union` resetV
 resetValues :: Map BuildStatus Double
 resetValues = Data.Map.fromList $ (,0) <$> enumerate
 
-updateMetricsRegularly :: (Member BuildStatusesApi r, Member MetricsApi r, Member Delay r) => Sem r ()
-updateMetricsRegularly = pass <$> infinitely (updateMetrics >> delaySeconds 10)
+updateMetricsRegularly :: (Member BuildStatusesApi r, Member MetricsApi r, Member (Time t d) r) => Sem r ()
+updateMetricsRegularly = pass <$> infinitely (updateMetrics >> Time.sleep (Seconds 10))
 
 updateMetrics :: (Member BuildStatusesApi r, Member MetricsApi r) => Sem r ()
 updateMetrics = do

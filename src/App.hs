@@ -15,15 +15,16 @@ import Outbound.Gitlab.GitlabAPI (initCache, pipelinesApiToIO, projectsApiToIO)
 import Outbound.Storage.InMemory (buildStatusesApiToIO)
 import Polysemy
 import Polysemy.Reader
+import Polysemy.Time (interpretTimeGhc)
 import Relude hiding (runReader)
-import Util (delayToIO, parTraverseToIO)
+import Util (parTraverseToIO)
 
 startMetricsUpdatingJob :: Config -> IO ()
 startMetricsUpdatingJob config =
   runM
     . metricsApiToIO (groupId config) (metrics config)
     . buildStatusesApiToIO (statuses config)
-    . delayToIO
+    . interpretTimeGhc
     $ updateMetricsRegularly
 
 startStatusUpdatingJob :: Config -> IO ()
@@ -35,7 +36,7 @@ startStatusUpdatingJob Config {..} = do
     . pipelinesApiToIO gitlabBaseUrl apiToken groupId (outgoingHttpRequestsHistogram metrics)
     . projectsApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics) cache
     . parTraverseToIO maxConcurrency
-    . delayToIO
+    . interpretTimeGhc
     . runReader logConfig
     . loggerToIO
     . observeDurationToIO groupId (updateJobDurationHistogram metrics)

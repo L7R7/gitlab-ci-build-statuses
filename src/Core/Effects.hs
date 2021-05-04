@@ -7,11 +7,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Core.Effects
-  ( Delay (..),
-    delaySeconds,
-    Timer (..),
-    getCurrentTime,
-    ParTraverse (..),
+  ( ParTraverse (..),
     traverseP,
     Logger (..),
     addContext,
@@ -27,19 +23,8 @@ module Core.Effects
 where
 
 import Data.Aeson (ToJSON)
-import Data.Time (UTCTime)
 import Polysemy
 import Relude
-
-data Delay m a where
-  DelaySeconds :: Int -> Delay m ()
-
-makeSem ''Delay
-
-data Timer m a where
-  GetCurrentTime :: Timer m UTCTime
-
-makeSem ''Timer
 
 -- TODO: 2020-10-18: Generalize to Traversable&Monoid instead of List?
 data ParTraverse m a where
