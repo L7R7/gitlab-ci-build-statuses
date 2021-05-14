@@ -26,7 +26,9 @@ resultToOverallProps = do
   statuses <- forAll $ Gen.list (Range.linear 0 100) overallStatusGen
   let result = fold statuses
   case result of
-    Successful -> assert $ all (== Successful) statuses
+    Successful -> do
+      assert $ all (\s -> s == Successful || s == Unknown) statuses
+      assert $ elem Successful statuses
     Unknown -> assert $ all (== Unknown) statuses
     SuccessfulRunning ->
       assert $
