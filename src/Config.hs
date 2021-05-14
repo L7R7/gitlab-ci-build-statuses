@@ -13,6 +13,7 @@ module Config
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
     ProjectCacheTtlSeconds (..),
+    SharedProjects (..),
     parseConfigFromEnv,
     Validation (Failure, Success),
     showErrors,
@@ -27,6 +28,7 @@ import Control.Concurrent (ThreadId)
 import Control.Lens
 import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
+import Data.Char (toLower)
 import qualified Data.Text as T (intercalate)
 import Data.Validation
 import GitHash
@@ -57,6 +59,9 @@ envProjectCacheTtl = "GCB_PROJECT_CACHE_TTL_SECS"
 envMaxConcurrency :: Text
 envMaxConcurrency = "GCB_MAX_CONCURRENCY"
 
+envIncludeSharedProjects :: Text
+envIncludeSharedProjects = "GCB_INCLUDE_SHARED_PROJECTS"
+
 envLogLevel :: Text
 envLogLevel = "GCB_LOG_LEVEL"
 
@@ -69,6 +74,7 @@ parseConfigFromEnv metrics iorefBuilds iorefThreads logConfig env =
     <*> pure (readUiUpdateIntervalFromEnv env)
     <*> pure (readProjectCacheTtlSecondsFromEnv env)
     <*> pure (readMaxConcurrencyFromEnv env)
+    <*> pure (readIncludeSharedProjectsFromEnv env)
     <*> pure metrics
     <*> pure iorefBuilds
     <*> pure logConfig
@@ -88,6 +94,7 @@ data Config = Config
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
     projectCacheTtlSecs :: ProjectCacheTtlSeconds,
     maxConcurrency :: MaxConcurrency,
+    includeSharedProjects :: SharedProjects,
     metrics :: Metrics,
     statuses :: IORef BuildStatuses,
     logConfig :: LogConfig,
@@ -112,6 +119,7 @@ instance Show Config where
           show uiUpdateIntervalSecs,
           show projectCacheTtlSecs,
           show maxConcurrency,
+          "Shared projects: " <> show includeSharedProjects,
           coerce gitCommit
         ]
 
@@ -134,6 +142,8 @@ instance Show ConfigError where
 newtype MaxConcurrency = MaxConcurrency Int deriving (Show)
 
 newtype GitCommit = GitCommit String deriving (Show)
+
+data SharedProjects = Include | Exclude deriving (Show)
 
 readApiTokenFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) ApiToken
 readApiTokenFromEnv env = do
@@ -168,6 +178,13 @@ readProjectCacheTtlSecondsFromEnv env = ProjectCacheTtlSeconds $ parsePositiveWi
 
 readMaxConcurrencyFromEnv :: [(String, String)] -> MaxConcurrency
 readMaxConcurrencyFromEnv env = MaxConcurrency $ parsePositiveWithDefault env envMaxConcurrency 2
+
+readIncludeSharedProjectsFromEnv :: [(String, String)] -> SharedProjects
+readIncludeSharedProjectsFromEnv env = fromMaybe Include (lookupEnv env envIncludeSharedProjects >>= (parse . toString))
+  where
+    parse s | (toLower <$> s) == "include" = Just Include
+    parse s | (toLower <$> s) == "exclude" = Just Exclude
+    parse _ = Nothing
 
 parsePositiveWithDefault :: (Ord a, Num a, Read a) => [(String, String)] -> Text -> a -> a
 parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . toString))

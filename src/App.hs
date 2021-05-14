@@ -34,7 +34,7 @@ startStatusUpdatingJob Config {..} = do
     . embedToFinal @IO
     . buildStatusesApiToIO statuses
     . pipelinesApiToIO gitlabBaseUrl apiToken groupId (outgoingHttpRequestsHistogram metrics)
-    . projectsApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics) cache
+    . projectsApiToIO gitlabBaseUrl apiToken includeSharedProjects (outgoingHttpRequestsHistogram metrics) cache
     . parTraverseToIO maxConcurrency
     . interpretTimeGhc
     . runReader logConfig

@@ -10,7 +10,7 @@
 module Outbound.Gitlab.GitlabAPI (initCache, projectsApiToIO, pipelinesApiToIO) where
 
 import Burrito
-import Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds))
+import Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
 import Control.Exception (try)
 import Core.Lib (BuildStatus (..), DetailedPipeline (..), Group, Id (Id), Pipeline, PipelinesApi (..), Project, ProjectsApi (..), Ref (Ref), UpdateError (..), Url (..))
 import Data.Aeson hiding (Result, Value)
@@ -33,17 +33,20 @@ import System.Clock
 initCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Project])
 initCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
-projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Project] -> InterpreterFor ProjectsApi r
-projectsApiToIO baseUrl apiToken histogram cache = interpret $ \case
+projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> SharedProjects -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Project] -> InterpreterFor ProjectsApi r
+projectsApiToIO baseUrl apiToken sharedProjects histogram cache = interpret $ \case
   GetProjects groupId -> embed $ do
     cached <- lookup cache groupId
     case cached of
       (Just projects) -> pure $ Right projects
       Nothing -> do
-        let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false|]
-        result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
+        let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false{&with_shared}|]
+        result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId), ("with_shared", withShared sharedProjects)] groupId histogram
         traverse_ (insert cache groupId) result
         pure result
+  where
+    withShared Include = stringValue "true"
+    withShared Exclude = stringValue "false"
 
 pipelinesApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> Id Group -> OutgoingHttpRequestsHistogram -> InterpreterFor PipelinesApi r
 pipelinesApiToIO baseUrl apiToken groupId histogram = interpret $ \case

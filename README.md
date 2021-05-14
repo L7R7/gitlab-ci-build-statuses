@@ -32,6 +32,9 @@ Default value is 60 seconds.
 The higher the value, the lower the number of requests to the Gitlab API. The lower the value, the less stale will the in-memory data be.
 * `GCB_UI_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the HTML page will refresh itself.
 Default value is 5 seconds.
+* `GCB_INCLUDE_SHARED_PROJECTS`(optional): Sets whether projects that are shared with the group should be included.
+Possible values are `include` and `exclude`.
+Default value is `include`.
 * `GCB_PROJECT_CACHE_TTL_SECS` (optional): You can configure caching for the list of projects to reduce the load on the Gitlab API.
 The provided value must be positive and sets the TTL of cached values in seconds.
 By default, caching is disabled.
