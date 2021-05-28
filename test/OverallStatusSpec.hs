@@ -30,34 +30,28 @@ resultToOverallProps = do
       assert $ all (\s -> s == Successful || s == Unknown) statuses
       assert $ elem Successful statuses
     Unknown -> assert $ all (== Unknown) statuses
-    SuccessfulRunning ->
-      assert $
-        all (`elem` [Successful, SuccessfulRunning, Running, Unknown]) statuses
-          && atLeastOneOf [SuccessfulRunning, Running] statuses
-    Failed ->
-      assert $
-        all (`elem` [Successful, Failed, Warning, Unknown]) statuses
-          && noneOf [Running, SuccessfulRunning, WarningRunning, FailedRunning] statuses
-          && elem Failed statuses
-    FailedRunning ->
-      assert $
-        all (`elem` [Successful, SuccessfulRunning, Failed, FailedRunning, Warning, WarningRunning, Running, Unknown]) statuses
-          && atLeastOneOf [Failed, FailedRunning] statuses
-          && atLeastOneOf [SuccessfulRunning, FailedRunning, WarningRunning, Running] statuses
-    Warning ->
-      assert $
-        all (`elem` [Successful, Warning, Unknown]) statuses
-          && noneOf [Running, SuccessfulRunning, WarningRunning, FailedRunning] statuses
-          && elem Warning statuses
-    WarningRunning ->
-      assert $
-        all (`elem` [Successful, SuccessfulRunning, Warning, WarningRunning, Running, Unknown]) statuses
-          && atLeastOneOf [Warning, WarningRunning] statuses
-          && atLeastOneOf [SuccessfulRunning, WarningRunning, Running] statuses
-    Running ->
-      assert $
-        all (`elem` [Running, Unknown]) statuses
-          && elem Running statuses
+    SuccessfulRunning -> do
+      assert $ all (`elem` [Successful, SuccessfulRunning, Running, Unknown]) statuses
+      assert $ atLeastOneOf [SuccessfulRunning, Running] statuses
+    Failed -> do
+      assert $ all (`elem` [Successful, Failed, Warning, Unknown]) statuses
+      assert $ noneOf [Running, SuccessfulRunning, WarningRunning, FailedRunning] statuses
+      assert $ elem Failed statuses
+    FailedRunning -> do
+      assert $ all (`elem` [Successful, SuccessfulRunning, Failed, FailedRunning, Warning, WarningRunning, Running, Unknown]) statuses
+      assert $ atLeastOneOf [Failed, FailedRunning] statuses
+      assert $ atLeastOneOf [SuccessfulRunning, FailedRunning, WarningRunning, Running] statuses
+    Warning -> do
+      assert $ all (`elem` [Successful, Warning, Unknown]) statuses
+      assert $ noneOf [Running, SuccessfulRunning, WarningRunning, FailedRunning] statuses
+      assert $ elem Warning statuses
+    WarningRunning -> do
+      assert $ all (`elem` [Successful, SuccessfulRunning, Warning, WarningRunning, Running, Unknown]) statuses
+      assert $ atLeastOneOf [Warning, WarningRunning] statuses
+      assert $ atLeastOneOf [SuccessfulRunning, WarningRunning, Running] statuses
+    Running -> do
+      assert $ all (`elem` [Running, Unknown]) statuses
+      assert $ elem Running statuses
 
 atLeastOneOf :: (Functor t, Foldable t, Eq a) => t a -> [a] -> Bool
 atLeastOneOf mustIncludes as = or ((`elem` as) <$> mustIncludes)
