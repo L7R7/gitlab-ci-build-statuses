@@ -5,11 +5,12 @@
 module Main (main) where
 
 import App (startWithConfig)
-import Config (LogConfig (..), Validation (Failure, Success), parseConfigFromEnv, parseLogLevelWithDefault, showErrors)
+import Config.Backbone (LogConfig (LogConfig), parseBackboneFromEnv, parseLogLevelWithDefault)
+import Config.Config (Validation (Failure, Success), parseConfigFromEnv, showErrors)
 import Control.Exception (bracket)
 import Katip hiding (getEnvironment)
+import Metrics.Health (initThreads)
 import Metrics.Metrics (registerMetrics)
-import Metrics.Health(initThreads)
 import Outbound.Storage.InMemory (initStorage)
 import Relude
 import System.Environment
@@ -25,8 +26,9 @@ main = do
     statuses <- initStorage
     healthThreads <- initThreads
     metrics <- registerMetrics
-    case parseConfigFromEnv metrics statuses healthThreads (LogConfig mempty mempty logEnv) environment of
+    let backbone = parseBackboneFromEnv metrics statuses healthThreads (LogConfig mempty mempty logEnv)
+    case parseConfigFromEnv environment of
       Success config -> do
         runKatipContextT logEnv () mempty $ logLocM InfoS . ls $ "Using config: " <> (show @Text) config
-        startWithConfig config
+        startWithConfig config backbone
       Failure errs -> runKatipContextT logEnv () mempty $ logLocM ErrorS . ls $ "Failed to parse config. Exiting now. Errors were: " <> showErrors errs

@@ -10,7 +10,7 @@
 module Outbound.Gitlab.GitlabAPI (initCache, projectsApiToIO, pipelinesApiToIO) where
 
 import Burrito
-import Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
+import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
 import Control.Exception (try)
 import Core.Lib (BuildStatus (..), DetailedPipeline (..), Group, Id (Id), Pipeline, PipelinesApi (..), Project, ProjectsApi (..), Ref (Ref), UpdateError (..), Url (..))
 import Data.Aeson hiding (Result, Value)

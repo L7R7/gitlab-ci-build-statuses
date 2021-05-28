@@ -10,7 +10,8 @@ module Inbound.HTTP.Server
   )
 where
 
-import Config (Config (..), GitCommit, UiUpdateIntervalSeconds)
+import Config.Backbone ( GitCommit, Backbone(..) )
+import Config.Config (Config (..), UiUpdateIntervalSeconds)
 import Control.Concurrent (ThreadId)
 import Control.Exception (try)
 import Core.Effects (Health)
@@ -41,8 +42,8 @@ norefreshFlag :: Bool -> AutoRefresh
 norefreshFlag True = NoRefresh
 norefreshFlag False = Refresh
 
-hoist :: Config -> ServerT API Handler
-hoist Config {..} = hoistServer api (liftServer statuses threads) (server dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
+hoist :: Config -> Backbone -> ServerT API Handler
+hoist Config {..} Backbone {..} = hoistServer api (liftServer statuses threads) (server dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
 
 liftServer :: IORef BuildStatuses -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, Time UTCTime Day, Health, Embed IO] a -> Handler a
 liftServer statuses threads sem =
@@ -53,9 +54,9 @@ liftServer statuses threads sem =
     & runM
     & Handler . ExceptT . try
 
-startServer :: Config -> IO ()
-startServer config =
-  serve api (hoist config)
+startServer :: Config -> Backbone -> IO ()
+startServer config backbone =
+  serve api (hoist config backbone)
     & prometheus def
     & gzip def
     & run 8282

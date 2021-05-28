@@ -6,7 +6,7 @@
 
 module Util (parTraverseToIO) where
 
-import Config (MaxConcurrency (..))
+import Config.Config (MaxConcurrency (..))
 import Core.Effects
 import Polysemy
 import Polysemy.Final (withWeavingToFinal)

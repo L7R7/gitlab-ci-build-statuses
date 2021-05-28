@@ -8,7 +8,7 @@
 
 module Logger (loggerToIO) where
 
-import Config (LogConfig (..), logContext, logEnv, logNamespace)
+import Config.Backbone (LogConfig (..), logContext, logEnv, logNamespace)
 import Control.Lens (over, view)
 import Core.Effects (Logger (..))
 import Katip

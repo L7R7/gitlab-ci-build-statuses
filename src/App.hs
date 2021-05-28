@@ -5,7 +5,8 @@
 
 module App (startWithConfig) where
 
-import Config
+import Config.Backbone
+import Config.Config
 import Control.Concurrent (forkIO)
 import Inbound.HTTP.Server (startServer)
 import Inbound.Jobs.Updating (updateStatusesRegularly)
@@ -19,16 +20,16 @@ import Polysemy.Time (interpretTimeGhc)
 import Relude hiding (runReader)
 import Util (parTraverseToIO)
 
-startMetricsUpdatingJob :: Config -> IO ()
-startMetricsUpdatingJob config =
+startMetricsUpdatingJob :: Config -> Backbone -> IO ()
+startMetricsUpdatingJob config backbone =
   runM
-    . metricsApiToIO (groupId config) (metrics config)
-    . buildStatusesApiToIO (statuses config)
+    . metricsApiToIO (groupId config) (metrics backbone)
+    . buildStatusesApiToIO (statuses backbone)
     . interpretTimeGhc
     $ updateMetricsRegularly
 
-startStatusUpdatingJob :: Config -> IO ()
-startStatusUpdatingJob Config {..} = do
+startStatusUpdatingJob :: Config -> Backbone -> IO ()
+startStatusUpdatingJob Config {..} Backbone {..} = do
   cache <- initCache projectCacheTtlSecs
   runFinal
     . embedToFinal @IO
@@ -42,9 +43,9 @@ startStatusUpdatingJob Config {..} = do
     . observeDurationToIO groupId (updateJobDurationHistogram metrics)
     $ updateStatusesRegularly groupId dataUpdateIntervalSecs
 
-startWithConfig :: Config -> IO ()
-startWithConfig config = do
-  metrics <- forkIO $ startMetricsUpdatingJob config
-  statuses <- forkIO $ startStatusUpdatingJob config
-  atomicWriteIORef (threads config) [(metrics, "metrics"), (statuses, "statuses")]
-  startServer config
+startWithConfig :: Config -> Backbone -> IO ()
+startWithConfig config backbone = do
+  metrics <- forkIO $ startMetricsUpdatingJob config backbone
+  statuses <- forkIO $ startStatusUpdatingJob config backbone
+  atomicWriteIORef (threads backbone) [(metrics, "metrics"), (statuses, "statuses")]
+  startServer config backbone

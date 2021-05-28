@@ -3,13 +3,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Config
+module Config.Config
   ( ApiToken (..),
     Config (..),
     ConfigError (..),
     GitlabHost,
-    GitCommit (..),
-    LogConfig (LogConfig),
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
     ProjectCacheTtlSeconds (..),
@@ -17,23 +15,15 @@ module Config
     parseConfigFromEnv,
     Validation (Failure, Success),
     showErrors,
-    logContext,
-    logEnv,
-    logNamespace,
-    parseLogLevelWithDefault,
   )
 where
 
-import Control.Concurrent (ThreadId)
 import Control.Lens
-import Core.Lib (BuildStatuses, DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
+import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
 import Data.Char (toLower)
 import qualified Data.Text as T (intercalate)
 import Data.Validation
-import GitHash
-import Katip (LogContexts, LogEnv, Namespace, Severity (..))
-import Metrics.Metrics
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
 import qualified Text.Show
@@ -62,11 +52,8 @@ envMaxConcurrency = "GCB_MAX_CONCURRENCY"
 envIncludeSharedProjects :: Text
 envIncludeSharedProjects = "GCB_INCLUDE_SHARED_PROJECTS"
 
-envLogLevel :: Text
-envLogLevel = "GCB_LOG_LEVEL"
-
-parseConfigFromEnv :: Metrics -> IORef BuildStatuses -> IORef [(ThreadId, Text)] -> LogConfig -> [(String, String)] -> Validation (NonEmpty ConfigError) Config
-parseConfigFromEnv metrics iorefBuilds iorefThreads logConfig env =
+parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) Config
+parseConfigFromEnv env =
   Config <$> readApiTokenFromEnv env
     <*> readGroupIdFromEnv env
     <*> readBaseUrlFromEnv env
@@ -75,13 +62,6 @@ parseConfigFromEnv metrics iorefBuilds iorefThreads logConfig env =
     <*> pure (readProjectCacheTtlSecondsFromEnv env)
     <*> pure (readMaxConcurrencyFromEnv env)
     <*> pure (readIncludeSharedProjectsFromEnv env)
-    <*> pure metrics
-    <*> pure iorefBuilds
-    <*> pure logConfig
-    <*> pure (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit)
-    <*> pure iorefThreads
-  where
-    gitCommit = $$tGitInfoCwd
 
 showErrors :: NonEmpty ConfigError -> Text
 showErrors errs = T.intercalate ", " $ fmap show (toList errs)
@@ -94,18 +74,7 @@ data Config = Config
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
     projectCacheTtlSecs :: ProjectCacheTtlSeconds,
     maxConcurrency :: MaxConcurrency,
-    includeSharedProjects :: SharedProjects,
-    metrics :: Metrics,
-    statuses :: IORef BuildStatuses,
-    logConfig :: LogConfig,
-    gitCommit :: GitCommit,
-    threads :: IORef [(ThreadId, Text)]
-  }
-
-data LogConfig = LogConfig
-  { _logNamespace :: Namespace,
-    _logContext :: LogContexts,
-    _logEnv :: LogEnv
+    includeSharedProjects :: SharedProjects
   }
 
 instance Show Config where
@@ -119,8 +88,8 @@ instance Show Config where
           show uiUpdateIntervalSecs,
           show projectCacheTtlSecs,
           show maxConcurrency,
-          "Shared projects: " <> show includeSharedProjects,
-          coerce gitCommit
+          "Shared projects: " <> show includeSharedProjects
+          -- coerce gitCommit
         ]
 
 newtype ApiToken = ApiToken B.ByteString
@@ -189,19 +158,8 @@ readIncludeSharedProjectsFromEnv env = fromMaybe Include (lookupEnv env envInclu
 parsePositiveWithDefault :: (Ord a, Num a, Read a) => [(String, String)] -> Text -> a -> a
 parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . toString))
 
-parseLogLevelWithDefault :: [(String, String)] -> (Severity, Maybe Text)
-parseLogLevelWithDefault env = case lookupEnv env envLogLevel of
-  Nothing -> (InfoS, Just "Couldn't parse log level from env. Using Info as fallback")
-  Just "DEBUG" -> (DebugS, Nothing)
-  Just "INFO" -> (InfoS, Nothing)
-  Just "WARN" -> (WarningS, Nothing)
-  Just "ERROR" -> (ErrorS, Nothing)
-  Just s -> (InfoS, Just (s <> " is no valid log level. Using Info as fallback"))
-
 single :: a -> NonEmpty a
 single a = a :| []
 
 lookupEnv :: [(String, String)] -> Text -> Maybe Text
 lookupEnv env key = fromString . snd <$> find (\(k, _) -> k == toString key) env
-
-makeLenses ''LogConfig
