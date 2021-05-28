@@ -2,13 +2,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Logger (loggerToIO) where
+module Logger (loggerToIO, singleLog, withLogEnv) where
 
 import Config.Backbone (LogConfig (..), logContext, logEnv, logNamespace)
+import Control.Exception (bracket)
 import Control.Lens (over, view)
 import Core.Effects (Logger (..))
 import Katip
@@ -51,3 +53,12 @@ instance (Members [Embed IO, Reader LogConfig] r) => KatipContext (Sem r) where
   localKatipContext f m = local (over logContext f) m
   getKatipNamespace = asks $ view logNamespace
   localKatipNamespace f m = local (over logNamespace f) m
+
+withLogEnv :: Severity -> (LogEnv -> IO b) -> IO b
+withLogEnv logLevel action = do
+  handleScribe <- mkHandleScribeWithFormatter jsonFormat (ColorLog False) stdout (permitItem logLevel) V2
+  let mkLogEnv = initLogEnv "gitlab-ci-build-statuses" "production" >>= registerScribe "stdout" handleScribe defaultScribeSettings
+  bracket mkLogEnv closeScribes action
+
+singleLog :: LogEnv -> Severity -> Text -> IO ()
+singleLog env severity logMessage = runKatipContextT env () mempty $ logLocM severity . ls $ logMessage

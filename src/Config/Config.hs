@@ -24,6 +24,7 @@ import qualified Data.ByteString as B hiding (pack)
 import Data.Char (toLower)
 import qualified Data.Text as T (intercalate)
 import Data.Validation
+import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
 import qualified Text.Show
@@ -52,6 +53,9 @@ envMaxConcurrency = "GCB_MAX_CONCURRENCY"
 envIncludeSharedProjects :: Text
 envIncludeSharedProjects = "GCB_INCLUDE_SHARED_PROJECTS"
 
+envLogLevel :: Text
+envLogLevel = "GCB_LOG_LEVEL"
+
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) Config
 parseConfigFromEnv env =
   Config <$> readApiTokenFromEnv env
@@ -62,6 +66,7 @@ parseConfigFromEnv env =
     <*> pure (readProjectCacheTtlSecondsFromEnv env)
     <*> pure (readMaxConcurrencyFromEnv env)
     <*> pure (readIncludeSharedProjectsFromEnv env)
+    <*> pure (readLogLevelFomEnv env)
 
 showErrors :: NonEmpty ConfigError -> Text
 showErrors errs = T.intercalate ", " $ fmap show (toList errs)
@@ -74,7 +79,8 @@ data Config = Config
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
     projectCacheTtlSecs :: ProjectCacheTtlSeconds,
     maxConcurrency :: MaxConcurrency,
-    includeSharedProjects :: SharedProjects
+    includeSharedProjects :: SharedProjects,
+    logLevel :: Severity
   }
 
 instance Show Config where
@@ -88,8 +94,8 @@ instance Show Config where
           show uiUpdateIntervalSecs,
           show projectCacheTtlSecs,
           show maxConcurrency,
-          "Shared projects: " <> show includeSharedProjects
-          -- coerce gitCommit
+          "Shared projects: " <> show includeSharedProjects,
+          "Log level: " <> show logLevel
         ]
 
 newtype ApiToken = ApiToken B.ByteString
@@ -154,6 +160,14 @@ readIncludeSharedProjectsFromEnv env = fromMaybe Include (lookupEnv env envInclu
     parse s | (toLower <$> s) == "include" = Just Include
     parse s | (toLower <$> s) == "exclude" = Just Exclude
     parse _ = Nothing
+
+readLogLevelFomEnv :: [(String, String)] -> Severity
+readLogLevelFomEnv env = case lookupEnv env envLogLevel of
+  Just "DEBUG" -> DebugS
+  Just "INFO" -> InfoS
+  Just "WARN" -> WarningS
+  Just "ERROR" -> ErrorS
+  _ -> InfoS
 
 parsePositiveWithDefault :: (Ord a, Num a, Read a) => [(String, String)] -> Text -> a -> a
 parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . toString))
