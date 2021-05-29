@@ -82,34 +82,36 @@ data SharedProjects = Include | Exclude deriving (Show)
 
 type ConfigH f = HKD Config f
 
-envVarNames :: ConfigH (Const String)
+envVarNames :: ConfigH (Const EnvVariableName)
 envVarNames =
-  build @Config
-    "GCB_GITLAB_API_TOKEN"
-    "GCB_GITLAB_GROUP_ID"
-    "GCB_GITLAB_BASE_URL"
-    "GCB_DATA_UPDATE_INTERVAL_SECS"
-    "GCB_UI_UPDATE_INTERVAL_SECS"
-    "GCB_PROJECT_CACHE_TTL_SECS"
-    "GCB_MAX_CONCURRENCY"
-    "GCB_INCLUDE_SHARED_PROJECTS"
-    "GCB_LOG_LEVEL"
+  bmap (first EnvVariableName) $
+    build @Config
+      "GCB_GITLAB_API_TOKEN"
+      "GCB_GITLAB_GROUP_ID"
+      "GCB_GITLAB_BASE_URL"
+      "GCB_DATA_UPDATE_INTERVAL_SECS"
+      "GCB_UI_UPDATE_INTERVAL_SECS"
+      "GCB_PROJECT_CACHE_TTL_SECS"
+      "GCB_MAX_CONCURRENCY"
+      "GCB_INCLUDE_SHARED_PROJECTS"
+      "GCB_LOG_LEVEL"
 
-errorMessages :: ConfigH (Const String)
+errorMessages :: ConfigH (Const ErrorMessage)
 errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs envVarNames
   where
-    msgs :: ConfigH (Const String)
+    msgs :: ConfigH (Const ErrorMessage)
     msgs =
-      build @Config
-        "Gitlab API Token is missing"
-        "Group ID is missing"
-        "Gitlab base URL is missing"
-        "Data Update interval is missing. Must be a positive integer"
-        "UI Update interval is missing. Must be a positive integer"
-        "Project cache list TTL is missing. Must be a positive integer"
-        "Max concurrency is missing. Must be a positive integer"
-        "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`"
-        "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
+      bmap (first ErrorMessage) $
+        build @Config
+          "Gitlab API Token is missing"
+          "Group ID is missing"
+          "Gitlab base URL is missing"
+          "Data Update interval is missing. Must be a positive integer"
+          "UI Update interval is missing. Must be a positive integer"
+          "Project cache list TTL is missing. Must be a positive integer"
+          "Max concurrency is missing. Must be a positive integer"
+          "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`"
+          "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
 
 parse :: ConfigH (Compose ((->) String) Maybe)
 parse =
@@ -150,4 +152,4 @@ defaults =
     & field @"logLevel" .~ Just InfoS
 
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
-parseConfigFromEnv = parseConfig envVarNames errorMessages defaults parse
+parseConfigFromEnv env = parseConfig envVarNames errorMessages defaults parse (first EnvVariableName <$> env)
