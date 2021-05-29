@@ -28,11 +28,11 @@ import qualified Data.ByteString as B hiding (pack)
 import Data.Char (toLower)
 import Data.Generic.HKD
 import qualified Data.Text as T (intercalate)
-import Data.Validation
 import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
 import qualified Text.Show (show)
+import Validation
 
 data Config = Config
   { apiToken :: ApiToken,
@@ -142,24 +142,19 @@ readPositive f = Compose $ fmap f . find (> 0) . readMaybe
 
 defaults :: ConfigH Maybe
 defaults =
-  bpure empty & field @"dataUpdateIntervalSecs" .~ Just 60
+  bpure empty
+    & field @"dataUpdateIntervalSecs" .~ Just 60
     & field @"uiUpdateIntervalSecs" .~ Just 5
     & field @"projectCacheTtlSecs" .~ Just 0
     & field @"maxConcurrency" .~ Just 2
     & field @"includeSharedProjects" .~ Just Include
     & field @"logLevel" .~ Just InfoS
 
-unwrap :: ConfigH Identity -> Config
-unwrap = runIdentity . construct
-
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
-parseConfigFromEnv env = unwrap <$> validateConfig errorMessages (parseConfigWithDefaults env)
+parseConfigFromEnv env = runIdentity . construct <$> validateConfig errorMessages (parseConfigWithDefaults env)
 
 validateConfig :: (ApplicativeB b, TraversableB b) => b (Const String) -> b Maybe -> Validation (NonEmpty Text) (b Identity)
-validateConfig errMsgs mOpts = bsequence' $ bzipWith v mOpts errMsgs
-  where
-    v (Just x) _ = Success x
-    v Nothing (Const err) = Failure $ fromString err :| []
+validateConfig errMsgs mOpts = bsequence' $ bzipWith (\(Const errMsg) -> maybeToSuccess (fromString errMsg :| [])) errMsgs mOpts
 
 parseConfigWithDefaults :: [(String, String)] -> ConfigH Maybe
 parseConfigWithDefaults env = bzipWith (<|>) (fromEnv env envVars parse) defaults
