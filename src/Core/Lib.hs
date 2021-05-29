@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -53,7 +53,9 @@ data UpdateError
   | NoPipelineForDefaultBranch
   deriving (Show)
 
-newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int deriving (Show)
+newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int
+  deriving (Show)
+  deriving (Num) via Int
 
 data Pipeline = Pipeline
   { pipelineId :: Id Pipeline,

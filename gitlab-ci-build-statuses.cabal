@@ -54,6 +54,7 @@ library
       base >=4.7 && <5
     , aeson
     , aeson-casing
+    , barbies
     , blaze-html
     , burrito >= 1.2.0.0
     , cache

@@ -1,12 +1,15 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Config.Config
   ( ApiToken (..),
     Config (..),
-    ConfigError (..),
     GitlabHost,
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
@@ -18,6 +21,7 @@ module Config.Config
   )
 where
 
+import Barbies
 import Control.Lens
 import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import qualified Data.ByteString as B hiding (pack)
@@ -27,49 +31,7 @@ import Data.Validation
 import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
-import qualified Text.Show
-
-envGroupId :: Text
-envGroupId = "GCB_GITLAB_GROUP_ID"
-
-envApiToken :: Text
-envApiToken = "GCB_GITLAB_API_TOKEN"
-
-envBaseUrl :: Text
-envBaseUrl = "GCB_GITLAB_BASE_URL"
-
-envDataUpdateInterval :: Text
-envDataUpdateInterval = "GCB_DATA_UPDATE_INTERVAL_SECS"
-
-envUiUpdateInterval :: Text
-envUiUpdateInterval = "GCB_UI_UPDATE_INTERVAL_SECS"
-
-envProjectCacheTtl :: Text
-envProjectCacheTtl = "GCB_PROJECT_CACHE_TTL_SECS"
-
-envMaxConcurrency :: Text
-envMaxConcurrency = "GCB_MAX_CONCURRENCY"
-
-envIncludeSharedProjects :: Text
-envIncludeSharedProjects = "GCB_INCLUDE_SHARED_PROJECTS"
-
-envLogLevel :: Text
-envLogLevel = "GCB_LOG_LEVEL"
-
-parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) Config
-parseConfigFromEnv env =
-  Config <$> readApiTokenFromEnv env
-    <*> readGroupIdFromEnv env
-    <*> readBaseUrlFromEnv env
-    <*> pure (readDataUpdateIntervalFromEnv env)
-    <*> pure (readUiUpdateIntervalFromEnv env)
-    <*> pure (readProjectCacheTtlSecondsFromEnv env)
-    <*> pure (readMaxConcurrencyFromEnv env)
-    <*> pure (readIncludeSharedProjectsFromEnv env)
-    <*> pure (readLogLevelFomEnv env)
-
-showErrors :: NonEmpty ConfigError -> Text
-showErrors errs = T.intercalate ", " $ fmap show (toList errs)
+import qualified Text.Show (show)
 
 data Config = Config
   { apiToken :: ApiToken,
@@ -82,6 +44,7 @@ data Config = Config
     includeSharedProjects :: SharedProjects,
     logLevel :: Severity
   }
+  deriving (Generic)
 
 instance Show Config where
   show Config {..} =
@@ -102,78 +65,142 @@ newtype ApiToken = ApiToken B.ByteString
 
 data GitlabHost
 
-newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int deriving (Show)
+newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int
+  deriving (Show)
+  deriving (Num) via Int
 
-newtype ProjectCacheTtlSeconds = ProjectCacheTtlSeconds Int64 deriving (Show)
+newtype ProjectCacheTtlSeconds = ProjectCacheTtlSeconds Int64
+  deriving (Show)
+  deriving (Num) via Int64
 
-data ConfigError = ApiTokenMissing | GroupIdMissing | GitlabBaseUrlMissing | GitlabBaseUrlInvalid Text
-
-instance Show ConfigError where
-  show ApiTokenMissing = "API Token is missing. Set it via " <> show envApiToken
-  show GroupIdMissing = "Group ID is missing. Set it via " <> show envGroupId
-  show GitlabBaseUrlMissing = "Gitlab base URL is missing. Set it via " <> show envBaseUrl
-  show (GitlabBaseUrlInvalid url) = "Gitlab base URL set via " <> show envBaseUrl <> "is invalid. The value is: " <> show url
-
-newtype MaxConcurrency = MaxConcurrency Int deriving (Show)
+newtype MaxConcurrency = MaxConcurrency Int
+  deriving (Show)
+  deriving (Num) via Int
 
 newtype GitCommit = GitCommit String deriving (Show)
 
 data SharedProjects = Include | Exclude deriving (Show)
 
-readApiTokenFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) ApiToken
-readApiTokenFromEnv env = do
-  let maybeGroupId = encodeUtf8 <$> lookupEnv env envApiToken
-  maybe (_Failure # single ApiTokenMissing) (\token -> _Success # ApiToken token) maybeGroupId
+data ConfigH f = ConfigH
+  { apiTokenH :: f ApiToken,
+    groupIdH :: f (Id Group),
+    gitlabBaseUrlH :: f (Url GitlabHost),
+    dataUpdateIntervalSecsH :: f DataUpdateIntervalSeconds,
+    uiUpdateIntervalSecsH :: f UiUpdateIntervalSeconds,
+    projectCacheTtlSecsH :: f ProjectCacheTtlSeconds,
+    maxConcurrencyH :: f MaxConcurrency,
+    includeSharedProjectsH :: f SharedProjects,
+    logLevelH :: f Severity
+  }
+  deriving (Generic, FunctorB, TraversableB, ApplicativeB, ConstraintsB)
 
-readGroupIdFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) (Id Group)
-readGroupIdFromEnv env = do
-  let maybeGroupId = do
-        groupIdString <- toString <$> lookupEnv env envGroupId
-        readMaybe groupIdString
-  maybe (_Failure # single GroupIdMissing) (\gId -> _Success # Id gId) maybeGroupId
+instance (Alternative f) => Semigroup (ConfigH f) where
+  (<>) = bzipWith (<|>)
 
-readBaseUrlFromEnv :: [(String, String)] -> Validation (NonEmpty ConfigError) (Url GitlabHost)
-readBaseUrlFromEnv env = do
-  let valueFromEnv = lookupEnv env envBaseUrl
-  let baseUrl = valueFromEnv >>= parseAbsoluteURI . toString
-  if isJust baseUrl
-    then maybe urlMissing (\url -> _Success # Url url) baseUrl
-    else maybe urlMissing (\s -> _Failure # single (GitlabBaseUrlInvalid s)) valueFromEnv
+instance (Alternative f) => Monoid (ConfigH f) where
+  mempty = bpure empty
+
+envVars :: ConfigH (Const String)
+envVars =
+  ConfigH
+    { apiTokenH = "GCB_GITLAB_API_TOKEN",
+      groupIdH = "GCB_GITLAB_GROUP_ID",
+      gitlabBaseUrlH = "GCB_GITLAB_BASE_URL",
+      dataUpdateIntervalSecsH = "GCB_DATA_UPDATE_INTERVAL_SECS",
+      uiUpdateIntervalSecsH = "GCB_UI_UPDATE_INTERVAL_SECS",
+      projectCacheTtlSecsH = "GCB_PROJECT_CACHE_TTL_SECS",
+      maxConcurrencyH = "GCB_MAX_CONCURRENCY",
+      includeSharedProjectsH = "GCB_INCLUDE_SHARED_PROJECTS",
+      logLevelH = "GCB_LOG_LEVEL"
+    }
+
+errorMessages :: ConfigH (Const String)
+errorMessages = bzipWith (\(Const s1) (Const s2) -> Const $ s1 <> " (set it via " <> s2 <> ")") msgs envVars
   where
-    urlMissing = _Failure # single GitlabBaseUrlMissing
+    msgs =
+      ConfigH
+        { apiTokenH = "Gitlab API Token is missing",
+          groupIdH = "Group ID is missing",
+          gitlabBaseUrlH = "Gitlab base URL is missing",
+          dataUpdateIntervalSecsH = "Data Update interval is missing. Must be a positive integer",
+          uiUpdateIntervalSecsH = "UI Update interval is missing. Must be a positive integer",
+          projectCacheTtlSecsH = "Project cache list TTL is missing. Must be a positive integer",
+          maxConcurrencyH = "Max concurrency is missing. Must be a positive integer",
+          includeSharedProjectsH = "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`",
+          logLevelH = "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
+        }
 
-readDataUpdateIntervalFromEnv :: [(String, String)] -> DataUpdateIntervalSeconds
-readDataUpdateIntervalFromEnv env = DataUpdateIntervalSeconds $ parsePositiveWithDefault env envDataUpdateInterval 60
+parse :: ConfigH (Compose ((->) String) Maybe)
+parse =
+  ConfigH
+    { apiTokenH = Compose $ Just . ApiToken . encodeUtf8,
+      groupIdH = Compose $ fmap Id . readMaybe,
+      gitlabBaseUrlH = Compose $ fmap Url . parseAbsoluteURI,
+      dataUpdateIntervalSecsH = readPositive DataUpdateIntervalSeconds,
+      uiUpdateIntervalSecsH = readPositive UiUpdateIntervalSeconds,
+      projectCacheTtlSecsH = readPositive ProjectCacheTtlSeconds,
+      maxConcurrencyH = readPositive MaxConcurrency,
+      includeSharedProjectsH = Compose parseIncludeSharedProjects,
+      logLevelH = Compose parseLogLevel
+    }
 
-readUiUpdateIntervalFromEnv :: [(String, String)] -> UiUpdateIntervalSeconds
-readUiUpdateIntervalFromEnv env = UiUpdateIntervalSeconds $ parsePositiveWithDefault env envUiUpdateInterval 5
+parseIncludeSharedProjects :: String -> Maybe SharedProjects
+parseIncludeSharedProjects s | (toLower <$> s) == "include" = Just Include
+parseIncludeSharedProjects s | (toLower <$> s) == "exclude" = Just Exclude
+parseIncludeSharedProjects _ = Nothing
 
-readProjectCacheTtlSecondsFromEnv :: [(String, String)] -> ProjectCacheTtlSeconds
-readProjectCacheTtlSecondsFromEnv env = ProjectCacheTtlSeconds $ parsePositiveWithDefault env envProjectCacheTtl 0
+parseLogLevel :: String -> Maybe Severity
+parseLogLevel "DEBUG" = Just DebugS
+parseLogLevel "INFO" = Just InfoS
+parseLogLevel "WARN" = Just WarningS
+parseLogLevel "ERROR" = Just ErrorS
+parseLogLevel _ = Nothing
 
-readMaxConcurrencyFromEnv :: [(String, String)] -> MaxConcurrency
-readMaxConcurrencyFromEnv env = MaxConcurrency $ parsePositiveWithDefault env envMaxConcurrency 2
+readPositive :: (Ord a, Num a, Read a) => (a -> b) -> Compose ((->) String) Maybe b
+readPositive f = Compose $ fmap f . find (> 0) . readMaybe
 
-readIncludeSharedProjectsFromEnv :: [(String, String)] -> SharedProjects
-readIncludeSharedProjectsFromEnv env = fromMaybe Include (lookupEnv env envIncludeSharedProjects >>= (parse . toString))
+defaults :: ConfigH Maybe
+defaults =
+  mempty
+    { dataUpdateIntervalSecsH = Just 60,
+      uiUpdateIntervalSecsH = Just 5,
+      projectCacheTtlSecsH = Just 0,
+      maxConcurrencyH = Just 2,
+      includeSharedProjectsH = Just Include,
+      logLevelH = Just InfoS
+    }
+
+unwrap :: ConfigH Identity -> Config
+unwrap
+  ( ConfigH
+      (Identity apiTokenX)
+      (Identity groupIdX)
+      (Identity gitlabBaseUrlX)
+      (Identity dataUpdateIntervalSecsX)
+      (Identity uiUpdateIntervalSecsX)
+      (Identity projectCacheTtlSecsX)
+      (Identity maxConcurrencyX)
+      (Identity includeSharedProjectsX)
+      (Identity logLevelX)
+    ) = Config apiTokenX groupIdX gitlabBaseUrlX dataUpdateIntervalSecsX uiUpdateIntervalSecsX projectCacheTtlSecsX maxConcurrencyX includeSharedProjectsX logLevelX
+
+parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
+parseConfigFromEnv env = unwrap <$> validateConfig errorMessages (parseConfigWithDefaults env)
+
+validateConfig :: (ApplicativeB b, TraversableB b) => b (Const String) -> b Maybe -> Validation (NonEmpty Text) (b Identity)
+validateConfig errMsgs mOpts = bsequence' $ bzipWith v mOpts errMsgs
   where
-    parse s | (toLower <$> s) == "include" = Just Include
-    parse s | (toLower <$> s) == "exclude" = Just Exclude
-    parse _ = Nothing
+    v (Just x) _ = Success x
+    v Nothing (Const err) = Failure $ fromString err :| []
 
-readLogLevelFomEnv :: [(String, String)] -> Severity
-readLogLevelFomEnv env = case lookupEnv env envLogLevel of
-  Just "DEBUG" -> DebugS
-  Just "INFO" -> InfoS
-  Just "WARN" -> WarningS
-  Just "ERROR" -> ErrorS
-  _ -> InfoS
+parseConfigWithDefaults :: [(String, String)] -> ConfigH Maybe
+parseConfigWithDefaults env = bzipWith (<|>) (fromEnv env envVars parse) defaults
 
-parsePositiveWithDefault :: (Ord a, Num a, Read a) => [(String, String)] -> Text -> a -> a
-parsePositiveWithDefault env text fallback = fromMaybe fallback $ find (> 0) (lookupEnv env text >>= (readMaybe . toString))
+fromEnv :: ApplicativeB b => [(String, String)] -> b (Const String) -> b (Compose ((->) String) Maybe) -> b Maybe
+fromEnv env = bzipWith (\s (Compose f) -> lookupEnv env s >>= f)
 
-single :: a -> NonEmpty a
-single a = a :| []
+lookupEnv :: [(String, String)] -> Const String k -> Maybe String
+lookupEnv env (Const key) = snd <$> find ((== toString key) . fst) env
 
-lookupEnv :: [(String, String)] -> Text -> Maybe Text
-lookupEnv env key = fromString . snd <$> find (\(k, _) -> k == toString key) env
+showErrors :: NonEmpty Text -> Text
+showErrors errs = T.intercalate ", " (toList errs)
