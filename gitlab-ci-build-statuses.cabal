@@ -83,7 +83,7 @@ library
     , time
     , transformers
     , unliftio
-    , validation
+    , validation-selective
     , wai-extra
     , wai-middleware-prometheus
     , warp
