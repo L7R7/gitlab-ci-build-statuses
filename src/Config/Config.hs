@@ -97,8 +97,9 @@ envVars =
 errorMessages :: ConfigH (Const String)
 errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs envVars
   where
+    msgs :: ConfigH (Const String)
     msgs =
-      build @Config @(Const String)
+      build @Config
         "Gitlab API Token is missing"
         "Group ID is missing"
         "Gitlab base URL is missing"
