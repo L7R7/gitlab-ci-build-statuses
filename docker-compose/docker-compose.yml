@@ -8,6 +8,7 @@ services:
   gitlab-ci-build-statuses:
     container_name: gitlab-ci-build-statuses
     image: l7r7/gitlab-ci-build-statuses:latest
+    # build: ../
     ports:
       - '8282:8282'
     restart: always
@@ -17,7 +18,7 @@ services:
       - GCB_GITLAB_BASE_URL=...
       - GCB_DATA_UPDATE_INTERVAL_SECS=...
       - GCB_MAX_CONCURRENCY=...
-      - GCB_PROJECT_CACHE_TTL=...
+      - GCB_PROJECT_CACHE_TTL_SECS=...
 
   grafana:
     image: grafana/grafana:latest
@@ -44,14 +45,6 @@ services:
     volumes:
       - ./prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
-    restart: 'no'
-
-  promlens:
-    image: promlabs/promlens:latest
-    container_name: promlens
-    ports:
-      - 8080:8080
-    network_mode: host
     restart: 'no'
 
   node-exporter:
