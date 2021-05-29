@@ -15,8 +15,6 @@ module Config.Config
     ProjectCacheTtlSeconds (..),
     SharedProjects (..),
     parseConfigFromEnv,
-    Validation (Failure, Success),
-    showErrors,
   )
 where
 
@@ -27,7 +25,6 @@ import Data.Biapplicative
 import qualified Data.ByteString as B hiding (pack)
 import Data.Char (toLower)
 import Data.Generic.HKD
-import qualified Data.Text as T (intercalate)
 import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
@@ -165,6 +162,3 @@ fromEnv env = bzipWith (\s (Compose f) -> lookupEnv env s >>= f)
 
 lookupEnv :: [(String, String)] -> Const String k -> Maybe String
 lookupEnv env (Const key) = snd <$> find ((== toString key) . fst) env
-
-showErrors :: NonEmpty Text -> Text
-showErrors errs = T.intercalate ", " (toList errs)
