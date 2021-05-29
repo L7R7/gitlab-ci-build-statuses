@@ -18,6 +18,7 @@ module Config.Config
 where
 
 import Barbies
+import Config.Util
 import Control.Lens
 import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import Data.Biapplicative
@@ -81,8 +82,8 @@ data SharedProjects = Include | Exclude deriving (Show)
 
 type ConfigH f = HKD Config f
 
-envVars :: ConfigH (Const String)
-envVars =
+envVarNames :: ConfigH (Const String)
+envVarNames =
   build @Config
     "GCB_GITLAB_API_TOKEN"
     "GCB_GITLAB_GROUP_ID"
@@ -95,7 +96,7 @@ envVars =
     "GCB_LOG_LEVEL"
 
 errorMessages :: ConfigH (Const String)
-errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs envVars
+errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs envVarNames
   where
     msgs :: ConfigH (Const String)
     msgs =
@@ -149,16 +150,4 @@ defaults =
     & field @"logLevel" .~ Just InfoS
 
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
-parseConfigFromEnv env = runIdentity . construct <$> validateConfig errorMessages (parseConfigWithDefaults env)
-
-validateConfig :: (ApplicativeB b, TraversableB b) => b (Const String) -> b Maybe -> Validation (NonEmpty Text) (b Identity)
-validateConfig errMsgs mOpts = bsequence' $ bzipWith (\(Const errMsg) -> maybeToSuccess (fromString errMsg :| [])) errMsgs mOpts
-
-parseConfigWithDefaults :: [(String, String)] -> ConfigH Maybe
-parseConfigWithDefaults env = bzipWith (<|>) (fromEnv env envVars parse) defaults
-
-fromEnv :: ApplicativeB b => [(String, String)] -> b (Const String) -> b (Compose ((->) String) Maybe) -> b Maybe
-fromEnv env = bzipWith (\s (Compose f) -> lookupEnv env s >>= f)
-
-lookupEnv :: [(String, String)] -> Const String k -> Maybe String
-lookupEnv env (Const key) = snd <$> find ((== toString key) . fst) env
+parseConfigFromEnv = parseConfig envVarNames errorMessages defaults parse

@@ -30,6 +30,7 @@ library
     App
     , Config.Backbone
     , Config.Config
+    , Config.Util
     , Core.Effects
     , Core.Lib
     , Core.OverallStatus
