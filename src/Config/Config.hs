@@ -31,6 +31,7 @@ import qualified Data.Text as T (intercalate)
 import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
+import Text.Printf
 import qualified Text.Show (show)
 import Validation
 
@@ -98,10 +99,10 @@ envVars =
     "GCB_LOG_LEVEL"
 
 errorMessages :: ConfigH (Const String)
-errorMessages = bzipWith (biliftA2 (\errMsg envVar -> errMsg <> " (set it via " <> envVar <> ")") const) msgs envVars
+errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs envVars
   where
     msgs =
-      build @Config
+      build @Config @(Const String)
         "Gitlab API Token is missing"
         "Group ID is missing"
         "Gitlab base URL is missing"
