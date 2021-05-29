@@ -10,7 +10,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Metrics.Metrics
   ( OutgoingHttpRequestsHistogram,

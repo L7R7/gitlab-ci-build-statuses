@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Outbound.Gitlab.RequestResponseUtils (privateToken, removeApiTokenFromUpdateError) where
 

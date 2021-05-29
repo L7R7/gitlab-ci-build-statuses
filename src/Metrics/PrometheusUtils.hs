@@ -1,5 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
 module Metrics.PrometheusUtils (VectorWithLabel (..)) where
 
 import Prometheus

@@ -3,14 +3,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Inbound.HTTP.Server
   ( startServer,
   )
 where
 
-import Config.Backbone ( GitCommit, Backbone(..) )
+import Config.Backbone (Backbone (..), GitCommit)
 import Config.Config (Config (..), UiUpdateIntervalSeconds)
 import Control.Concurrent (ThreadId)
 import Control.Exception (try)

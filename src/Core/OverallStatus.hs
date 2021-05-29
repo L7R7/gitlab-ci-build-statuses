@@ -1,5 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
 module Core.OverallStatus
   ( isRunning,
     overallStatus,

@@ -1,7 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module App (App.run) where
 
@@ -37,7 +35,7 @@ startStatusUpdatingJob :: Config -> Backbone -> IO ()
 startStatusUpdatingJob Config {..} Backbone {..} = do
   cache <- initCache projectCacheTtlSecs
   runFinal
-    . embedToFinal @IO
+    . embedToFinal
     . buildStatusesApiToIO statuses
     . pipelinesApiToIO gitlabBaseUrl apiToken groupId (outgoingHttpRequestsHistogram metrics)
     . projectsApiToIO gitlabBaseUrl apiToken includeSharedProjects (outgoingHttpRequestsHistogram metrics) cache
