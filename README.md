@@ -7,7 +7,7 @@ Fetch the current statuses of the latest Gitlab CI pipelines for all default bra
 ## Features
 
 * Lightweight UI
-    * Plain HTML and CSS UI, no JS involved
+    * Plain HTML and CSS, no JS involved
     * Refreshes automatically, so you always see the latest statuses
     * The favicon will show an indicator summarizing all statuses, so you can directly see if everything is fine (this is especially helpful if you pin the tab in your browser)
 * Production-ready Docker container including Prometheus metrics, health endpoint, and configurable structured JSON logging
@@ -75,7 +75,7 @@ The status code will be either 200 or 503, the body will always be JSON and will
 ## Operating showcase
 
 This repository includes a showcase for a docker-compose based deployment in [docker-compose](docker-compose/).
-This includes the app itself (you have to configure it in [the docker-compose file](docker-compose/docker-compose.yml), a Prometheus and a Grafana including a ready to go setup with some dashboards to demonstrate what the app offers.
+This includes the app itself (you have to configure it in [the docker-compose file](docker-compose/docker-compose.yml)), a Prometheus and a Grafana including a ready to go setup with some dashboards to demonstrate what the app offers.
 
 ## FAQ
 
