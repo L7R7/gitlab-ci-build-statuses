@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
@@ -43,15 +44,15 @@ data Config = Config
     includeSharedProjects :: SharedProjects,
     logLevel :: Severity
   }
-  deriving (Generic)
+  deriving (Eq, Generic)
 
 instance Show Config where
   show Config {..} =
-    "Config: GroupId "
+    "Config: "
       <> intercalate
         ", "
-        [ show groupId,
-          "Base URL " <> show gitlabBaseUrl,
+        [ "GroupId: " <> show groupId,
+          "Base URL: " <> show gitlabBaseUrl,
           show dataUpdateIntervalSecs,
           show uiUpdateIntervalSecs,
           show projectCacheTtlSecs,
@@ -60,25 +61,28 @@ instance Show Config where
           "Log level: " <> show logLevel
         ]
 
-newtype ApiToken = ApiToken B.ByteString
+newtype ApiToken = ApiToken B.ByteString deriving newtype (Eq)
 
 data GitlabHost
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int
   deriving (Show)
   deriving (Num) via Int
+  deriving newtype (Eq)
 
 newtype ProjectCacheTtlSeconds = ProjectCacheTtlSeconds Int64
   deriving (Show)
   deriving (Num) via Int64
+  deriving newtype (Eq)
 
 newtype MaxConcurrency = MaxConcurrency Int
   deriving (Show)
   deriving (Num) via Int
+  deriving newtype (Eq)
 
 newtype GitCommit = GitCommit String deriving (Show)
 
-data SharedProjects = Include | Exclude deriving (Show)
+data SharedProjects = Include | Exclude deriving (Eq, Show)
 
 type ConfigH f = HKD Config f
 
@@ -116,8 +120,8 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
 parse :: ConfigH (Compose ((->) String) Maybe)
 parse =
   build @Config
-    (Compose $ Just . ApiToken . encodeUtf8)
-    (Compose $ fmap Id . readMaybe)
+    (Compose parseApiToken)
+    (readPositive Id)
     (Compose $ fmap Url . parseAbsoluteURI)
     (readPositive DataUpdateIntervalSeconds)
     (readPositive UiUpdateIntervalSeconds)
@@ -125,6 +129,10 @@ parse =
     (readPositive MaxConcurrency)
     (Compose parseIncludeSharedProjects)
     (Compose parseLogLevel)
+
+parseApiToken :: String -> Maybe ApiToken
+parseApiToken "" = Nothing
+parseApiToken s = Just $ ApiToken $ encodeUtf8 s
 
 parseIncludeSharedProjects :: String -> Maybe SharedProjects
 parseIncludeSharedProjects s | (toLower <$> s) == "include" = Just Include

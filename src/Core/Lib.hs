@@ -55,6 +55,7 @@ data UpdateError
 newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int
   deriving (Show)
   deriving (Num) via Int
+  deriving newtype (Eq)
 
 data Pipeline = Pipeline
   { pipelineId :: Id Pipeline,
