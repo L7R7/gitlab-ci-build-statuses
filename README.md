@@ -41,6 +41,10 @@ By default, caching is disabled.
 * `GCB_LOG_LEVEL` (optional): Set the minimum log level for log output.
 Defaults to Info if the value is not set or can't be parsed.
 Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
+* `GCB_EXCLUDE_PROJECTS` (optional): Set a list of projects that should be excluded from the list.
+Must be a comma-separated list of integers of project IDs.
+Defaults to an empty list if the value is not set or can't be parsed.
+If you specify projects that don't appear in the result from the API, a warning will be logged.
 
 The app won't start if not all mandatory configuration properties are set.
 There will be a log message with the details before the application exits.

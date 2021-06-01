@@ -46,6 +46,22 @@ spec = do
       it "should allow overriding the log level" $
         parseConfigFromEnv (("GCB_LOG_LEVEL", "ERROR") : mandatoryConfig)
           `shouldBe` Success (config {logLevel = ErrorS})
+      describe "project exclude list" $ do
+        it "should allow overriding a single project ID" $
+          parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12") : mandatoryConfig)
+            `shouldBe` Success (config {projectExcludeList = [Id 12]})
+        it "should allow overriding multiple project IDs" $
+          parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12,13") : mandatoryConfig)
+            `shouldBe` Success (config {projectExcludeList = [Id 12, Id 13]})
+        it "should deduplicate the list of IDs" $
+          parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12,12") : mandatoryConfig)
+            `shouldBe` Success (config {projectExcludeList = [Id 12]})
+        it "should trim leading and trailing whitespace" $
+          parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", " 12,13,14 , 15 ") : mandatoryConfig)
+            `shouldBe` Success (config {projectExcludeList = [Id 12, Id 13, Id 14, Id 15]})
+        it "should handle empty values" $
+          parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "") : mandatoryConfig)
+            `shouldBe` Success config
 
     it "expects a non empty API token" $ do
       parseConfigFromEnv [("GCB_GITLAB_API_TOKEN", ""), ("GCB_GITLAB_GROUP_ID", "123"), ("GCB_GITLAB_BASE_URL", "https://my.gitlab.com")]
@@ -73,3 +89,4 @@ spec = do
         (MaxConcurrency 2)
         Include
         InfoS
+        []

@@ -44,7 +44,7 @@ startStatusUpdatingJob Config {..} Backbone {..} = do
     . runReader logConfig
     . loggerToIO
     . observeDurationToIO groupId (updateJobDurationHistogram metrics)
-    $ updateStatusesRegularly groupId dataUpdateIntervalSecs
+    $ updateStatusesRegularly groupId dataUpdateIntervalSecs projectExcludeList
 
 startWithConfig :: Config -> Backbone -> IO ()
 startWithConfig config backbone = do

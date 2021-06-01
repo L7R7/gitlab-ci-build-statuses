@@ -16,8 +16,8 @@ import TestUtils
 spec :: Spec
 spec = do
   describe "currentBuildStatuses" $ do
-    it "returns an empty list when there are no projects" $ (run . evaluateEffectsPurely $ currentBuildStatuses (Id 266)) `shouldBe` []
-    it "returns the correct result for a single project" $ (run . evaluateEffectsPurely $ currentBuildStatuses (Id 42)) `shouldBe` result
+    it "returns an empty list when there are no projects" $ (run . evaluateEffectsPurely $ currentBuildStatuses (Id 266) []) `shouldBe` []
+    it "returns the correct result for a single project" $ (run . evaluateEffectsPurely $ currentBuildStatuses (Id 42) []) `shouldBe` result
 
   describe "getStatusForProject" $ do
     it "returns Nothing when there's no default branch" $ (run . pipelinesApiPure . noOpLogger $ getStatusForProject (Id 5) Nothing) `shouldBe` Nothing

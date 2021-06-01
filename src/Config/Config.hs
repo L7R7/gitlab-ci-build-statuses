@@ -21,11 +21,12 @@ where
 import Barbies
 import Config.Util
 import Control.Lens
-import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
+import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), Project, Url (..))
 import Data.Biapplicative
 import qualified Data.ByteString as B hiding (pack)
 import Data.Char (toLower)
 import Data.Generic.HKD
+import Data.List.Extra (splitOn)
 import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
@@ -42,7 +43,8 @@ data Config = Config
     projectCacheTtlSecs :: ProjectCacheTtlSeconds,
     maxConcurrency :: MaxConcurrency,
     includeSharedProjects :: SharedProjects,
-    logLevel :: Severity
+    logLevel :: Severity,
+    projectExcludeList :: [Id Project]
   }
   deriving (Eq, Generic)
 
@@ -58,7 +60,8 @@ instance Show Config where
           show projectCacheTtlSecs,
           show maxConcurrency,
           "Shared projects: " <> show includeSharedProjects,
-          "Log level: " <> show logLevel
+          "Log level: " <> show logLevel,
+          "Excluded projects: " <> show projectExcludeList
         ]
 
 newtype ApiToken = ApiToken B.ByteString deriving newtype (Eq)
@@ -99,6 +102,7 @@ envVarNames =
       "GCB_MAX_CONCURRENCY"
       "GCB_INCLUDE_SHARED_PROJECTS"
       "GCB_LOG_LEVEL"
+      "GCB_EXCLUDE_PROJECTS"
 
 errorMessages :: ConfigH (Const ErrorMessage)
 errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs envVarNames
@@ -116,6 +120,7 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
           "Max concurrency is missing. Must be a positive integer"
           "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`"
           "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
+          "List of projects to exclude is missing. Must be a list of comma-separated string of numbers that indicate the project IDs"
 
 parse :: ConfigH (Compose ((->) String) Maybe)
 parse =
@@ -129,6 +134,7 @@ parse =
     (readPositive MaxConcurrency)
     (Compose parseIncludeSharedProjects)
     (Compose parseLogLevel)
+    (Compose readProjectExcludeList)
 
 parseApiToken :: String -> Maybe ApiToken
 parseApiToken "" = Nothing
@@ -146,6 +152,9 @@ parseLogLevel "WARN" = Just WarningS
 parseLogLevel "ERROR" = Just ErrorS
 parseLogLevel _ = Nothing
 
+readProjectExcludeList :: String -> Maybe [Id Project]
+readProjectExcludeList s = ordNub <$> traverse (fmap Id . readMaybe) (splitOn "," s)
+
 readPositive :: (Ord a, Num a, Read a) => (a -> b) -> Compose ((->) String) Maybe b
 readPositive f = Compose $ fmap f . find (> 0) . readMaybe
 
@@ -158,6 +167,7 @@ defaults =
     & field @"maxConcurrency" .~ Just 2
     & field @"includeSharedProjects" .~ Just Include
     & field @"logLevel" .~ Just InfoS
+    & field @"projectExcludeList" .~ Just []
 
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
 parseConfigFromEnv env = parseConfig envVarNames errorMessages defaults parse (first EnvVariableName <$> env)

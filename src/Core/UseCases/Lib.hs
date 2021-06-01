@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Core.UseCases.Lib
   ( updateStatuses,
@@ -17,28 +18,32 @@ import qualified Data.Text as T (intercalate, toLower)
 import Polysemy
 import Relude
 
-updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
-updateStatuses groupId = do
-  currentStatuses <- currentKnownBuildStatuses groupId
+updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r [Result]
+updateStatuses groupId excludeList = do
+  currentStatuses <- currentKnownBuildStatuses groupId excludeList
   unless (null currentStatuses) $ setStatuses currentStatuses
   logCurrentBuildStatuses
   pure currentStatuses
 
-currentKnownBuildStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member Logger r, Member ParTraverse r) => Id Group -> Sem r [Result]
-currentKnownBuildStatuses groupId = filter ((/= Unknown) . buildStatus) <$> currentBuildStatuses groupId
+currentKnownBuildStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r [Result]
+currentKnownBuildStatuses groupId excludeList = filter ((/= Unknown) . buildStatus) <$> currentBuildStatuses groupId excludeList
 
-currentBuildStatuses :: (Member ParTraverse r, Member ProjectsApi r, Member PipelinesApi r, Member Logger r) => Id Group -> Sem r [Result]
-currentBuildStatuses groupId = do
-  projects <- findProjects groupId
+currentBuildStatuses :: (Member ParTraverse r, Member ProjectsApi r, Member PipelinesApi r, Member Logger r) => Id Group -> [Id Project] -> Sem r [Result]
+currentBuildStatuses groupId excludeList = do
+  projects <- findProjects groupId excludeList
   results <- traverseP evalProject projects
   pure $ sortOn (T.toLower . coerce . name) results
 
-findProjects :: (Member ProjectsApi r, Member Logger r) => Id Group -> Sem r [Project]
-findProjects groupId = addContext "groupId" groupId $ do
+findProjects :: (Member ProjectsApi r, Member Logger r) => Id Group -> [Id Project] -> Sem r [Project]
+findProjects groupId excludeList = addContext "groupId" groupId $ do
   result <- getProjects groupId
   case result of
     Left err -> [] <$ logWarn (unwords ["Couldn't load projects. Error was", show err])
-    Right ps -> pure ps
+    Right ps -> do
+      let orphansInExcludeList = filter (\pId -> pId `notElem` (projectId <$> ps)) excludeList
+      unless (null orphansInExcludeList) $ addContext "orphanProjects" (show @String orphansInExcludeList) $ logWarn "There are projects on the exclude list that are not included in the result. This is probably a configuration error"
+      let filtered = filter (\p -> projectId p `notElem` excludeList) ps
+      pure filtered
 
 logCurrentBuildStatuses :: (Member BuildStatusesApi r, Member Logger r) => Sem r ()
 logCurrentBuildStatuses = do
