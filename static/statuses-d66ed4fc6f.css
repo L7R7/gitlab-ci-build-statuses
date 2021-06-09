@@ -48,7 +48,7 @@
     background-color: #1857B8;
 }
 
-.passed-with-warnings {
+.skipped, .passed-with-warnings {
     background-color: #fa6400;
 }
 
