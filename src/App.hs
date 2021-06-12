@@ -11,7 +11,7 @@ import Inbound.HTTP.Server (startServer)
 import Inbound.Jobs.Updating (updateStatusesRegularly)
 import Katip hiding (getEnvironment)
 import Logger
-import Metrics.Health (initThreads)
+import Metrics.Health (initHealth, initThreads)
 import Metrics.Metrics
 import Outbound.Gitlab.GitlabAPI (initCache, pipelinesApiToIO, projectsApiToIO)
 import Outbound.Storage.InMemory (buildStatusesApiToIO, initStorage)
@@ -59,10 +59,11 @@ run = do
   statuses <- initStorage
   healthThreads <- initThreads
   metrics <- registerMetrics
+  health <- initHealth
   case parseConfigFromEnv environment of
     Success config ->
       withLogEnv (logLevel config) $ \lE -> do
-        let backbone = initBackbone metrics statuses healthThreads (LogConfig mempty mempty lE)
+        let backbone = initBackbone metrics statuses healthThreads health (LogConfig mempty mempty lE)
         singleLog lE InfoS $ "Using config: " <> show config
         singleLog lE InfoS $ "Running version: " <> show (gitCommit backbone)
         startWithConfig config backbone

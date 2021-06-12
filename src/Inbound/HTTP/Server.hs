@@ -27,6 +27,7 @@ import Polysemy.Time (Time, interpretTimeGhc)
 import Relude
 import Servant
 import Servant.HTML.Blaze
+import System.Posix.Signals hiding (Handler)
 import qualified Text.Blaze.Html5 as H
 
 type API = "health" :> Get '[JSON] HealthStatus :<|> "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html :<|> "static" :> Raw
@@ -42,14 +43,14 @@ norefreshFlag True = NoRefresh
 norefreshFlag False = Refresh
 
 hoist :: Config -> Backbone -> ServerT API Handler
-hoist Config {..} Backbone {..} = hoistServer api (liftServer statuses threads) (server dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
+hoist Config {..} Backbone {..} = hoistServer api (liftServer statuses health threads) (server dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
 
-liftServer :: IORef BuildStatuses -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, Time UTCTime Day, Health, Embed IO] a -> Handler a
-liftServer statuses threads sem =
+liftServer :: IORef BuildStatuses -> IORef Bool -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, Time UTCTime Day, Health, Embed IO] a -> Handler a
+liftServer statuses health threads sem =
   sem
     & buildStatusesApiToIO statuses
     & interpretTimeGhc
-    & healthToIO threads
+    & healthToIO health threads
     & runM
     & Handler . ExceptT . try
 
@@ -58,4 +59,9 @@ startServer config backbone =
   serve api (hoist config backbone)
     & prometheus def
     & gzip def
-    & runSettings ((setPort 8282 . setGracefulShutdownTimeout (Just 1)) defaultSettings)
+    & runSettings (setPort 8282 . setGracefulShutdownTimeout (Just 2) . setShutdownHandlerDisablingHealth (health backbone) $ defaultSettings)
+
+setShutdownHandlerDisablingHealth :: IORef Bool -> Settings -> Settings
+setShutdownHandlerDisablingHealth health = setInstallShutdownHandler shutdownHandler
+  where
+    shutdownHandler closeSocket = void $ installHandler sigTERM (CatchOnce $ atomicWriteIORef health False >> closeSocket) Nothing
