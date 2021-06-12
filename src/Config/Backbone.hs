@@ -20,9 +20,9 @@ import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics
 import Relude hiding (lookupEnv)
 
-initBackbone :: Metrics -> IORef BuildStatuses -> IORef [(ThreadId, Text)] -> LogConfig -> Backbone
-initBackbone metrics iorefBuilds iorefThreads logConfig =
-  Backbone metrics iorefBuilds logConfig (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit) iorefThreads
+initBackbone :: Metrics -> IORef BuildStatuses -> IORef [(ThreadId, Text)] -> IORef Bool -> LogConfig -> Backbone
+initBackbone metrics iorefBuilds iorefThreads health logConfig =
+  Backbone metrics iorefBuilds logConfig (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit) iorefThreads health
   where
     gitCommit = $$tGitInfoCwd
 
@@ -31,7 +31,8 @@ data Backbone = Backbone
     statuses :: IORef BuildStatuses,
     logConfig :: LogConfig,
     gitCommit :: GitCommit,
-    threads :: IORef [(ThreadId, Text)]
+    threads :: IORef [(ThreadId, Text)],
+    health :: IORef Bool
   }
 
 data LogConfig = LogConfig

@@ -7,7 +7,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Metrics.Health (getCurrentHealthStatus, initThreads, healthToIO, HealthStatus) where
+module Metrics.Health (getCurrentHealthStatus, initThreads, initHealth, healthToIO, HealthStatus) where
 
 import Control.Concurrent (ThreadId)
 import Control.Exception (throw)
@@ -30,17 +30,21 @@ getCurrentHealthStatus = ifM isHealthy (pure healthy) (throw errorResponse)
           errHeaders = [(hContentType, "application/json;charset=utf-8")]
         }
 
-healthToIO :: Member (Embed IO) r => IORef [(ThreadId, Text)] -> InterpreterFor Health r
-healthToIO ioref = interpret $ \case
+healthToIO :: Member (Embed IO) r => IORef Bool -> IORef [(ThreadId, Text)] -> InterpreterFor Health r
+healthToIO healthIORef threadsIORef = interpret $ \case
   IsHealthy -> embed $ do
-    threads <- readIORef ioref
-    allM (isThreadHealthy . fst) threads
+    threads <- readIORef threadsIORef
+    health <- readIORef healthIORef
+    (&&) health <$> allM (isThreadHealthy . fst) threads
 
 isThreadHealthy :: ThreadId -> IO Bool
 isThreadHealthy = fmap (`notElem` [ThreadFinished, ThreadDied]) . threadStatus
 
 initThreads :: IO (IORef [(ThreadId, Text)])
 initThreads = newIORef []
+
+initHealth :: IO (IORef Bool)
+initHealth = newIORef True
 
 data HealthStatus = HealthStatus {status :: Status, build :: String} deriving (Generic, ToJSON)
 
