@@ -58,4 +58,4 @@ startServer config backbone =
   serve api (hoist config backbone)
     & prometheus def
     & gzip def
-    & run 8282
+    & runSettings ((setPort 8282 . setGracefulShutdownTimeout (Just 1)) defaultSettings)
