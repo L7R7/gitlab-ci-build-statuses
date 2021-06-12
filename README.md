@@ -7,7 +7,7 @@ Fetch the current statuses of the latest Gitlab CI pipelines for all default bra
 ## Features
 
 * Lightweight UI
-    * Plain HTML and CSS, no JS involved
+    * Plain HTML and CSS, barely any JS involved
     * Refreshes automatically, so you always see the latest statuses
     * The favicon will show an indicator summarizing all statuses, so you can directly see if everything is fine (this is especially helpful if you pin the tab in your browser)
 * Production-ready Docker container including Prometheus metrics, health endpoint, and configurable structured JSON logging
