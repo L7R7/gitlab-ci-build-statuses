@@ -41,6 +41,6 @@ data LogConfig = LogConfig
     _logEnv :: LogEnv
   }
 
-newtype GitCommit = GitCommit String deriving (Show)
+newtype GitCommit = GitCommit String deriving stock (Show)
 
 makeLenses ''LogConfig

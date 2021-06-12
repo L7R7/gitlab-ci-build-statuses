@@ -46,7 +46,9 @@ initThreads = newIORef []
 initHealth :: IO (IORef Bool)
 initHealth = newIORef True
 
-data HealthStatus = HealthStatus {status :: Status, build :: String} deriving (Generic, ToJSON)
+data HealthStatus = HealthStatus {status :: Status, build :: String}
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)
 
 healthy :: HealthStatus
 healthy = HealthStatus HEALTHY buildInfo
@@ -60,4 +62,6 @@ buildInfo = giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCom
 gitCommit :: GitInfo
 gitCommit = $$tGitInfoCwd
 
-data Status = HEALTHY | UNHEALTHY deriving (Generic, ToJSON)
+data Status = HEALTHY | UNHEALTHY
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)

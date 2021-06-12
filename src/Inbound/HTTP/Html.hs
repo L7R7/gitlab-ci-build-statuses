@@ -24,7 +24,7 @@ import Relude
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
-data AutoRefresh = Refresh | NoRefresh deriving (Eq)
+data AutoRefresh = Refresh | NoRefresh deriving stock (Eq)
 
 template :: (Member BuildStatusesApi r, Member (Time UTCTime d) r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
 template dataUpdateInterval uiUpdateInterval gitCommit autoRefresh = do

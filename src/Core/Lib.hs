@@ -50,10 +50,10 @@ data UpdateError
   | ConversionError JSONException
   | EmptyPipelinesResult
   | NoPipelineForDefaultBranch
-  deriving (Show)
+  deriving stock (Show)
 
 newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int
-  deriving (Show)
+  deriving stock (Show)
   deriving (Num) via Int
   deriving newtype (Eq)
 
@@ -63,7 +63,7 @@ data Pipeline = Pipeline
     pipelineStatus :: BuildStatus,
     pipelineWebUrl :: Url Pipeline
   }
-  deriving (Generic, Show)
+  deriving stock (Generic, Show)
 
 newtype Id a = Id Int deriving newtype (Eq, FromJSON, Hashable, Ord, Show, ToJSON)
 
@@ -83,7 +83,7 @@ data Result = Result
     buildStatus :: BuildStatus,
     url :: Either (Url Project) (Url Pipeline)
   }
-  deriving (Eq, Show)
+  deriving stock (Eq, Show)
 
 data BuildStatus
   = Unknown
@@ -99,7 +99,7 @@ data BuildStatus
   | Successful
   | SuccessfulWithWarnings
   | WaitingForResource
-  deriving (Bounded, Enum, Eq, Show, Ord)
+  deriving stock (Bounded, Enum, Eq, Show, Ord)
 
 data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
 
@@ -116,9 +116,9 @@ data Project = Project
     projectWebUrl :: Url Project,
     projectDefaultBranch :: Maybe Ref
   }
-  deriving (Generic, Show)
+  deriving stock (Generic, Show)
 
-newtype ProjectName = ProjectName Text deriving (Eq, FromJSON, Show)
+newtype ProjectName = ProjectName Text deriving newtype (Eq, FromJSON, Show)
 
 data PipelinesApi m a where
   GetLatestPipelineForRef :: Id Project -> Ref -> PipelinesApi m (Either UpdateError Pipeline)

@@ -46,7 +46,7 @@ data Config = Config
     logLevel :: Severity,
     projectExcludeList :: [Id Project]
   }
-  deriving (Eq, Generic)
+  deriving stock (Eq, Generic)
 
 instance Show Config where
   show Config {..} =
@@ -69,23 +69,23 @@ newtype ApiToken = ApiToken B.ByteString deriving newtype (Eq)
 data GitlabHost
 
 newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int
-  deriving (Show)
+  deriving stock (Show)
   deriving (Num) via Int
   deriving newtype (Eq)
 
 newtype ProjectCacheTtlSeconds = ProjectCacheTtlSeconds Int64
-  deriving (Show)
+  deriving stock (Show)
   deriving (Num) via Int64
   deriving newtype (Eq)
 
 newtype MaxConcurrency = MaxConcurrency Int
-  deriving (Show)
+  deriving stock (Show)
   deriving (Num) via Int
   deriving newtype (Eq)
 
-newtype GitCommit = GitCommit String deriving (Show)
+newtype GitCommit = GitCommit String deriving stock (Show)
 
-data SharedProjects = Include | Exclude deriving (Eq, Show)
+data SharedProjects = Include | Exclude deriving stock (Eq, Show)
 
 type ConfigH f = HKD Config f
 

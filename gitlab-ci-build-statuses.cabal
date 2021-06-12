@@ -29,11 +29,12 @@ common common-options
     -Wredundant-constraints
     -fhide-source-paths
     -Wpartial-fields
-    -- -Wmissing-deriving-strategies
+    -Wmissing-deriving-strategies
     -Wunused-packages
   default-language:
     Haskell2010
   default-extensions:
+    DerivingStrategies
     StrictData
 
 library
