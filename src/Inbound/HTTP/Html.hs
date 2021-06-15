@@ -47,7 +47,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-d66ed4fc6f.css"
-        script ! type_ "text/javascript" ! src "static/script-0c8bd5f8d5.js" $ mempty
+        script ! type_ "text/javascript" ! src "static/script-909ec6a089.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
   where
     prefix = faviconPrefix (overallStatus buildStatuses)

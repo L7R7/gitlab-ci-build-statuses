@@ -1,4 +1,4 @@
-window.onload = function () {
+window.addEventListener('DOMContentLoaded', () => {
   const timestamp = document.getElementById('update-timestamp');
   if (timestamp != null) {
     if (timestamp.innerText != null) {
@@ -6,4 +6,4 @@ window.onload = function () {
       timestamp.innerHTML = `${formatted.toLocaleDateString()}<br>${formatted.toLocaleTimeString()}`;
     }
   }
-}
+});
