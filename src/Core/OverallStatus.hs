@@ -18,7 +18,7 @@ data OverallStatus
   | Failed
   | Warning
   | Unknown
-  deriving (Bounded, Enum, Eq, Show)
+  deriving stock (Bounded, Enum, Eq, Show)
 
 instance Semigroup OverallStatus where
   Unknown <> s = s
