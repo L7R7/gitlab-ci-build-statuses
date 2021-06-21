@@ -28,5 +28,5 @@ pipelinesApiToIO baseUrl apiToken groupId histogram = interpret $ \case
 
 headOrUpdateError :: Either UpdateError [a] -> Either UpdateError a
 headOrUpdateError (Right (a : _)) = Right a
-headOrUpdateError (Right []) = Left NoPipelineForDefaultBranch
+headOrUpdateError (Right []) = Left EmptyResult
 headOrUpdateError (Left e) = Left e

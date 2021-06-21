@@ -68,8 +68,7 @@ getStatusForProject _ Nothing = pure Nothing
 getStatusForProject projectId (Just defaultBranch) = addContext "projectId" projectId $ do
   pipeline <- getLatestPipelineForRef projectId defaultBranch
   case pipeline of
-    Left EmptyPipelinesResult -> pure Nothing
-    Left NoPipelineForDefaultBranch -> pure Nothing
+    Left EmptyResult -> pure Nothing
     Left uError -> Nothing <$ logWarn (unwords ["Couldn't eval project. Error was", show uError])
     Right p -> do
       let st = pipelineStatus p

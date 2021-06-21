@@ -48,8 +48,7 @@ data Group
 data UpdateError
   = HttpError HttpException
   | ConversionError JSONException
-  | EmptyPipelinesResult
-  | NoPipelineForDefaultBranch
+  | EmptyResult
   deriving stock (Show)
 
 newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int
