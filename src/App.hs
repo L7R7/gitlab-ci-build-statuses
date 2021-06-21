@@ -13,7 +13,8 @@ import Katip hiding (getEnvironment)
 import Logger
 import Metrics.Health (initHealth, initThreads)
 import Metrics.Metrics
-import Outbound.Gitlab.GitlabAPI (initCache, pipelinesApiToIO, projectsApiToIO)
+import Outbound.Gitlab.Pipelines (pipelinesApiToIO)
+import Outbound.Gitlab.Projects (initCache, projectsApiToIO)
 import Outbound.Storage.InMemory (buildStatusesApiToIO, initStorage)
 import Polysemy
 import Polysemy.Reader

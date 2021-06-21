@@ -55,7 +55,10 @@ library
     , Metrics.PrometheusUtils
     , Inbound.Jobs.Updating
     , Inbound.HTTP.Server
-    , Outbound.Gitlab.GitlabAPI
+    , Outbound.Gitlab.Helpers
+    , Outbound.Gitlab.Instances
+    , Outbound.Gitlab.Pipelines
+    , Outbound.Gitlab.Projects
     , Outbound.Gitlab.RequestResponseUtils
     , Outbound.Storage.InMemory
     , Util
