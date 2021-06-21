@@ -21,7 +21,7 @@ import Metrics.Health (HealthStatus, getCurrentHealthStatus, healthToIO)
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Gzip (gzip)
 import Network.Wai.Middleware.Prometheus (def, prometheus)
-import Outbound.Storage.InMemory (buildStatusesApiToIO)
+import Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import Polysemy hiding (run)
 import Polysemy.Time (Time, interpretTimeGhc)
 import Relude

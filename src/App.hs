@@ -15,7 +15,7 @@ import Metrics.Health (initHealth, initThreads)
 import Metrics.Metrics
 import Outbound.Gitlab.Pipelines (pipelinesApiToIO)
 import Outbound.Gitlab.Projects (initCache, projectsApiToIO)
-import Outbound.Storage.InMemory (buildStatusesApiToIO, initStorage)
+import Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO, initStorage)
 import Polysemy
 import Polysemy.Reader
 import Polysemy.Time (interpretTimeGhc)
