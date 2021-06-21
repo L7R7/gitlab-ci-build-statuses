@@ -47,11 +47,10 @@ library
     , Core.Effects
     , Core.Lib
     , Core.OverallStatus
-    , Core.UseCases.Lib
     , Inbound.HTTP.BuildStatuses.Html
     , Inbound.HTTP.Util
     , Inbound.HTTP.Server
-    , Inbound.Jobs.Updating
+    , Inbound.Jobs.BuildStatuses
     , Logger
     , Metrics.Health
     , Metrics.Metrics
@@ -62,6 +61,7 @@ library
     , Outbound.Gitlab.Projects
     , Outbound.Gitlab.RequestResponseUtils
     , Outbound.Storage.BuildStatuses.InMemory
+    , UseCases.BuildStatuses
     , Util
   other-modules:
       Paths_gitlab_ci_build_statuses

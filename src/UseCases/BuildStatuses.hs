@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Core.UseCases.Lib
+module UseCases.BuildStatuses
   ( updateStatuses,
     currentBuildStatuses,
     getStatusForProject,

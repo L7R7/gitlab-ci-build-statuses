@@ -2,19 +2,19 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Inbound.Jobs.Updating
+module Inbound.Jobs.BuildStatuses
   ( updateStatusesRegularly,
   )
 where
 
 import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug, logInfo)
 import Core.Lib (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, Project, ProjectsApi)
-import Core.UseCases.Lib (updateStatuses)
 import Metrics.Metrics
 import Polysemy
 import Polysemy.Time (Seconds (Seconds), Time)
 import qualified Polysemy.Time as Time
 import Relude
+import UseCases.BuildStatuses (updateStatuses)
 
 updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member (Time t d) r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> [Id Project] -> Sem r ()
 updateStatusesRegularly groupId (DataUpdateIntervalSeconds updateInterval) excludeList =

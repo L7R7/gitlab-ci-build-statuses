@@ -8,7 +8,7 @@ import Config.Config
 import Control.Concurrent (forkIO)
 import qualified Data.Text as T (intercalate)
 import Inbound.HTTP.Server (startServer)
-import Inbound.Jobs.Updating (updateStatusesRegularly)
+import Inbound.Jobs.BuildStatuses (updateStatusesRegularly)
 import Katip hiding (getEnvironment)
 import Logger
 import Metrics.Health (initHealth, initThreads)
