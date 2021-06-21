@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -6,8 +7,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
 
-module Metrics.Health (getCurrentHealthStatus, initThreads, initHealth, healthToIO, HealthStatus) where
+module Metrics.Health (API, getCurrentHealthStatus, initThreads, initHealth, healthToIO, HealthStatus) where
 
 import Control.Concurrent (ThreadId)
 import Control.Exception (throw)
@@ -18,8 +20,10 @@ import GitHash (GitInfo, giBranch, giHash, giTag, tGitInfoCwd)
 import Network.HTTP.Types (hContentType)
 import Polysemy
 import Relude
-import Servant (err503, errHeaders)
+import Servant (Get, JSON, err503, errHeaders, (:>))
 import Servant.Server (errBody)
+
+type API = "health" :> Get '[JSON] HealthStatus
 
 getCurrentHealthStatus :: Member Health r => Sem r HealthStatus
 getCurrentHealthStatus = ifM isHealthy (pure healthy) (throw errorResponse)

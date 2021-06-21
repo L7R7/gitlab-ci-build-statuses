@@ -48,13 +48,14 @@ library
     , Core.Lib
     , Core.OverallStatus
     , Core.UseCases.Lib
-    , Inbound.HTTP.Html
+    , Inbound.HTTP.BuildStatuses.Html
+    , Inbound.HTTP.Util
+    , Inbound.HTTP.Server
+    , Inbound.Jobs.Updating
     , Logger
     , Metrics.Health
     , Metrics.Metrics
     , Metrics.PrometheusUtils
-    , Inbound.Jobs.Updating
-    , Inbound.HTTP.Server
     , Outbound.Gitlab.Helpers
     , Outbound.Gitlab.Instances
     , Outbound.Gitlab.Pipelines

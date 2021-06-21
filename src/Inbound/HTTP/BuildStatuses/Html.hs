@@ -1,12 +1,15 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Inbound.HTTP.Html
-  ( template,
+module Inbound.HTTP.BuildStatuses.Html
+  ( API,
+    template,
     AutoRefresh (..),
   )
 where
@@ -17,14 +20,17 @@ import Core.Lib
 import Core.OverallStatus (isRunning, overallStatus)
 import qualified Core.OverallStatus as O (OverallStatus (Successful, Unknown, Warning))
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
+import Inbound.HTTP.Util
 import Polysemy
 import Polysemy.Time (Time)
 import qualified Polysemy.Time as Time
 import Relude
+import Servant
+import Servant.HTML.Blaze
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
-data AutoRefresh = Refresh | NoRefresh deriving stock (Eq)
+type API = "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
 
 template :: (Member BuildStatusesApi r, Member (Time UTCTime d) r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
 template dataUpdateInterval uiUpdateInterval gitCommit autoRefresh = do

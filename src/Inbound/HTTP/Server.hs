@@ -16,8 +16,10 @@ import Control.Exception (try)
 import Core.Effects (Health)
 import Core.Lib (BuildStatuses, BuildStatusesApi, DataUpdateIntervalSeconds)
 import Data.Time
-import Inbound.HTTP.Html
-import Metrics.Health (HealthStatus, getCurrentHealthStatus, healthToIO)
+import Inbound.HTTP.BuildStatuses.Html (AutoRefresh (..))
+import qualified Inbound.HTTP.BuildStatuses.Html as BuildStatuses
+import Metrics.Health (getCurrentHealthStatus, healthToIO)
+import qualified Metrics.Health as Health
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Gzip (gzip)
 import Network.Wai.Middleware.Prometheus (def, prometheus)
@@ -26,17 +28,21 @@ import Polysemy hiding (run)
 import Polysemy.Time (Time, interpretTimeGhc)
 import Relude
 import Servant
-import Servant.HTML.Blaze
 import System.Posix.Signals hiding (Handler)
-import qualified Text.Blaze.Html5 as H
 
-type API = "health" :> Get '[JSON] HealthStatus :<|> "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html :<|> "static" :> Raw
+type API =
+  Health.API
+    :<|> BuildStatuses.API
+    :<|> "static" :> Raw
 
 api :: Proxy API
 api = Proxy
 
 server :: (Member BuildStatusesApi r, Member (Time UTCTime d) r, Member Health r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
-server dataUpdateInterval uiUpdateInterval gitCommit = getCurrentHealthStatus :<|> (template dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag) :<|> serveDirectoryWebApp "/service/static"
+server dataUpdateInterval uiUpdateInterval gitCommit =
+  getCurrentHealthStatus
+    :<|> (BuildStatuses.template dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag)
+    :<|> serveDirectoryWebApp "/service/static"
 
 norefreshFlag :: Bool -> AutoRefresh
 norefreshFlag True = NoRefresh
