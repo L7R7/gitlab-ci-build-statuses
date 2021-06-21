@@ -9,7 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Core.Lib
+module Core.BuildStatuses
   ( BuildStatus (..),
     BuildStatuses (..),
     DataUpdateIntervalSeconds (..),

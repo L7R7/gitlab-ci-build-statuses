@@ -4,7 +4,7 @@ module Outbound.Gitlab.RequestResponseUtils (privateToken, removeApiTokenFromUpd
 
 import Config.Config
 import Control.Lens (Lens', Prism', Traversal', filtered, lens, prism', set, _1, _2)
-import Core.Lib (UpdateError (..))
+import Core.BuildStatuses (UpdateError (..))
 import Network.HTTP.Client.Conduit
 import Network.HTTP.Link
 import Network.HTTP.Simple

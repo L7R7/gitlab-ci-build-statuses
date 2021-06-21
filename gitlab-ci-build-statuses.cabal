@@ -44,8 +44,8 @@ library
     , Config.Backbone
     , Config.Config
     , Config.Util
+    , Core.BuildStatuses
     , Core.Effects
-    , Core.Lib
     , Core.OverallStatus
     , Inbound.HTTP.BuildStatuses.Html
     , Inbound.HTTP.Util

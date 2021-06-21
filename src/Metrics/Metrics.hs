@@ -24,7 +24,7 @@ module Metrics.Metrics
   )
 where
 
-import Core.Lib (BuildStatus, BuildStatuses (..), BuildStatusesApi, Group, Id (..), Result (..), getStatuses, isHealthy)
+import Core.BuildStatuses (BuildStatus, BuildStatuses (..), BuildStatusesApi, Group, Id (..), Result (..), getStatuses, isHealthy)
 import Data.List (partition)
 import Data.List.Extra (enumerate)
 import Data.Map hiding (partition)

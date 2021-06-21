@@ -21,7 +21,7 @@ where
 import Barbies
 import Config.Util
 import Control.Lens
-import Core.Lib (DataUpdateIntervalSeconds (..), Group, Id (..), Project, Url (..))
+import Core.BuildStatuses (DataUpdateIntervalSeconds (..), Group, Id (..), Project, Url (..))
 import Data.Biapplicative
 import qualified Data.ByteString as B hiding (pack)
 import Data.Char (toLower)

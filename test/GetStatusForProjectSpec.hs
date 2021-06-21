@@ -4,14 +4,14 @@
 
 module GetStatusForProjectSpec where
 
-import Core.Lib
-import UseCases.BuildStatuses
+import Core.BuildStatuses
 import qualified Data.Map as M
 import Network.URI.Static
 import Polysemy
 import Relude
 import Test.Hspec
 import TestUtils
+import UseCases.BuildStatuses
 
 spec :: Spec
 spec = do

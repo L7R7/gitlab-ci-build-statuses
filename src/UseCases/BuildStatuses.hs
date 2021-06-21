@@ -11,8 +11,8 @@ module UseCases.BuildStatuses
   )
 where
 
+import Core.BuildStatuses
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
-import Core.Lib
 import Data.List (partition)
 import qualified Data.Text as T (intercalate, toLower)
 import Polysemy

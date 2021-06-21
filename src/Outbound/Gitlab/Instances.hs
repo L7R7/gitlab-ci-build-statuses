@@ -3,7 +3,7 @@
 
 module Outbound.Gitlab.Instances () where
 
-import Core.Lib
+import Core.BuildStatuses
 import Data.Aeson hiding (Result, Value)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Network.URI (parseURI)

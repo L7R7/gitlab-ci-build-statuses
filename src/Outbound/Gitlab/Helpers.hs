@@ -11,7 +11,7 @@ module Outbound.Gitlab.Helpers (fetchData, fetchDataPaginated) where
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost)
 import Control.Exception (try)
-import Core.Lib (Group, Id (Id), UpdateError (..), Url (..))
+import Core.BuildStatuses (Group, Id (Id), UpdateError (..), Url (..))
 import Data.Aeson hiding (Result, Value)
 import Data.Either.Combinators (mapLeft)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)

@@ -14,7 +14,7 @@ where
 
 import Control.Concurrent (ThreadId)
 import Control.Lens
-import Core.Lib (BuildStatuses)
+import Core.BuildStatuses (BuildStatuses)
 import GitHash
 import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics

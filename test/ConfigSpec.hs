@@ -4,7 +4,7 @@
 module ConfigSpec where
 
 import Config.Config
-import Core.Lib
+import Core.BuildStatuses
 import Katip
 import Network.URI.Static
 import Relude

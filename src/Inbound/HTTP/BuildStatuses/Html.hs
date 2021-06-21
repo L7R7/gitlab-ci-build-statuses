@@ -16,7 +16,7 @@ where
 
 import Config.Backbone
 import Config.Config
-import Core.Lib
+import Core.BuildStatuses
 import Core.OverallStatus (isRunning, overallStatus)
 import qualified Core.OverallStatus as O (OverallStatus (Successful, Unknown, Warning))
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)

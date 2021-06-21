@@ -4,8 +4,8 @@
 
 module TestUtils where
 
+import Core.BuildStatuses
 import Core.Effects
-import Core.Lib
 import qualified Data.Map as M
 import Polysemy
 import Relude

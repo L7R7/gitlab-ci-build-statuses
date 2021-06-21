@@ -5,7 +5,7 @@
 
 module Outbound.Storage.BuildStatuses.InMemory (initStorage, buildStatusesApiToIO) where
 
-import Core.Lib (BuildStatuses (..), BuildStatusesApi (..))
+import Core.BuildStatuses (BuildStatuses (..), BuildStatusesApi (..))
 import Data.Time (getCurrentTime)
 import Polysemy
 import Relude

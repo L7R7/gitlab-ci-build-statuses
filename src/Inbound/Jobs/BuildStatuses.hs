@@ -7,8 +7,8 @@ module Inbound.Jobs.BuildStatuses
   )
 where
 
+import Core.BuildStatuses (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, Project, ProjectsApi)
 import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug, logInfo)
-import Core.Lib (BuildStatusesApi, DataUpdateIntervalSeconds (..), Group, Id, PipelinesApi, Project, ProjectsApi)
 import Metrics.Metrics
 import Polysemy
 import Polysemy.Time (Seconds (Seconds), Time)
