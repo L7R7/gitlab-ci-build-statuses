@@ -15,13 +15,17 @@ import Control.Concurrent (ThreadId)
 import Control.Exception (try)
 import Core.Effects (Health)
 import Core.Lib (BuildStatuses, BuildStatusesApi, DataUpdateIntervalSeconds)
+import Core.Runners
 import Data.Time
-import Inbound.HTTP.Html
+import qualified Inbound.HTTP.Runners.Html as Runners (template)
+import Inbound.HTTP.Statuses.Html (AutoRefresh (..))
+import qualified Inbound.HTTP.Statuses.Html as Statuses (template)
 import Metrics.Health (HealthStatus, getCurrentHealthStatus, healthToIO)
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Gzip (gzip)
 import Network.Wai.Middleware.Prometheus (def, prometheus)
-import Outbound.Storage.InMemory (buildStatusesApiToIO)
+import Outbound.Storage.InMemoryRunners (runnersJobsApiToIO)
+import Outbound.Storage.InMemoryStatuses (buildStatusesApiToIO)
 import Polysemy hiding (run)
 import Polysemy.Time (Time, interpretTimeGhc)
 import Relude
@@ -30,25 +34,34 @@ import Servant.HTML.Blaze
 import System.Posix.Signals hiding (Handler)
 import qualified Text.Blaze.Html5 as H
 
-type API = "health" :> Get '[JSON] HealthStatus :<|> "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html :<|> "static" :> Raw
+type API =
+  "health" :> Get '[JSON] HealthStatus
+    :<|> "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
+    :<|> "jobs" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
+    :<|> "static" :> Raw
 
 api :: Proxy API
 api = Proxy
 
-server :: (Member BuildStatusesApi r, Member (Time UTCTime d) r, Member Health r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
-server dataUpdateInterval uiUpdateInterval gitCommit = getCurrentHealthStatus :<|> (template dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag) :<|> serveDirectoryWebApp "/service/static"
+server :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member (Time UTCTime d) r, Member Health r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
+server dataUpdateInterval uiUpdateInterval gitCommit =
+  getCurrentHealthStatus
+    :<|> (Statuses.template dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag)
+    :<|> (Runners.template dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag)
+    :<|> serveDirectoryWebApp "/service/static"
 
 norefreshFlag :: Bool -> AutoRefresh
 norefreshFlag True = NoRefresh
 norefreshFlag False = Refresh
 
 hoist :: Config -> Backbone -> ServerT API Handler
-hoist Config {..} Backbone {..} = hoistServer api (liftServer statuses health threads) (server dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
+hoist Config {..} Backbone {..} = hoistServer api (liftServer statuses runners health threads) (server dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
 
-liftServer :: IORef BuildStatuses -> IORef Bool -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, Time UTCTime Day, Health, Embed IO] a -> Handler a
-liftServer statuses health threads sem =
+liftServer :: IORef BuildStatuses -> IORef RunnersJobs -> IORef Bool -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, RunnersJobsApi, Time UTCTime Day, Health, Embed IO] a -> Handler a
+liftServer statuses runners health threads sem =
   sem
     & buildStatusesApiToIO statuses
+    & runnersJobsApiToIO runners
     & interpretTimeGhc
     & healthToIO health threads
     & runM

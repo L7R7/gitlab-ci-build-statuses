@@ -71,6 +71,7 @@ data Metrics = Metrics
     updateJobDurationHistogram :: !UpdateJobDurationHistogram
   }
 
+-- todo add tagging
 data DurationObservation m a where
   ObserveDuration :: m b -> DurationObservation m b
 

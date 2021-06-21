@@ -47,17 +47,22 @@ library
     , Core.Effects
     , Core.Lib
     , Core.OverallStatus
+    , Core.Runners
     , Core.UseCases.Lib
-    , Inbound.HTTP.Html
+    , Core.UseCases.Runners
+    , Inbound.HTTP.Runners.Html
+    , Inbound.HTTP.Statuses.Html
+    , Inbound.HTTP.Server
+    , Inbound.Jobs.Updating
+    , Inbound.Jobs.UpdatingRunners
     , Logger
     , Metrics.Health
     , Metrics.Metrics
     , Metrics.PrometheusUtils
-    , Inbound.Jobs.Updating
-    , Inbound.HTTP.Server
     , Outbound.Gitlab.GitlabAPI
     , Outbound.Gitlab.RequestResponseUtils
-    , Outbound.Storage.InMemory
+    , Outbound.Storage.InMemoryRunners
+    , Outbound.Storage.InMemoryStatuses
     , Util
   other-modules:
       Paths_gitlab_ci_build_statuses

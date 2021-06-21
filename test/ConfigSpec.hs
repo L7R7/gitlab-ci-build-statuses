@@ -86,6 +86,7 @@ spec = do
         (DataUpdateIntervalSeconds 60)
         (UiUpdateIntervalSeconds 5)
         (ProjectCacheTtlSeconds 0)
+        (RunnerCacheTtlSeconds 600)
         (MaxConcurrency 2)
         Include
         InfoS

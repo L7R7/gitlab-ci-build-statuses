@@ -9,12 +9,16 @@ import Control.Concurrent (forkIO)
 import qualified Data.Text as T (intercalate)
 import Inbound.HTTP.Server (startServer)
 import Inbound.Jobs.Updating (updateStatusesRegularly)
+import Inbound.Jobs.UpdatingRunners
 import Katip hiding (getEnvironment)
 import Logger
 import Metrics.Health (initHealth, initThreads)
 import Metrics.Metrics
-import Outbound.Gitlab.GitlabAPI (initCache, pipelinesApiToIO, projectsApiToIO)
-import Outbound.Storage.InMemory (buildStatusesApiToIO, initStorage)
+import Outbound.Gitlab.GitlabAPI (initProjectCache, initRunnerCache, pipelinesApiToIO, projectsApiToIO, runnersApiToIO)
+import Outbound.Storage.InMemoryRunners
+import qualified Outbound.Storage.InMemoryRunners as Runners
+import Outbound.Storage.InMemoryStatuses (buildStatusesApiToIO)
+import qualified Outbound.Storage.InMemoryStatuses as Statuses
 import Polysemy
 import Polysemy.Reader
 import Polysemy.Time (interpretTimeGhc)
@@ -33,7 +37,7 @@ startMetricsUpdatingJob config backbone =
 
 startStatusUpdatingJob :: Config -> Backbone -> IO ()
 startStatusUpdatingJob Config {..} Backbone {..} = do
-  cache <- initCache projectCacheTtlSecs
+  cache <- initProjectCache projectCacheTtlSecs
   runFinal
     . embedToFinal
     . buildStatusesApiToIO statuses
@@ -46,24 +50,40 @@ startStatusUpdatingJob Config {..} Backbone {..} = do
     . observeDurationToIO groupId (updateJobDurationHistogram metrics)
     $ updateStatusesRegularly groupId dataUpdateIntervalSecs projectExcludeList
 
+startRunnersJobsUpdatingJob :: Config -> Backbone -> IO ()
+startRunnersJobsUpdatingJob Config {..} Backbone {..} = do
+  cache <- initRunnerCache projectCacheTtlSecs
+  runFinal
+    . embedToFinal
+    . runnersJobsApiToIO runners
+    . runnersApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics) cache
+    . parTraverseToIO maxConcurrency
+    . interpretTimeGhc
+    . runReader logConfig
+    . loggerToIO
+    . observeDurationToIO groupId (updateJobDurationHistogram metrics)
+    $ updateRunnersJobsRegularly groupId dataUpdateIntervalSecs projectExcludeList
+
 startWithConfig :: Config -> Backbone -> IO ()
 startWithConfig config backbone = do
   metrics <- forkIO $ startMetricsUpdatingJob config backbone
-  statuses <- forkIO $ startStatusUpdatingJob config backbone
-  atomicWriteIORef (threads backbone) [(metrics, "metrics"), (statuses, "statuses")]
+  -- statuses <- forkIO $ startStatusUpdatingJob config backbone
+  runnersJobs <- forkIO $ startRunnersJobsUpdatingJob config backbone
+  atomicWriteIORef (threads backbone) [(metrics, "metrics"),  (runnersJobs, "runnersJobs")]
   startServer config backbone
 
 run :: IO ()
 run = do
   environment <- getEnvironment
-  statuses <- initStorage
+  statuses <- Statuses.initStorage
+  runners <- Runners.initStorage
   healthThreads <- initThreads
   metrics <- registerMetrics
   health <- initHealth
   case parseConfigFromEnv environment of
     Success config ->
       withLogEnv (logLevel config) $ \lE -> do
-        let backbone = initBackbone metrics statuses healthThreads health (LogConfig mempty mempty lE)
+        let backbone = initBackbone metrics statuses runners healthThreads health (LogConfig mempty mempty lE)
         singleLog lE InfoS $ "Using config: " <> show config
         singleLog lE InfoS $ "Running version: " <> show (gitCommit backbone)
         startWithConfig config backbone

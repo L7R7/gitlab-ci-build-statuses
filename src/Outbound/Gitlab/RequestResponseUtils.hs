@@ -13,8 +13,7 @@ import Relude
 removeApiTokenFromUpdateError :: UpdateError -> UpdateError
 removeApiTokenFromUpdateError (HttpError httpException) = HttpError (removeApiTokenFromHttpException httpException)
 removeApiTokenFromUpdateError (ConversionError jsonException) = ConversionError (removeApiTokenFromJsonException jsonException)
-removeApiTokenFromUpdateError EmptyPipelinesResult = EmptyPipelinesResult
-removeApiTokenFromUpdateError NoPipelineForDefaultBranch = NoPipelineForDefaultBranch
+removeApiTokenFromUpdateError EmptyResult = EmptyResult
 
 removeApiTokenFromHttpException :: HttpException -> HttpException
 removeApiTokenFromHttpException = set (reqPrism . _1 . headers . tokenHeader) "xxxxx"

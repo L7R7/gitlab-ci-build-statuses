@@ -1,17 +1,20 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
-module Outbound.Gitlab.GitlabAPI (initCache, projectsApiToIO, pipelinesApiToIO) where
+module Outbound.Gitlab.GitlabAPI (initProjectCache, projectsApiToIO, pipelinesApiToIO, initRunnerCache, runnersApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
 import Control.Exception (try)
 import Core.Lib (BuildStatus (..), DetailedPipeline (..), Group, Id (Id), Pipeline, PipelinesApi (..), Project, ProjectsApi (..), Ref (Ref), UpdateError (..), Url (..))
+import Core.Runners (IpAddress (..), Job (..), JobName (..), Runner, RunnerName (RunnerName), RunnersApi (GetOnlineRunnersForGroup, GetRunningJobsForRunner), Stage (Stage))
 import Data.Aeson hiding (Result, Value)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Cache
@@ -29,8 +32,8 @@ import Prometheus (observeDuration)
 import Relude
 import System.Clock
 
-initCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Project])
-initCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
+initProjectCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Project])
+initProjectCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
 projectsApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> SharedProjects -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Project] -> InterpreterFor ProjectsApi r
 projectsApiToIO baseUrl apiToken sharedProjects histogram cache = interpret $ \case
@@ -56,9 +59,28 @@ pipelinesApiToIO baseUrl apiToken groupId histogram = interpret $ \case
     let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
     embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)] groupId histogram
 
+-- todo split up into modules, rename to initCache
+initRunnerCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Runner])
+initRunnerCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
+
+runnersApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Runner] -> InterpreterFor RunnersApi r
+runnersApiToIO baseUrl apiToken histogram cache = interpret $ \case
+  GetOnlineRunnersForGroup groupId -> embed $ do
+    cached <- lookup cache groupId
+    case cached of
+      (Just runners) -> pure $ Right runners
+      Nothing -> do
+        let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online|]
+        result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
+        traverse_ (insert cache groupId) result
+        pure result
+  GetRunningJobsForRunner groupId runnerId -> do
+    let template = [uriTemplate|/api/v4/runners/{runnerId}/jobs?status=running|]
+    embed $ fetchDataPaginated baseUrl apiToken template [("runnerId", (stringValue . show) runnerId)] groupId histogram
+
 headOrUpdateError :: Either UpdateError [a] -> Either UpdateError a
 headOrUpdateError (Right (a : _)) = Right a
-headOrUpdateError (Right []) = Left NoPipelineForDefaultBranch
+headOrUpdateError (Right []) = Left EmptyResult
 headOrUpdateError (Left e) = Left e
 
 fetchData :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> Id Group -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
@@ -88,6 +110,7 @@ fetchDataPaginated' apiToken request template groupId histogram acc = do
       Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken req template groupId histogram (as <> acc)) next
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
+-- todo move to RequestResponseUtils
 parseNextRequest :: Response a -> Maybe Request
 parseNextRequest response = parseNextHeader response >>= requestFromURI
 
@@ -140,4 +163,26 @@ instance FromJSON (Url a) where
   parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (toString v))
 
 instance FromJSON Project where
+  parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+instance FromJSON Job where
+  parseJSON = withObject "job" $ \job -> do
+    jobId <- job .: "id"
+    jobProjectId <- job .: "project" >>= \p -> p .: "id"
+    jobProjectName <- job .: "project" >>= \p -> p .: "name"
+    jobStage <- job .: "stage"
+    jobName <- job .: "name"
+    jobRef <- job .: "ref"
+    jobWebUrl <- job .: "web_url"
+    pure Job {..}
+
+deriving newtype instance FromJSON Stage
+
+deriving newtype instance FromJSON RunnerName
+
+deriving newtype instance FromJSON IpAddress
+
+deriving newtype instance FromJSON JobName
+
+instance FromJSON Runner where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase

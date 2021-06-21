@@ -1,11 +1,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Inbound.HTTP.Html
+module Inbound.HTTP.Statuses.Html
   ( template,
     AutoRefresh (..),
   )
@@ -106,8 +108,7 @@ lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.
 emptyResults :: Html
 emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results for default branches found"
 
-instance ToMarkup ProjectName where
-  toMarkup (ProjectName pN) = toMarkup pN
+deriving newtype instance ToMarkup ProjectName
 
 instance ToValue (Url a) where
   toValue (Url url) = toValue @String (show url)
