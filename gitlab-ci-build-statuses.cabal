@@ -47,6 +47,7 @@ library
     , Core.BuildStatuses
     , Core.Effects
     , Core.OverallStatus
+    , Core.Shared
     , Inbound.HTTP.BuildStatuses.Html
     , Inbound.HTTP.Util
     , Inbound.HTTP.Server

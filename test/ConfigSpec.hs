@@ -5,6 +5,7 @@ module ConfigSpec where
 
 import Config.Config
 import Core.BuildStatuses
+import Core.Shared
 import Katip
 import Network.URI.Static
 import Relude

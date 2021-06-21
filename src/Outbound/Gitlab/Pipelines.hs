@@ -10,7 +10,8 @@ module Outbound.Gitlab.Pipelines (pipelinesApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost)
-import Core.BuildStatuses (Group, Id (Id), PipelinesApi (..), Ref (Ref), UpdateError (..), Url (..))
+import Core.BuildStatuses (PipelinesApi (..))
+import Core.Shared (Group, Id (Id), Ref (Ref), UpdateError (..), Url (..))
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)
 import Outbound.Gitlab.Helpers
 import Outbound.Gitlab.Instances ()

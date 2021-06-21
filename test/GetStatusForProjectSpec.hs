@@ -5,6 +5,7 @@
 module GetStatusForProjectSpec where
 
 import Core.BuildStatuses
+import Core.Shared
 import qualified Data.Map as M
 import Network.URI.Static
 import Polysemy
@@ -34,16 +35,16 @@ spec = do
         . projectsApiFromMap
           ( M.fromList
               [ ( Id 42,
-                  [ Project (Id 312) (ProjectName "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing,
-                    Project (Id 311) (ProjectName "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main")
+                  [ Project (Id 312) (Name "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing,
+                    Project (Id 311) (Name "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main")
                   ]
                 )
               ]
           )
         . parTraversePure
     result = [result1, result2]
-    result1 = Result (Id 311) (ProjectName "my-other-project") Running (Right (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))
-    result2 = Result (Id 312) (ProjectName "myProj") Unknown (Left (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")))
+    result1 = Result (Id 311) (Name "my-other-project") Running (Right (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))
+    result2 = Result (Id 312) (Name "myProj") Unknown (Left (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")))
     projects =
       M.fromList
         [ ((Id 50, Ref "main"), Pipeline (Id 151) (Ref "main") Successful (Url $$(staticURI "https://sample.de/50"))),

@@ -12,12 +12,7 @@
 module Core.BuildStatuses
   ( BuildStatus (..),
     BuildStatuses (..),
-    DataUpdateIntervalSeconds (..),
     Result (..),
-    Group,
-    Id (..),
-    Url (..),
-    ProjectName (..),
     ProjectsApi (..),
     getProjects,
     BuildStatusesApi (..),
@@ -26,35 +21,18 @@ module Core.BuildStatuses
     PipelinesApi (..),
     getLatestPipelineForRef,
     getSinglePipeline,
-    UpdateError (..),
     DetailedPipeline (..),
     Pipeline (..),
     Project (..),
-    Ref (..),
     isHealthy,
     toResult,
   )
 where
 
-import Data.Aeson hiding (Result)
+import Core.Shared
 import Data.Time (UTCTime (..))
-import Network.HTTP.Simple (HttpException, JSONException)
-import Network.URI
 import Polysemy
 import Relude
-
-data Group
-
-data UpdateError
-  = HttpError HttpException
-  | ConversionError JSONException
-  | EmptyResult
-  deriving stock (Show)
-
-newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int
-  deriving stock (Show)
-  deriving (Num) via Int
-  deriving newtype (Eq)
 
 data Pipeline = Pipeline
   { pipelineId :: Id Pipeline,
@@ -64,12 +42,6 @@ data Pipeline = Pipeline
   }
   deriving stock (Generic, Show)
 
-newtype Id a = Id Int deriving newtype (Eq, FromJSON, Hashable, Ord, Show, ToJSON)
-
-newtype Url a = Url URI deriving newtype (Eq, Show)
-
-newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Ord, Show)
-
 instance Eq Pipeline where
   p == p' = pipelineId p == pipelineId p'
 
@@ -78,7 +50,7 @@ instance Ord Pipeline where
 
 data Result = Result
   { projId :: Id Project,
-    name :: ProjectName,
+    name :: Name Project,
     buildStatus :: BuildStatus,
     url :: Either (Url Project) (Url Pipeline)
   }
@@ -111,13 +83,11 @@ data DetailedPipeline = DetailedPipeline
 
 data Project = Project
   { projectId :: Id Project,
-    projectName :: ProjectName,
+    projectName :: Name Project,
     projectWebUrl :: Url Project,
     projectDefaultBranch :: Maybe Ref
   }
   deriving stock (Generic, Show)
-
-newtype ProjectName = ProjectName Text deriving newtype (Eq, FromJSON, Show)
 
 data PipelinesApi m a where
   GetLatestPipelineForRef :: Id Project -> Ref -> PipelinesApi m (Either UpdateError Pipeline)

@@ -10,7 +10,8 @@ module Outbound.Gitlab.Projects (initCache, projectsApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
-import Core.BuildStatuses (Group, Id, Project, ProjectsApi (..), Url (..))
+import Core.BuildStatuses (Project, ProjectsApi (..))
+import Core.Shared (Group, Id, Url (..))
 import Data.Cache
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)
 import Outbound.Gitlab.Helpers

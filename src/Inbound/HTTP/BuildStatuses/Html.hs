@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -19,6 +20,7 @@ import Config.Config
 import Core.BuildStatuses
 import Core.OverallStatus (isRunning, overallStatus)
 import qualified Core.OverallStatus as O (OverallStatus (Successful, Unknown, Warning))
+import Core.Shared
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Inbound.HTTP.Util
 import Polysemy
@@ -112,8 +114,8 @@ lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.
 emptyResults :: Html
 emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results for default branches found"
 
-instance ToMarkup ProjectName where
-  toMarkup (ProjectName pN) = toMarkup pN
+instance ToMarkup (Name Project) where
+  toMarkup (Name pN) = toMarkup pN
 
 instance ToValue (Url a) where
   toValue (Url url) = toValue @String (show url)

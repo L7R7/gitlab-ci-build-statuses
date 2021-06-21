@@ -4,6 +4,7 @@
 module Outbound.Gitlab.Instances () where
 
 import Core.BuildStatuses
+import Core.Shared (Url (..))
 import Data.Aeson hiding (Result, Value)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Network.URI (parseURI)

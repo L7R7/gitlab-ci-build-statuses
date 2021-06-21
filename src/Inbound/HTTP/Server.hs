@@ -13,8 +13,9 @@ import Config.Backbone (Backbone (..), GitCommit)
 import Config.Config (Config (..), UiUpdateIntervalSeconds)
 import Control.Concurrent (ThreadId)
 import Control.Exception (try)
-import Core.BuildStatuses (BuildStatuses, BuildStatusesApi, DataUpdateIntervalSeconds)
+import Core.BuildStatuses (BuildStatuses, BuildStatusesApi)
 import Core.Effects (Health)
+import Core.Shared (DataUpdateIntervalSeconds)
 import Data.Time
 import Inbound.HTTP.BuildStatuses.Html (AutoRefresh (..))
 import qualified Inbound.HTTP.BuildStatuses.Html as BuildStatuses

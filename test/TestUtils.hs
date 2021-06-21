@@ -5,6 +5,7 @@
 module TestUtils where
 
 import Core.BuildStatuses
+import Core.Shared
 import Core.Effects
 import qualified Data.Map as M
 import Polysemy
