@@ -1,7 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 module UseCases.BuildStatuses
@@ -14,6 +16,7 @@ where
 import Core.BuildStatuses
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Core.Shared
+import Data.Aeson (ToJSON)
 import Data.List (partition)
 import qualified Data.Text as T (intercalate, toLower)
 import Polysemy
@@ -83,3 +86,5 @@ detailedStatusForPipeline projectId pipelineId =
     case singlePipelineResult of
       Left uError -> Nothing <$ logWarn (unwords ["Couldn't get details for pipeline, error was", show uError])
       Right dp -> pure . Just $ detailedPipelineStatus dp
+
+deriving newtype instance ToJSON (Id a)

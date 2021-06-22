@@ -1,10 +1,12 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Outbound.Gitlab.Instances () where
 
 import Core.BuildStatuses
-import Core.Shared (Url (..))
+import Core.Shared
 import Data.Aeson hiding (Result, Value)
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Network.URI (parseURI)
@@ -44,3 +46,9 @@ instance FromJSON (Url a) where
 
 instance FromJSON Project where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+deriving newtype instance FromJSON (Id a)
+
+deriving newtype instance FromJSON (Name a)
+
+deriving newtype instance FromJSON Ref

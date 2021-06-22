@@ -20,7 +20,6 @@ module Core.Shared
   )
 where
 
-import Data.Aeson hiding (Result)
 import Network.HTTP.Simple (HttpException, JSONException)
 import Network.URI
 import Relude
@@ -38,10 +37,10 @@ newtype DataUpdateIntervalSeconds = DataUpdateIntervalSeconds Int
   deriving (Num) via Int
   deriving newtype (Eq)
 
-newtype Id a = Id Int deriving newtype (Eq, FromJSON, Hashable, Ord, Show, ToJSON)
+newtype Id a = Id Int deriving newtype (Eq, Hashable, Ord, Show)
 
 newtype Url a = Url URI deriving newtype (Eq, Show)
 
-newtype Ref = Ref Text deriving newtype (Eq, FromJSON, Ord, Show)
+newtype Ref = Ref Text deriving newtype (Eq, Ord, Show)
 
-newtype Name a = Name Text deriving newtype (Eq, FromJSON, Show)
+newtype Name a = Name Text deriving newtype (Eq, Show)
