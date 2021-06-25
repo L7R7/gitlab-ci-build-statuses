@@ -24,7 +24,7 @@ updateRunnersJobsRegularly groupId (DataUpdateIntervalSeconds updateInterval) ex
 
 updateWithDurationObservation :: (Member DurationObservation r, Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r ()
 updateWithDurationObservation groupId excludeList =
-  observeDuration $ do
+  observeDuration "runners" $ do
     logDebug "updating runnersJobs"
     results <- updateRunnersJobs groupId excludeList
     addContext "numResults" (length results) $ logInfo "Done updating"

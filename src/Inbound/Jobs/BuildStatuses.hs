@@ -23,7 +23,7 @@ updateStatusesRegularly groupId (DataUpdateIntervalSeconds updateInterval) exclu
 
 updateWithDurationObservation :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r ()
 updateWithDurationObservation groupId excludeList =
-  observeDuration $ do
+  observeDuration "projects" $ do
     logDebug "updating build statuses"
     results <- updateStatuses groupId excludeList
     addContext "numResults" (length results) $ logInfo "Done updating"

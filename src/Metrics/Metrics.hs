@@ -58,13 +58,13 @@ registerOutgoingHttpRequestsHistogram :: IO OutgoingHttpRequestsHistogram
 registerOutgoingHttpRequestsHistogram = register $ vector ("group_id", "path") $ histogram (Info "outgoing_http_requests_histogram" "Histogram indicating how long outgoing HTTP request durations") defaultBuckets
 
 registerUpdateJobDurationHistogram :: IO UpdateJobDurationHistogram
-registerUpdateJobDurationHistogram = register $ vector "group_id" $ histogram (Info "update_job_duration_histogram" "Histogram indicating how long the update job took") (exponentialBuckets 0.5 1.25 20)
+registerUpdateJobDurationHistogram = register $ vector ("group_id", "tag") $ histogram (Info "update_job_duration_histogram" "Histogram indicating how long the update job took") (exponentialBuckets 0.5 1.25 20)
 
 type PipelinesOverviewGauge = Vector Label2 Gauge
 
 type OutgoingHttpRequestsHistogram = Vector Label2 Histogram
 
-type UpdateJobDurationHistogram = Vector Label1 Histogram
+type UpdateJobDurationHistogram = Vector Label2 Histogram
 
 data Metrics = Metrics
   { currentPipelinesOverview :: !PipelinesOverviewGauge,
@@ -73,19 +73,19 @@ data Metrics = Metrics
   }
 
 data DurationObservation m a where
-  ObserveDuration :: m b -> DurationObservation m b
+  ObserveDuration :: Text -> m b -> DurationObservation m b
 
 makeSem ''DurationObservation
 
 observeDurationToIO :: (Member (Embed IO) r) => Id Group -> UpdateJobDurationHistogram -> InterpreterFor DurationObservation r
 observeDurationToIO groupId@(Id gId) jobDurationHistogram = interpretH $ \case
-  ObserveDuration fb -> do
+  ObserveDuration tag fb -> do
     start <- liftIO getMonotonicTime
     a <- runT fb
     res <- raise $ observeDurationToIO groupId jobDurationHistogram a
     end <- liftIO getMonotonicTime
     let !timeTaken = end - start
-    embed (observe (VectorWithLabel jobDurationHistogram (show gId)) timeTaken :: IO ())
+    embed (observe (VectorWithLabel jobDurationHistogram (show gId, tag)) timeTaken :: IO ())
     pure res
 
 data MetricsApi m a where
