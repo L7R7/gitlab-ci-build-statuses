@@ -15,6 +15,7 @@ module Config.Config
     ProjectCacheTtlSeconds (..),
     RunnerCacheTtlSeconds (..),
     SharedProjects (..),
+    JobsView (..),
     parseConfigFromEnv,
   )
 where
@@ -47,7 +48,8 @@ data Config = Config
     maxConcurrency :: MaxConcurrency,
     includeSharedProjects :: SharedProjects,
     logLevel :: Severity,
-    projectExcludeList :: [Id Project]
+    projectExcludeList :: [Id Project],
+    jobsView :: JobsView
   }
   deriving stock (Eq, Generic)
 
@@ -65,7 +67,8 @@ instance Show Config where
           show maxConcurrency,
           "Shared projects: " <> show includeSharedProjects,
           "Log level: " <> show logLevel,
-          "Excluded projects: " <> show projectExcludeList
+          "Excluded projects: " <> show projectExcludeList,
+          "Jobs view: " <> show jobsView
         ]
 
 newtype ApiToken = ApiToken B.ByteString deriving newtype (Eq)
@@ -96,6 +99,8 @@ newtype GitCommit = GitCommit String deriving stock (Show)
 
 data SharedProjects = Include | Exclude deriving stock (Eq, Show)
 
+data JobsView = Enabled | Disabled deriving stock (Eq, Show)
+
 type ConfigH f = HKD Config f
 
 envVarNames :: ConfigH (Const EnvVariableName)
@@ -113,6 +118,7 @@ envVarNames =
       "GCB_INCLUDE_SHARED_PROJECTS"
       "GCB_LOG_LEVEL"
       "GCB_EXCLUDE_PROJECTS"
+      "GCB_JOBS_VIEW"
 
 errorMessages :: ConfigH (Const ErrorMessage)
 errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs envVarNames
@@ -132,6 +138,7 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
           "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`"
           "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
           "List of projects to exclude is missing. Must be a list of comma-separated string of numbers that indicate the project IDs"
+          "Configuration whether to enable runners jobs is missing. Possible values are `enabled`, `disabled`"
 
 parse :: ConfigH (Compose ((->) String) Maybe)
 parse =
@@ -146,7 +153,8 @@ parse =
     (readPositive MaxConcurrency)
     (Compose parseIncludeSharedProjects)
     (Compose parseLogLevel)
-    (Compose readProjectExcludeList)
+    (Compose parseProjectExcludeList)
+    (Compose parseJobsView)
 
 parseApiToken :: String -> Maybe ApiToken
 parseApiToken "" = Nothing
@@ -164,8 +172,13 @@ parseLogLevel "WARN" = Just WarningS
 parseLogLevel "ERROR" = Just ErrorS
 parseLogLevel _ = Nothing
 
-readProjectExcludeList :: String -> Maybe [Id Project]
-readProjectExcludeList s = ordNub <$> traverse (fmap Id . readMaybe) (splitOn "," s)
+parseProjectExcludeList :: String -> Maybe [Id Project]
+parseProjectExcludeList s = ordNub <$> traverse (fmap Id . readMaybe) (splitOn "," s)
+
+parseJobsView :: String -> Maybe JobsView
+parseJobsView s | (toLower <$> s) == "enabled" = Just Enabled
+parseJobsView s | (toLower <$> s) == "disabled" = Just Disabled
+parseJobsView _ = Nothing
 
 readPositive :: (Ord a, Num a, Read a) => (a -> b) -> Compose ((->) String) Maybe b
 readPositive f = Compose $ fmap f . find (> 0) . readMaybe
@@ -181,6 +194,7 @@ defaults =
     & field @"includeSharedProjects" .~ Just Include
     & field @"logLevel" .~ Just InfoS
     & field @"projectExcludeList" .~ Just []
+    & field @"jobsView" .~ Just Disabled
 
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
 parseConfigFromEnv env = parseConfig envVarNames errorMessages defaults parse (first EnvVariableName <$> env)

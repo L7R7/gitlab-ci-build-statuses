@@ -2,7 +2,8 @@
 
 [![build](https://github.com/l7r7/gitlab-ci-build-statuses/actions/workflows/build.yml/badge.svg)](https://github.com/l7r7/gitlab-ci-build-statuses/actions)
 
-Fetch the current statuses of the latest Gitlab CI pipelines for all default branches in a Gitlab group and show them on an HTML page.
+Fetch the current statuses of the latest Gitlab CI pipelines for all default branches in a Gitlab group and show them on an HTML page. 
+Optionally, collect information about the pipeline jobs that are running at the moment and show them grouped by the runner that executes the job.
 
 ## Features
 
@@ -38,9 +39,6 @@ Default value is `include`.
 * `GCB_PROJECT_CACHE_TTL_SECS` (optional): You can configure caching for the list of projects to reduce the load on the Gitlab API.
 The provided value must be positive and sets the TTL of cached values in seconds.
 By default, caching is disabled.
-* `GCB_RUNNER_CACHE_TTL_SECS` (optional): You can configure caching for the list of online runners to reduce the load on the Gitlab API.
-The provided value must be positive and sets the TTL of cached values in seconds.
-By default, caching is disabled.
 * `GCB_LOG_LEVEL` (optional): Set the minimum log level for log output.
 Defaults to Info if the value is not set or can't be parsed.
 Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
@@ -48,6 +46,12 @@ Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
 Must be a comma-separated list of integers of project IDs.
 Defaults to an empty list if the value is not set or can't be parsed.
 If you specify projects that don't appear in the result from the API, a warning will be logged.
+* `GCB_JOB_VIEW` (optional): Enables/disables whether to fetch the data for the currently running pipeline jobs.
+Possible values are `enabled` and `disabled`.
+* Default value is `disabled`.
+* `GCB_RUNNER_CACHE_TTL_SECS` (optional): You can configure caching for the list of online runners to reduce the load on the Gitlab API.
+The provided value must be positive and sets the TTL of cached values in seconds.
+By default, caching is disabled.
 
 The app won't start if not all mandatory configuration properties are set.
 There will be a log message with the details before the application exits.

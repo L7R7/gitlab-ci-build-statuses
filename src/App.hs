@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 
 module App (App.run) where
 
 import Config.Backbone
 import Config.Config
-import Control.Concurrent (forkIO)
+import Control.Concurrent (ThreadId, forkIO)
 import qualified Data.Text as T (intercalate)
 import Inbound.HTTP.Server (startServer)
 import Inbound.Jobs.BuildStatuses (updateStatusesRegularly)
@@ -54,6 +55,10 @@ startStatusUpdatingJob Config {..} Backbone {..} = do
     . observeDurationToIO groupId (updateJobDurationHistogram metrics)
     $ updateStatusesRegularly groupId dataUpdateIntervalSecs projectExcludeList
 
+startRunnersJobsUpdatingJobIfEnabled :: Config -> Backbone -> IO [ThreadId]
+startRunnersJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pure []
+startRunnersJobsUpdatingJobIfEnabled config backbone = one <$> forkIO (startRunnersJobsUpdatingJob config backbone)
+
 startRunnersJobsUpdatingJob :: Config -> Backbone -> IO ()
 startRunnersJobsUpdatingJob Config {..} Backbone {..} = do
   cache <- Runners.initCache runnerCacheTtlSecs
@@ -72,8 +77,8 @@ startWithConfig :: Config -> Backbone -> IO ()
 startWithConfig config backbone = do
   metrics <- forkIO $ startMetricsUpdatingJob config backbone
   statuses <- forkIO $ startStatusUpdatingJob config backbone
-  runnersJobs <- forkIO $ startRunnersJobsUpdatingJob config backbone
-  atomicWriteIORef (threads backbone) [(metrics, "metrics"), (statuses, "statuses"), (runnersJobs, "runnersJobs")]
+  runnersJobs <- startRunnersJobsUpdatingJobIfEnabled config backbone
+  atomicWriteIORef (threads backbone) ([(metrics, "metrics"), (statuses, "statuses")] <> ((,"runnersJobs") <$> runnersJobs))
   startServer config backbone
 
 run :: IO ()

@@ -34,17 +34,23 @@ import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
 type API = "jobs" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
 
-template :: (Member RunnersJobsApi r, Member (Time UTCTime d) r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
-template dataUpdateInterval uiUpdateInterval gitCommit autoRefresh = do
+template :: (Member RunnersJobsApi r, Member (Time UTCTime d) r) => JobsView -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
+template Disabled _ uiUpdateInterval gitCommit autoRefresh = pure $ runnersViewDisabled uiUpdateInterval gitCommit autoRefresh
+template Enabled dataUpdateInterval uiUpdateInterval gitCommit autoRefresh = do
   now <- Time.now
   template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> getJobs
 
+runnersViewDisabled :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Html
+runnersViewDisabled uiUpdateInterval gitCommit autoRefresh = do
+  pageHeader uiUpdateInterval gitCommit autoRefresh Nothing
+  H.body $ H.div ! class_ "job no-successful-update" $ p "Runners view is disabled. Update your config to enable it"
+
 template' :: UTCTime -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> RunnersJobs -> Html
 template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh buildStatuses = do
-  pageHeader uiUpdateInterval gitCommit autoRefresh buildStatuses
+  pageHeader uiUpdateInterval gitCommit autoRefresh (Just buildStatuses)
   pageBody dataUpdateInterval now buildStatuses
 
-pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> RunnersJobs -> Html
+pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Maybe RunnersJobs -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runnersJobs =
   docTypeHtml ! lang "en" $
     H.head $
@@ -58,8 +64,9 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runner
         script ! type_ "text/javascript" ! src "static/script-909ec6a089.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
 
-faviconPrefix :: RunnersJobs -> AttributeValue
-faviconPrefix (RunnersJobs (_, jobs)) | not (all null jobs) = "running"
+faviconPrefix :: Maybe RunnersJobs -> AttributeValue
+faviconPrefix (Just (RunnersJobs (_, jobs))) | not (all null jobs) = "running"
+faviconPrefix Nothing = "failed"
 faviconPrefix _ = "idle"
 
 pageBody :: DataUpdateIntervalSeconds -> UTCTime -> RunnersJobs -> Html
