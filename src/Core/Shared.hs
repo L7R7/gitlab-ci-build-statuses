@@ -1,13 +1,10 @@
 {-# LANGUAGE DataKinds #-}
-
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PolyKinds #-}
-
 {-# LANGUAGE ScopedTypeVariables #-}
-
 
 module Core.Shared
   ( DataUpdateIntervalSeconds (..),
