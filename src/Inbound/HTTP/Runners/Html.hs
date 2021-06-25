@@ -54,7 +54,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runner
         H.title "Running jobs per runner"
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> faviconPrefix runnersJobs <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/jobs.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/jobs-dc83fdaa51.css"
         script ! type_ "text/javascript" ! src "static/script-909ec6a089.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
 
@@ -99,7 +99,7 @@ lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> RunnersJobs -> Html
 lastUpdatedToHtml _ _ NoSuccessfulUpdateYet = mempty
 lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now (RunnersJobs (lastUpdate, _)) = H.div ! class_ classes ! staleDataTitle $
   H.div $ do
-    p $ "Last Update at: " <> (H.span ! A.id "update-timestamp" $ toHtml (unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"]))
+    p $ "Last Update at: " <> br <> (H.span ! A.id "update-timestamp" $ toHtml (unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"]))
   where
     lastUpdateTooOld = diffUTCTime now lastUpdate > fromIntegral (3 * updateInterval)
     staleDataTitle

@@ -51,6 +51,7 @@ a {
     color: white;
     line-height: 1.5;
     padding-bottom: 10px;
+    text-align: center;
 }
 
 .runner-container:not(:first-child) {
