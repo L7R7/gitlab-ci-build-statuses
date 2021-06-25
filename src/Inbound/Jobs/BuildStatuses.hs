@@ -19,7 +19,7 @@ import UseCases.BuildStatuses (updateStatuses)
 
 updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member (Time t d) r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> [Id Project] -> Sem r ()
 updateStatusesRegularly groupId (DataUpdateIntervalSeconds updateInterval) excludeList =
-  addNamespace "update" $ pass <$> infinitely (updateWithDurationObservation groupId excludeList >> Time.sleep (Seconds (fromIntegral updateInterval)))
+  addNamespace "update-build-statuses" $ pass <$> infinitely (updateWithDurationObservation groupId excludeList >> Time.sleep (Seconds (fromIntegral updateInterval)))
 
 updateWithDurationObservation :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r ()
 updateWithDurationObservation groupId excludeList =

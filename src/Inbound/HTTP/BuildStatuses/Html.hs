@@ -11,7 +11,6 @@
 module Inbound.HTTP.BuildStatuses.Html
   ( API,
     template,
-    AutoRefresh (..),
   )
 where
 
@@ -28,7 +27,7 @@ import Polysemy.Time (Time)
 import qualified Polysemy.Time as Time
 import Relude
 import Servant
-import Servant.HTML.Blaze
+import Servant.HTML.Blaze (HTML)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
@@ -113,12 +112,6 @@ lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.
 
 emptyResults :: Html
 emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results for default branches found"
-
-instance ToMarkup (Name Project) where
-  toMarkup (Name pN) = toMarkup pN
-
-instance ToValue (Url a) where
-  toValue (Url url) = toValue @String (show url)
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"

@@ -13,6 +13,7 @@ module Config.Config
     MaxConcurrency (..),
     UiUpdateIntervalSeconds (..),
     ProjectCacheTtlSeconds (..),
+    RunnerCacheTtlSeconds (..),
     SharedProjects (..),
     parseConfigFromEnv,
   )
@@ -42,6 +43,7 @@ data Config = Config
     dataUpdateIntervalSecs :: DataUpdateIntervalSeconds,
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
     projectCacheTtlSecs :: ProjectCacheTtlSeconds,
+    runnerCacheTtlSecs :: RunnerCacheTtlSeconds,
     maxConcurrency :: MaxConcurrency,
     includeSharedProjects :: SharedProjects,
     logLevel :: Severity,
@@ -59,6 +61,7 @@ instance Show Config where
           show dataUpdateIntervalSecs,
           show uiUpdateIntervalSecs,
           show projectCacheTtlSecs,
+          show runnerCacheTtlSecs,
           show maxConcurrency,
           "Shared projects: " <> show includeSharedProjects,
           "Log level: " <> show logLevel,
@@ -75,6 +78,11 @@ newtype UiUpdateIntervalSeconds = UiUpdateIntervalSeconds Int
   deriving newtype (Eq)
 
 newtype ProjectCacheTtlSeconds = ProjectCacheTtlSeconds Int64
+  deriving stock (Show)
+  deriving (Num) via Int64
+  deriving newtype (Eq)
+
+newtype RunnerCacheTtlSeconds = RunnerCacheTtlSeconds Int64
   deriving stock (Show)
   deriving (Num) via Int64
   deriving newtype (Eq)
@@ -100,6 +108,7 @@ envVarNames =
       "GCB_DATA_UPDATE_INTERVAL_SECS"
       "GCB_UI_UPDATE_INTERVAL_SECS"
       "GCB_PROJECT_CACHE_TTL_SECS"
+      "GCB_RUNNER_CACHE_TTL_SECS"
       "GCB_MAX_CONCURRENCY"
       "GCB_INCLUDE_SHARED_PROJECTS"
       "GCB_LOG_LEVEL"
@@ -117,7 +126,8 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
           "Gitlab base URL is missing"
           "Data Update interval is missing. Must be a positive integer"
           "UI Update interval is missing. Must be a positive integer"
-          "Project cache list TTL is missing. Must be a positive integer"
+          "Project list cache TTL is missing. Must be a positive integer"
+          "Runner list cache TTL is missing. Must be a positive integer"
           "Max concurrency is missing. Must be a positive integer"
           "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`"
           "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
@@ -132,6 +142,7 @@ parse =
     (readPositive DataUpdateIntervalSeconds)
     (readPositive UiUpdateIntervalSeconds)
     (readPositive ProjectCacheTtlSeconds)
+    (readPositive RunnerCacheTtlSeconds)
     (readPositive MaxConcurrency)
     (Compose parseIncludeSharedProjects)
     (Compose parseLogLevel)
@@ -165,6 +176,7 @@ defaults =
     & field @"dataUpdateIntervalSecs" .~ Just 60
     & field @"uiUpdateIntervalSecs" .~ Just 5
     & field @"projectCacheTtlSecs" .~ Just 0
+    & field @"runnerCacheTtlSecs" .~ Just 0
     & field @"maxConcurrency" .~ Just 2
     & field @"includeSharedProjects" .~ Just Include
     & field @"logLevel" .~ Just InfoS

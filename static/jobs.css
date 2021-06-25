@@ -1,0 +1,69 @@
+@import url(https://fonts.googleapis.com/css?family=Noto+Sans:400,900);
+
+.job {
+    padding: 1em;
+    text-align: center;
+    justify-content: center;
+    background-color: #1857B8;
+}
+
+.job > div {
+    line-height: 1.5;
+}
+
+.job-id, .job-ref {
+    font-size: smaller;
+}
+
+.empty, .empty-results, .no-successful-update, .timestamp {
+    background-color: transparent;
+    color: white;
+}
+
+.timestamp {
+    margin-top: 20px;
+    line-height: 1.2;
+    font-size: smaller;
+}
+
+.timestamp.cancelled {
+    color: black;
+}
+
+.jobs {
+    width: 100%;
+    display: grid;
+    grid-column-gap: 0.4em;
+    grid-row-gap: 0.4em;
+    grid-template-columns: repeat(4, minmax(11em, 10fr));
+}
+
+a {
+    text-decoration: none;
+    color: black;
+}
+
+.project-name {
+    font-weight: bold;
+}
+
+.runner-info {
+    color: white;
+    line-height: 1.5;
+    padding-bottom: 10px;
+}
+
+.runner-container:not(:first-child) {
+    margin-top: 20px;
+}
+
+html {
+    height: 100%;
+    font-family: 'Noto Sans', sans-serif;
+    background: #0b0c0e;
+}
+
+body {
+    margin: 0;
+    padding: 8px
+}

@@ -25,7 +25,7 @@ module Metrics.Metrics
 where
 
 import Core.BuildStatuses (BuildStatus, BuildStatuses (..), BuildStatusesApi, Result (..), getStatuses, isHealthy)
-import Core.Shared (Group, Id(..))
+import Core.Shared (Group, Id (..))
 import Data.List (partition)
 import Data.List.Extra (enumerate)
 import Data.Map hiding (partition)

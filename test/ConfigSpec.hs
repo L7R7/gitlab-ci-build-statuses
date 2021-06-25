@@ -4,7 +4,6 @@
 module ConfigSpec where
 
 import Config.Config
-import Core.BuildStatuses
 import Core.Shared
 import Katip
 import Network.URI.Static
@@ -38,6 +37,9 @@ spec = do
       it "should allow overriding project cache TTL" $
         parseConfigFromEnv (("GCB_PROJECT_CACHE_TTL_SECS", "5") : mandatoryConfig)
           `shouldBe` Success (config {projectCacheTtlSecs = ProjectCacheTtlSeconds 5})
+      it "should allow overriding runner cache TTL" $
+        parseConfigFromEnv (("GCB_RUNNER_CACHE_TTL_SECS", "5") : mandatoryConfig)
+          `shouldBe` Success (config {runnerCacheTtlSecs = RunnerCacheTtlSeconds 5})
       it "should allow overriding maximum concurency" $
         parseConfigFromEnv (("GCB_MAX_CONCURRENCY", "5") : mandatoryConfig)
           `shouldBe` Success (config {maxConcurrency = MaxConcurrency 5})
@@ -87,6 +89,7 @@ spec = do
         (DataUpdateIntervalSeconds 60)
         (UiUpdateIntervalSeconds 5)
         (ProjectCacheTtlSeconds 0)
+        (RunnerCacheTtlSeconds 0)
         (MaxConcurrency 2)
         Include
         InfoS
