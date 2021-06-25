@@ -38,6 +38,9 @@ Default value is `include`.
 * `GCB_PROJECT_CACHE_TTL_SECS` (optional): You can configure caching for the list of projects to reduce the load on the Gitlab API.
 The provided value must be positive and sets the TTL of cached values in seconds.
 By default, caching is disabled.
+* `GCB_RUNNER_CACHE_TTL_SECS` (optional): You can configure caching for the list of online runners to reduce the load on the Gitlab API.
+The provided value must be positive and sets the TTL of cached values in seconds.
+By default, caching is disabled.
 * `GCB_LOG_LEVEL` (optional): Set the minimum log level for log output.
 Defaults to Info if the value is not set or can't be parsed.
 Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
@@ -66,6 +69,9 @@ The most straightforward way to use this is to run the Docker image that's provi
 The app exposes the following endpoints:
 
 * `/statuses`: Responds with an HTML page that shows the current statuses of the pipelines.
+This page will automatically refresh using the configured UI update interval.
+You can use the query flag `norefresh` to disable that (this is probably only helpful for debugging)
+* `/jobs`: Responds with an HTML page that shows the current running jobs on the online runners.
 This page will automatically refresh using the configured UI update interval.
 You can use the query flag `norefresh` to disable that (this is probably only helpful for debugging)
 * `/health`: Responds with a status indicating if the app is ready to serve requests.
