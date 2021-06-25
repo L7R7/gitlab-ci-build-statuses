@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 1,
-  "iteration": 1624648784240,
+  "iteration": 1624651693464,
   "links": [],
   "panels": [
     {
@@ -63,7 +63,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 4,
         "w": 2,
         "x": 0,
         "y": 1
@@ -120,12 +120,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
+        "h": 4,
         "w": 2,
         "x": 2,
         "y": 1
       },
-      "id": 8,
+      "id": 55,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -144,7 +144,8 @@
       "pluginVersion": "8.0.1",
       "targets": [
         {
-          "expr": "max(build_pipelines_by_status_gauge{build_status=\"healthy\"})",
+          "exemplar": true,
+          "expr": "sum(online_runners_gauge)",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -152,7 +153,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "healthy pipelines",
+      "title": "online runners",
       "type": "stat"
     },
     {
@@ -564,6 +565,117 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 0,
+        "y": 5
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.0.1",
+      "targets": [
+        {
+          "expr": "max(build_pipelines_by_status_gauge{build_status=\"healthy\"})",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "healthy pipelines",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 2,
+        "y": 5
+      },
+      "id": 56,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.0.1",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(running_jobs_gauge)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "running jobs",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
           "color": {
             "mode": "palette-classic"
           },
@@ -638,31 +750,35 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "histogram_quantile(0.5, sum(rate(update_job_duration_histogram_bucket[2m])) by (le))",
+          "expr": "histogram_quantile(0.5, sum(rate(update_job_duration_histogram_bucket{tag=\"$job\"}[2m])) by (le))",
           "interval": "",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(update_job_duration_histogram_bucket[2m])) by (le))",
+          "exemplar": true,
+          "expr": "histogram_quantile(0.75, sum(rate(update_job_duration_histogram_bucket{tag=\"$job\"}[2m])) by (le))",
           "interval": "",
           "legendFormat": "p75",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.9, sum(rate(update_job_duration_histogram_bucket[2m])) by (le))",
+          "exemplar": true,
+          "expr": "histogram_quantile(0.9, sum(rate(update_job_duration_histogram_bucket{tag=\"$job\"}[2m])) by (le))",
           "interval": "",
           "legendFormat": "p90",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.975, sum(rate(update_job_duration_histogram_bucket[2m])) by (le))",
+          "exemplar": true,
+          "expr": "histogram_quantile(0.975, sum(rate(update_job_duration_histogram_bucket{tag=\"$job\"}[2m])) by (le))",
           "interval": "",
           "legendFormat": "p97.5",
           "refId": "D"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(update_job_duration_histogram_bucket[2m])) by (le))",
+          "exemplar": true,
+          "expr": "histogram_quantile(0.99, sum(rate(update_job_duration_histogram_bucket{tag=\"$job\"}[2m])) by (le))",
           "interval": "",
           "legendFormat": "p99",
           "refId": "E"
@@ -2013,5 +2129,5 @@
   "timezone": "",
   "title": "Build Statuses",
   "uid": "oD7GwCVMk",
-  "version": 4
+  "version": 6
 }

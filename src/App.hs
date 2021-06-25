@@ -33,10 +33,11 @@ import Util (parTraverseToIO)
 import Validation
 
 startMetricsUpdatingJob :: Config -> Backbone -> IO ()
-startMetricsUpdatingJob config backbone =
+startMetricsUpdatingJob Config {..} Backbone {..} =
   runM
-    . metricsApiToIO (groupId config) (metrics backbone)
-    . buildStatusesApiToIO (statuses backbone)
+    . runnersJobsApiToIO runners
+    . metricsApiToIO groupId metrics
+    . buildStatusesApiToIO statuses
     . interpretTimeGhc
     $ updateMetricsRegularly
 

@@ -16,7 +16,6 @@ module Metrics.Metrics
     Metrics (..),
     registerMetrics,
     updateMetricsRegularly,
-    updatePipelinesOverviewMetric,
     metricsApiToIO,
     DurationObservation,
     observeDuration,
@@ -24,7 +23,10 @@ module Metrics.Metrics
   )
 where
 
-import Core.BuildStatuses (BuildStatus, BuildStatuses (..), BuildStatusesApi, Result (..), getStatuses, isHealthy)
+import Core.BuildStatuses (BuildStatus, BuildStatusesApi, Result (..), getStatuses, isHealthy)
+import qualified Core.BuildStatuses as B (BuildStatuses (..))
+import Core.Runners (RunnersJobsApi, getJobs)
+import qualified Core.Runners as R (RunnersJobs (..))
 import Core.Shared (Group, Id (..))
 import Data.List (partition)
 import Data.List.Extra (enumerate)
@@ -46,13 +48,30 @@ registerGhcMetrics :: IO GHCMetrics
 registerGhcMetrics = register ghcMetrics
 
 registerAppMetrics :: IO Metrics
-registerAppMetrics = Metrics <$> registerPipelinesOverviewMetric <*> registerOutgoingHttpRequestsHistogram <*> registerUpdateJobDurationHistogram
+registerAppMetrics =
+  Metrics <$> registerPipelinesOverviewMetric
+    <*> registerOutgoingHttpRequestsHistogram
+    <*> registerUpdateJobDurationHistogram
+    <*> registerOnlineRunnersMetric
+    <*> registerRunningJobsMetric
 
 registerPipelinesOverviewMetric :: IO PipelinesOverviewGauge
 registerPipelinesOverviewMetric =
   register $
     vector ("group_id", "build_status") $
       gauge (Info "build_pipelines_by_status_gauge" "Gauge that indicates the count of the pipeline statuses grouped by their result")
+
+registerOnlineRunnersMetric :: IO OnlineRunnersGauge
+registerOnlineRunnersMetric =
+  register $
+    vector "group_id" $
+      gauge (Info "online_runners_gauge" "Gauge that indicates how many runners are online")
+
+registerRunningJobsMetric :: IO RunningJobsGauge
+registerRunningJobsMetric =
+  register $
+    vector "group_id" $
+      gauge (Info "running_jobs_gauge" "Gauge that indicates how many jobs are running")
 
 registerOutgoingHttpRequestsHistogram :: IO OutgoingHttpRequestsHistogram
 registerOutgoingHttpRequestsHistogram = register $ vector ("group_id", "path") $ histogram (Info "outgoing_http_requests_histogram" "Histogram indicating how long outgoing HTTP request durations") defaultBuckets
@@ -62,6 +81,10 @@ registerUpdateJobDurationHistogram = register $ vector ("group_id", "tag") $ his
 
 type PipelinesOverviewGauge = Vector Label2 Gauge
 
+type OnlineRunnersGauge = Vector Label1 Gauge
+
+type RunningJobsGauge = Vector Label1 Gauge
+
 type OutgoingHttpRequestsHistogram = Vector Label2 Histogram
 
 type UpdateJobDurationHistogram = Vector Label2 Histogram
@@ -69,7 +92,9 @@ type UpdateJobDurationHistogram = Vector Label2 Histogram
 data Metrics = Metrics
   { currentPipelinesOverview :: !PipelinesOverviewGauge,
     outgoingHttpRequestsHistogram :: !OutgoingHttpRequestsHistogram,
-    updateJobDurationHistogram :: !UpdateJobDurationHistogram
+    updateJobDurationHistogram :: !UpdateJobDurationHistogram,
+    onlineRunnersGauge :: !OnlineRunnersGauge,
+    runningJobsGauge :: !RunningJobsGauge
   }
 
 data DurationObservation m a where
@@ -89,21 +114,25 @@ observeDurationToIO groupId@(Id gId) jobDurationHistogram = interpretH $ \case
     pure res
 
 data MetricsApi m a where
-  UpdatePipelinesOverviewMetric :: BuildStatuses -> MetricsApi m ()
+  UpdatePipelinesOverviewMetric :: B.BuildStatuses -> MetricsApi m ()
   UpdateHealthy :: Int -> MetricsApi m ()
   UpdateUnhealthy :: Int -> MetricsApi m ()
+  UpdateOnlineRunners :: Int -> MetricsApi m ()
+  UpdateRunningJobs :: Int -> MetricsApi m ()
 
 makeSem ''MetricsApi
 
 metricsApiToIO :: (Member (Embed IO) r) => Id Group -> Metrics -> InterpreterFor MetricsApi r
 metricsApiToIO groupId@(Id gId) Metrics {..} = interpret $ \case
   UpdatePipelinesOverviewMetric buildStatuses -> embed $ updatePipelinesOverviewMetricIO groupId currentPipelinesOverview buildStatuses
-  UpdateHealthy healthyCount -> embed (withLabel currentPipelinesOverview (show gId, "healthy") (`setGauge` fromIntegral healthyCount) :: IO ())
-  UpdateUnhealthy unhealthyCount -> embed (withLabel currentPipelinesOverview (show gId, "unhealthy") (`setGauge` fromIntegral unhealthyCount) :: IO ())
+  UpdateHealthy healthyCount -> embed (withLabel currentPipelinesOverview (show gId, "healthy") (`setGauge` fromIntegral healthyCount))
+  UpdateUnhealthy unhealthyCount -> embed (withLabel currentPipelinesOverview (show gId, "unhealthy") (`setGauge` fromIntegral unhealthyCount))
+  UpdateOnlineRunners runners -> embed (withLabel onlineRunnersGauge (show gId) (`setGauge` fromIntegral runners))
+  UpdateRunningJobs jobs -> embed (withLabel runningJobsGauge (show gId) (`setGauge` fromIntegral jobs))
 
-updatePipelinesOverviewMetricIO :: Id Group -> PipelinesOverviewGauge -> BuildStatuses -> IO ()
-updatePipelinesOverviewMetricIO _ _ NoSuccessfulUpdateYet = pass
-updatePipelinesOverviewMetricIO groupId overviewGauge (Statuses (_, results)) = traverse_ (updateSingle groupId overviewGauge) (Data.Map.toList (countByBuildStatus results))
+updatePipelinesOverviewMetricIO :: Id Group -> PipelinesOverviewGauge -> B.BuildStatuses -> IO ()
+updatePipelinesOverviewMetricIO _ _ B.NoSuccessfulUpdateYet = pass
+updatePipelinesOverviewMetricIO groupId overviewGauge (B.Statuses (_, results)) = traverse_ (updateSingle groupId overviewGauge) (Data.Map.toList (countByBuildStatus results))
 
 updateSingle :: Id Group -> PipelinesOverviewGauge -> (BuildStatus, Double) -> IO ()
 updateSingle (Id groupId) overviewGauge (status, count) = withLabel overviewGauge (show groupId, (toLower . show) status) (`setGauge` count)
@@ -114,11 +143,14 @@ countByBuildStatus results = countOccurrences buildStatus results `union` resetV
 resetValues :: Map BuildStatus Double
 resetValues = Data.Map.fromList $ (,0) <$> enumerate
 
-updateMetricsRegularly :: (Member BuildStatusesApi r, Member MetricsApi r, Member (Time t d) r) => Sem r ()
+updateMetricsRegularly :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member MetricsApi r, Member (Time t d) r) => Sem r ()
 updateMetricsRegularly = pass <$> infinitely (updateMetrics >> Time.sleep (Seconds 10))
 
-updateMetrics :: (Member BuildStatusesApi r, Member MetricsApi r) => Sem r ()
-updateMetrics = do
+updateMetrics :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member MetricsApi r) => Sem r ()
+updateMetrics = updateBuildStatusesMetrics >> updateRunnersMetrics
+
+updateBuildStatusesMetrics :: (Member BuildStatusesApi r, Member MetricsApi r) => Sem r ()
+updateBuildStatusesMetrics = do
   statuses <- getStatuses
   updatePipelinesOverviewMetric statuses
   updateHealthyUnhealthy $ resultsFromBuildStatuses statuses
@@ -129,9 +161,23 @@ updateHealthyUnhealthy results = do
   updateHealthy healthyCount
   updateUnhealthy unhealthyCount
 
-resultsFromBuildStatuses :: BuildStatuses -> [Result]
-resultsFromBuildStatuses (Statuses (_, res)) = res
-resultsFromBuildStatuses NoSuccessfulUpdateYet = []
+resultsFromBuildStatuses :: B.BuildStatuses -> [Result]
+resultsFromBuildStatuses (B.Statuses (_, res)) = res
+resultsFromBuildStatuses B.NoSuccessfulUpdateYet = []
+
+updateRunnersMetrics :: (Member RunnersJobsApi r, Member MetricsApi r) => Sem r ()
+updateRunnersMetrics = do
+  jobs <- getJobs
+  updateRunningJobs $ runningJobs jobs
+  updateOnlineRunners $ onlineRunners jobs
+
+runningJobs :: R.RunnersJobs -> Int
+runningJobs R.NoSuccessfulUpdateYet = 0
+runningJobs (R.RunnersJobs (_, rs)) = getSum $ foldMap (Sum . length) rs
+
+onlineRunners :: R.RunnersJobs -> Int
+onlineRunners R.NoSuccessfulUpdateYet = 0
+onlineRunners (R.RunnersJobs (_, rs)) = size rs
 
 countOccurrences :: (Ord k, Num a) => (t -> k) -> [t] -> Map k a
 countOccurrences f xs = fromListWith (+) [(f x, 1) | x <- xs]
