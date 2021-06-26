@@ -12,7 +12,11 @@
 {-# LANGUAGE TupleSections #-}
 
 module Metrics.Metrics
-  ( OutgoingHttpRequestsHistogram (..),
+  ( OnlineRunnersGauge (..),
+    OutgoingHttpRequestsHistogram (..),
+    PipelinesOverviewGauge (..),
+    RunningJobsGauge (..),
+    UpdateJobDurationHistogram (..),
     Metrics (..),
     registerMetrics,
     updateMetricsRegularly,

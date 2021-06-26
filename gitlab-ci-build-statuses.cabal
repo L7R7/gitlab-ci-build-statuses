@@ -43,6 +43,7 @@ library
     App
     , Config.Backbone
     , Config.Config
+    , Config.Interpreters
     , Config.Util
     , Core.BuildStatuses
     , Core.Effects
