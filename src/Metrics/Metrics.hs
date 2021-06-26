@@ -121,26 +121,24 @@ data MetricsApi m a where
 makeSem ''MetricsApi
 
 metricsApiToIO :: (Member (Embed IO) r, Member (R.Reader (Id Group)) r, Member (R.Reader PipelinesOverviewGauge) r, Member (R.Reader OnlineRunnersGauge) r, Member (R.Reader RunningJobsGauge) r) => InterpreterFor MetricsApi r
-metricsApiToIO = interpret $ \case
+metricsApiToIO sem = do
+  groupId <- R.ask
+  pipelinesOverviewGauge <- R.ask
+  onlineRunnersGauge <- R.ask
+  runningJobsGauge <- R.ask
+  metricsApiToIO' groupId pipelinesOverviewGauge onlineRunnersGauge runningJobsGauge sem
+
+metricsApiToIO' :: (Member (Embed IO) r) => Id Group -> PipelinesOverviewGauge -> OnlineRunnersGauge -> RunningJobsGauge -> InterpreterFor MetricsApi r
+metricsApiToIO' groupId pipelinesOverviewGauge@(PipelinesOverviewGauge currentPipelinesOverview) (OnlineRunnersGauge onlineRunnersGauge) (RunningJobsGauge runningJobsGauge) = interpret $ \case
   UpdatePipelinesOverviewMetric buildStatuses -> do
-    groupId <- R.ask
-    currentPipelinesOverview <- R.ask
-    embed $ updatePipelinesOverviewMetricIO groupId currentPipelinesOverview buildStatuses
+    embed $ updatePipelinesOverviewMetricIO groupId pipelinesOverviewGauge buildStatuses
   UpdateHealthy healthyCount -> do
-    groupId :: Id Group <- R.ask
-    (PipelinesOverviewGauge currentPipelinesOverview) <- R.ask
     embed (withLabel currentPipelinesOverview (show groupId, "healthy") (`setGauge` fromIntegral healthyCount))
   UpdateUnhealthy unhealthyCount -> do
-    groupId :: Id Group <- R.ask
-    (PipelinesOverviewGauge currentPipelinesOverview) <- R.ask
     embed (withLabel currentPipelinesOverview (show groupId, "unhealthy") (`setGauge` fromIntegral unhealthyCount))
   UpdateOnlineRunners runners -> do
-    groupId :: Id Group <- R.ask
-    (OnlineRunnersGauge onlineRunnersGauge) <- R.ask
     embed (withLabel onlineRunnersGauge (show groupId) (`setGauge` fromIntegral runners))
   UpdateRunningJobs jobs -> do
-    groupId :: Id Group <- R.ask
-    (RunningJobsGauge runningJobsGauge) <- R.ask
     embed (withLabel runningJobsGauge (show groupId) (`setGauge` fromIntegral jobs))
 
 updatePipelinesOverviewMetricIO :: Id Group -> PipelinesOverviewGauge -> B.BuildStatuses -> IO ()

@@ -22,20 +22,20 @@ import qualified Polysemy.Reader as R
 import Relude
 
 pipelinesApiToIO :: (Member (Embed IO) r, Member (R.Reader (Id Group)) r, Member (R.Reader (Url GitlabHost)) r, Member (R.Reader ApiToken) r, Member (R.Reader OutgoingHttpRequestsHistogram) r) => InterpreterFor PipelinesApi r
-pipelinesApiToIO =
+pipelinesApiToIO sem = do
+  groupId <- R.ask
+  baseUrl <- R.ask
+  apiToken <- R.ask
+  histogram <- R.ask
+  pipelinesApiToIO' groupId baseUrl apiToken histogram sem
+
+pipelinesApiToIO' :: (Member (Embed IO) r) => Id Group -> Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> InterpreterFor PipelinesApi r
+pipelinesApiToIO' groupId baseUrl apiToken histogram =
   interpret $ \case
     GetLatestPipelineForRef (Id project) (Ref ref) -> do
-      groupId <- R.ask
-      baseUrl <- R.ask
-      apiToken <- R.ask
-      histogram <- R.ask
       let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines?ref={ref}&per_page=1|]
       embed $ headOrUpdateError <$> fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("ref", (stringValue . toString) ref)] groupId histogram
     GetSinglePipeline (Id project) (Id pipeline) -> do
-      groupId <- R.ask
-      baseUrl <- R.ask
-      apiToken <- R.ask
-      histogram <- R.ask
       let template = [uriTemplate|/api/v4/projects/{projectId}/pipelines/{pipelineId}|]
       embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) project), ("pipelineId", (stringValue . show) pipeline)] groupId histogram
 
