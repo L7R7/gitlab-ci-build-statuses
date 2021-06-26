@@ -6,6 +6,7 @@ module App (App.run) where
 
 import Config.Backbone
 import Config.Config
+import Config.Interpreters
 import Control.Concurrent (ThreadId, forkIO)
 import qualified Data.Text as T (intercalate)
 import Inbound.HTTP.Server (startServer)
@@ -33,14 +34,10 @@ import Util (parTraverseToIO)
 import Validation
 
 startMetricsUpdatingJob :: Config -> Backbone -> IO ()
-startMetricsUpdatingJob Config {..} Backbone {..} =
+startMetricsUpdatingJob config backbone =
   runM
-    . R.runReader groupId
-    . R.runReader statuses
-    . R.runReader runners
-    . R.runReader (currentPipelinesOverview metrics)
-    . R.runReader (runningJobsGauge metrics)
-    . R.runReader (onlineRunnersGauge metrics)
+    . runConfig config
+    . runBackbone backbone
     . runnersJobsApiToIO
     . metricsApiToIO
     . buildStatusesApiToIO
@@ -48,22 +45,13 @@ startMetricsUpdatingJob Config {..} Backbone {..} =
     $ updateMetricsRegularly
 
 startStatusUpdatingJob :: Config -> Backbone -> IO ()
-startStatusUpdatingJob Config {..} Backbone {..} = do
+startStatusUpdatingJob config@Config {..} backbone = do
   cache <- Projects.initCache projectCacheTtlSecs
   runFinal
     . embedToFinal
-    . R.runReader logConfig
-    . R.runReader groupId
-    . R.runReader dataUpdateIntervalSecs
-    . R.runReader projectExcludeList
-    . R.runReader gitlabBaseUrl
-    . R.runReader apiToken
-    . R.runReader includeSharedProjects
-    . R.runReader maxConcurrency
-    . R.runReader (outgoingHttpRequestsHistogram metrics)
-    . R.runReader (updateJobDurationHistogram metrics)
-    . R.runReader statuses
     . R.runReader cache
+    . runConfig config
+    . runBackbone backbone
     . buildStatusesApiToIO
     . pipelinesApiToIO
     . projectsApiToIO
@@ -78,21 +66,13 @@ startRunnersJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pu
 startRunnersJobsUpdatingJobIfEnabled config backbone = one <$> forkIO (startRunnersJobsUpdatingJob config backbone)
 
 startRunnersJobsUpdatingJob :: Config -> Backbone -> IO ()
-startRunnersJobsUpdatingJob Config {..} Backbone {..} = do
+startRunnersJobsUpdatingJob config@Config {..} backbone = do
   cache <- Runners.initCache runnerCacheTtlSecs
   runFinal
     . embedToFinal
-    . R.runReader logConfig
-    . R.runReader groupId
-    . R.runReader dataUpdateIntervalSecs
-    . R.runReader projectExcludeList
-    . R.runReader gitlabBaseUrl
-    . R.runReader apiToken
-    . R.runReader maxConcurrency
-    . R.runReader (outgoingHttpRequestsHistogram metrics)
-    . R.runReader (updateJobDurationHistogram metrics)
-    . R.runReader runners
     . R.runReader cache
+    . runConfig config
+    . runBackbone backbone
     . runnersJobsApiToIO
     . runnersApiToIO
     . parTraverseToIO
