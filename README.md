@@ -38,7 +38,7 @@ Possible values are `include` and `exclude`.
 Default value is `include`.
 * `GCB_PROJECT_CACHE_TTL_SECS` (optional): You can configure caching for the list of projects to reduce the load on the Gitlab API.
 The provided value must be positive and sets the TTL of cached values in seconds.
-By default, caching is disabled.
+Default value is `3600` (1h).
 * `GCB_LOG_LEVEL` (optional): Set the minimum log level for log output.
 Defaults to Info if the value is not set or can't be parsed.
 Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`.
@@ -51,7 +51,7 @@ Possible values are `enabled` and `disabled`.
 * Default value is `disabled`.
 * `GCB_RUNNER_CACHE_TTL_SECS` (optional): You can configure caching for the list of online runners to reduce the load on the Gitlab API.
 The provided value must be positive and sets the TTL of cached values in seconds.
-By default, caching is disabled.
+Default value is `300` (5m).
 
 The app won't start if not all mandatory configuration properties are set.
 There will be a log message with the details before the application exits.

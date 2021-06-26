@@ -188,8 +188,8 @@ defaults =
   bpure empty
     & field @"dataUpdateIntervalSecs" .~ Just 60
     & field @"uiUpdateIntervalSecs" .~ Just 5
-    & field @"projectCacheTtlSecs" .~ Just 0
-    & field @"runnerCacheTtlSecs" .~ Just 0
+    & field @"projectCacheTtlSecs" .~ Just 3600
+    & field @"runnerCacheTtlSecs" .~ Just 300
     & field @"maxConcurrency" .~ Just 2
     & field @"includeSharedProjects" .~ Just Include
     & field @"logLevel" .~ Just InfoS

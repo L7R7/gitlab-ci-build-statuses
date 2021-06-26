@@ -91,8 +91,8 @@ spec = do
         (Url $$(staticURI "https://my.gitlab.com"))
         (DataUpdateIntervalSeconds 60)
         (UiUpdateIntervalSeconds 5)
-        (ProjectCacheTtlSeconds 0)
-        (RunnerCacheTtlSeconds 0)
+        (ProjectCacheTtlSeconds 3600)
+        (RunnerCacheTtlSeconds 300)
         (MaxConcurrency 2)
         Include
         InfoS
