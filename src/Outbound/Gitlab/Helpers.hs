@@ -12,7 +12,7 @@ import Control.Exception (try)
 import Core.Shared (Group, Id (Id), UpdateError (..), Url (..))
 import Data.Aeson hiding (Result, Value)
 import Data.Either.Combinators (mapLeft)
-import Metrics.Metrics (OutgoingHttpRequestsHistogram)
+import Metrics.Metrics (OutgoingHttpRequestsHistogram (..))
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Simple (Request, getResponseBody, httpJSONEither, parseRequest)
 import Outbound.Gitlab.RequestResponseUtils
@@ -47,4 +47,4 @@ fetchDataPaginated' apiToken request template groupId histogram acc = do
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
 measure :: Id Group -> OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
-measure (Id groupId) histogram template = observeDuration (VectorWithLabel histogram (show groupId, (toText . render) template))
+measure (Id groupId) (OutgoingHttpRequestsHistogram histogram) template = observeDuration (VectorWithLabel histogram (show groupId, (toText . render) template))

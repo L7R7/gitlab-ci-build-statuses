@@ -12,18 +12,20 @@ import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug, lo
 import Core.Shared
 import Metrics.Metrics
 import Polysemy
+import qualified Polysemy.Reader as R
 import Polysemy.Time (Seconds (Seconds), Time)
 import qualified Polysemy.Time as Time
 import Relude
 import UseCases.BuildStatuses (updateStatuses)
 
-updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member (Time t d) r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> [Id Project] -> Sem r ()
-updateStatusesRegularly groupId (DataUpdateIntervalSeconds updateInterval) excludeList =
-  addNamespace "update-build-statuses" $ pass <$> infinitely (updateWithDurationObservation groupId excludeList >> Time.sleep (Seconds (fromIntegral updateInterval)))
+updateStatusesRegularly :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member (Time t d) r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader [Id Project]) r) => Sem r ()
+updateStatusesRegularly = do
+  (DataUpdateIntervalSeconds updateInterval) <- R.ask
+  addNamespace "update-build-statuses" $ pass <$> infinitely (updateWithDurationObservation >> Time.sleep (Seconds (fromIntegral updateInterval)))
 
-updateWithDurationObservation :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r ()
-updateWithDurationObservation groupId excludeList =
+updateWithDurationObservation :: (Member DurationObservation r, Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r ()
+updateWithDurationObservation =
   observeDuration "projects" $ do
     logDebug "updating build statuses"
-    results <- updateStatuses groupId excludeList
+    results <- updateStatuses
     addContext "numResults" (length results) $ logInfo "Done updating"

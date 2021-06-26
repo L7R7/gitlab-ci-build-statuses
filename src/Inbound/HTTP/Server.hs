@@ -11,7 +11,6 @@ where
 
 import Config.Backbone (Backbone (..), GitCommit)
 import Config.Config (Config (..), JobsView, UiUpdateIntervalSeconds)
-import Control.Concurrent (ThreadId)
 import Control.Exception (try)
 import Core.BuildStatuses (BuildStatuses, BuildStatusesApi)
 import Core.Effects (Health)
@@ -29,6 +28,7 @@ import Network.Wai.Middleware.Prometheus (def, prometheus)
 import Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
 import Polysemy hiding (run)
+import qualified Polysemy.Reader as R
 import Polysemy.Time (Time, interpretTimeGhc)
 import Relude
 import Servant
@@ -43,11 +43,11 @@ type API =
 api :: Proxy API
 api = Proxy
 
-server :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member (Time UTCTime d) r, Member Health r) => JobsView -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> ServerT API (Sem r)
-server jobsView dataUpdateInterval uiUpdateInterval gitCommit =
+server :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member (Time UTCTime d) r, Member Health r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r, Member (R.Reader JobsView) r) => ServerT API (Sem r)
+server =
   getCurrentHealthStatus
-    :<|> (BuildStatuses.template dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag)
-    :<|> (Runners.template jobsView dataUpdateInterval uiUpdateInterval gitCommit . norefreshFlag)
+    :<|> (BuildStatuses.template . norefreshFlag)
+    :<|> (Runners.template . norefreshFlag)
     :<|> serveDirectoryWebApp "/service/static"
 
 norefreshFlag :: Bool -> AutoRefresh
@@ -55,15 +55,21 @@ norefreshFlag True = NoRefresh
 norefreshFlag False = Refresh
 
 hoist :: Config -> Backbone -> ServerT API Handler
-hoist Config {..} Backbone {..} = hoistServer api (liftServer statuses runners health threads) (server jobsView dataUpdateIntervalSecs uiUpdateIntervalSecs gitCommit)
+hoist config backbone = hoistServer api (liftServer config backbone) server
 
-liftServer :: IORef BuildStatuses -> IORef RunnersJobs -> IORef Bool -> IORef [(ThreadId, Text)] -> Sem '[BuildStatusesApi, RunnersJobsApi, Time UTCTime Day, Health, Embed IO] a -> Handler a
-liftServer statuses runners health threads sem =
+liftServer :: Config -> Backbone -> Sem '[BuildStatusesApi, RunnersJobsApi, Time UTCTime Day, Health, R.Reader DataUpdateIntervalSeconds, R.Reader UiUpdateIntervalSeconds, R.Reader GitCommit, R.Reader JobsView, R.Reader (IORef BuildStatuses), R.Reader (IORef RunnersJobs), Embed IO] a -> Handler a
+liftServer Config {..} Backbone {..} sem =
   sem
-    & buildStatusesApiToIO statuses
-    & runnersJobsApiToIO runners
+    & buildStatusesApiToIO
+    & runnersJobsApiToIO
     & interpretTimeGhc
     & healthToIO health threads
+    & R.runReader dataUpdateIntervalSecs
+    & R.runReader uiUpdateIntervalSecs
+    & R.runReader gitCommit
+    & R.runReader jobsView
+    & R.runReader statuses
+    & R.runReader runners
     & runM
     & Handler . ExceptT . try
 

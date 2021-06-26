@@ -13,18 +13,20 @@ import Core.Runners
 import Core.Shared
 import Metrics.Metrics
 import Polysemy
+import qualified Polysemy.Reader as R
 import Polysemy.Time (Seconds (Seconds), Time)
 import qualified Polysemy.Time as Time
 import Relude
 import UseCases.Runners (updateRunnersJobs)
 
-updateRunnersJobsRegularly :: (Member DurationObservation r, Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member (Time t d) r, Member ParTraverse r) => Id Group -> DataUpdateIntervalSeconds -> [Id Project] -> Sem r ()
-updateRunnersJobsRegularly groupId (DataUpdateIntervalSeconds updateInterval) excludeList =
-  addNamespace "update-runners-jobs" $ pass <$> infinitely (updateWithDurationObservation groupId excludeList >> Time.sleep (Seconds (fromIntegral updateInterval)))
+updateRunnersJobsRegularly :: (Member DurationObservation r, Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member (Time t d) r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader [Id Project]) r) => Sem r ()
+updateRunnersJobsRegularly = do
+  (DataUpdateIntervalSeconds updateInterval) <- R.ask
+  addNamespace "update-runners-jobs" $ pass <$> infinitely (updateWithDurationObservation >> Time.sleep (Seconds (fromIntegral updateInterval)))
 
-updateWithDurationObservation :: (Member DurationObservation r, Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r ()
-updateWithDurationObservation groupId excludeList =
+updateWithDurationObservation :: (Member DurationObservation r, Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r ()
+updateWithDurationObservation =
   observeDuration "runners" $ do
     logDebug "updating runnersJobs"
-    results <- updateRunnersJobs groupId excludeList
+    results <- updateRunnersJobs
     addContext "numResults" (length results) $ logInfo "Done updating"

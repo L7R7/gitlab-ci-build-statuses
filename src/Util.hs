@@ -9,16 +9,18 @@ import Config.Config (MaxConcurrency (..))
 import Core.Effects
 import Polysemy
 import Polysemy.Final (withWeavingToFinal)
+import qualified Polysemy.Reader as R
 import Relude
 import UnliftIO.Internals.Async
 
-parTraverseToIO :: (Member (Final IO) r) => MaxConcurrency -> InterpreterFor ParTraverse r
-parTraverseToIO maxConcurrency =
+parTraverseToIO :: (Member (Final IO) r, Member (R.Reader MaxConcurrency) r) => InterpreterFor ParTraverse r
+parTraverseToIO =
   interpretH $ \case
     TraverseP f ta -> do
+      maxConcurrency <- R.ask
       taT <- traverse pureT ta
       fT <- bindT f
-      tb <- raise (parTraverseToIO maxConcurrency (pooledMapConcurrentlySem maxConcurrency fT taT))
+      tb <- raise (parTraverseToIO (pooledMapConcurrentlySem maxConcurrency fT taT))
       ins <- getInspectorT
       pureT (catMaybes (inspect ins <$> catMaybes tb))
 

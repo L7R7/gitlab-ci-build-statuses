@@ -24,6 +24,7 @@ import qualified Data.Text as T
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Inbound.HTTP.Util (AutoRefresh (Refresh))
 import Polysemy
+import qualified Polysemy.Reader as R
 import Polysemy.Time (Time)
 import qualified Polysemy.Time as Time
 import Relude
@@ -34,11 +35,16 @@ import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
 type API = "jobs" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
 
-template :: (Member RunnersJobsApi r, Member (Time UTCTime d) r) => JobsView -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
-template Disabled _ uiUpdateInterval gitCommit autoRefresh = pure $ runnersViewDisabled uiUpdateInterval gitCommit autoRefresh
-template Enabled dataUpdateInterval uiUpdateInterval gitCommit autoRefresh = do
+template :: (Member RunnersJobsApi r, Member (Time UTCTime d) r, Member (R.Reader JobsView) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r) => AutoRefresh -> Sem r Html
+template autoRefresh = do
+  dataUpdateInterval <- R.ask
+  uiUpdateInterval <- R.ask
+  gitCommit <- R.ask
+  jobsView <- R.ask
   now <- Time.now
-  template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> getJobs
+  if jobsView == Enabled
+    then template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> getJobs
+    else pure $ runnersViewDisabled uiUpdateInterval gitCommit autoRefresh
 
 runnersViewDisabled :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Html
 runnersViewDisabled uiUpdateInterval gitCommit autoRefresh = do

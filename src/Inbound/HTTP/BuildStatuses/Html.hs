@@ -23,6 +23,7 @@ import Core.Shared
 import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
 import Inbound.HTTP.Util
 import Polysemy
+import qualified Polysemy.Reader as R
 import Polysemy.Time (Time)
 import qualified Polysemy.Time as Time
 import Relude
@@ -33,8 +34,11 @@ import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
 type API = "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
 
-template :: (Member BuildStatusesApi r, Member (Time UTCTime d) r) => DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Sem r Html
-template dataUpdateInterval uiUpdateInterval gitCommit autoRefresh = do
+template :: (Member BuildStatusesApi r, Member (Time UTCTime d) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r) => AutoRefresh -> Sem r Html
+template autoRefresh = do
+  dataUpdateInterval <- R.ask
+  uiUpdateInterval <- R.ask
+  gitCommit <- R.ask
   now <- Time.now
   template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> getStatuses
 

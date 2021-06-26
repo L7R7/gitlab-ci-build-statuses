@@ -25,9 +25,9 @@ import qualified Outbound.Storage.BuildStatuses.InMemory as Statuses (initStorag
 import Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
 import qualified Outbound.Storage.Runners.InMemory as Runners (initStorage)
 import Polysemy
-import Polysemy.Reader (runReader)
+import qualified Polysemy.Reader as R
 import Polysemy.Time (interpretTimeGhc)
-import Relude hiding (runReader)
+import Relude
 import System.Environment
 import Util (parTraverseToIO)
 import Validation
@@ -35,9 +35,15 @@ import Validation
 startMetricsUpdatingJob :: Config -> Backbone -> IO ()
 startMetricsUpdatingJob Config {..} Backbone {..} =
   runM
-    . runnersJobsApiToIO runners
-    . metricsApiToIO groupId metrics
-    . buildStatusesApiToIO statuses
+    . R.runReader groupId
+    . R.runReader statuses
+    . R.runReader runners
+    . R.runReader (currentPipelinesOverview metrics)
+    . R.runReader (runningJobsGauge metrics)
+    . R.runReader (onlineRunnersGauge metrics)
+    . runnersJobsApiToIO
+    . metricsApiToIO
+    . buildStatusesApiToIO
     . interpretTimeGhc
     $ updateMetricsRegularly
 
@@ -46,15 +52,26 @@ startStatusUpdatingJob Config {..} Backbone {..} = do
   cache <- Projects.initCache projectCacheTtlSecs
   runFinal
     . embedToFinal
-    . buildStatusesApiToIO statuses
-    . pipelinesApiToIO gitlabBaseUrl apiToken groupId (outgoingHttpRequestsHistogram metrics)
-    . projectsApiToIO gitlabBaseUrl apiToken includeSharedProjects (outgoingHttpRequestsHistogram metrics) cache
-    . parTraverseToIO maxConcurrency
+    . R.runReader logConfig
+    . R.runReader groupId
+    . R.runReader dataUpdateIntervalSecs
+    . R.runReader projectExcludeList
+    . R.runReader gitlabBaseUrl
+    . R.runReader apiToken
+    . R.runReader includeSharedProjects
+    . R.runReader maxConcurrency
+    . R.runReader (outgoingHttpRequestsHistogram metrics)
+    . R.runReader (updateJobDurationHistogram metrics)
+    . R.runReader statuses
+    . R.runReader cache
+    . buildStatusesApiToIO
+    . pipelinesApiToIO
+    . projectsApiToIO
+    . parTraverseToIO
     . interpretTimeGhc
-    . runReader logConfig
     . loggerToIO
-    . observeDurationToIO groupId (updateJobDurationHistogram metrics)
-    $ updateStatusesRegularly groupId dataUpdateIntervalSecs projectExcludeList
+    . observeDurationToIO
+    $ updateStatusesRegularly
 
 startRunnersJobsUpdatingJobIfEnabled :: Config -> Backbone -> IO [ThreadId]
 startRunnersJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pure []
@@ -65,14 +82,24 @@ startRunnersJobsUpdatingJob Config {..} Backbone {..} = do
   cache <- Runners.initCache runnerCacheTtlSecs
   runFinal
     . embedToFinal
-    . runnersJobsApiToIO runners
-    . runnersApiToIO gitlabBaseUrl apiToken (outgoingHttpRequestsHistogram metrics) cache
-    . parTraverseToIO maxConcurrency
+    . R.runReader logConfig
+    . R.runReader groupId
+    . R.runReader dataUpdateIntervalSecs
+    . R.runReader projectExcludeList
+    . R.runReader gitlabBaseUrl
+    . R.runReader apiToken
+    . R.runReader maxConcurrency
+    . R.runReader (outgoingHttpRequestsHistogram metrics)
+    . R.runReader (updateJobDurationHistogram metrics)
+    . R.runReader runners
+    . R.runReader cache
+    . runnersJobsApiToIO
+    . runnersApiToIO
+    . parTraverseToIO
     . interpretTimeGhc
-    . runReader logConfig
     . loggerToIO
-    . observeDurationToIO groupId (updateJobDurationHistogram metrics)
-    $ updateRunnersJobsRegularly groupId dataUpdateIntervalSecs projectExcludeList
+    . observeDurationToIO
+    $ updateRunnersJobsRegularly
 
 startWithConfig :: Config -> Backbone -> IO ()
 startWithConfig config backbone = do

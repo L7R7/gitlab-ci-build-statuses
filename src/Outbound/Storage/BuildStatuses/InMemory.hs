@@ -8,15 +8,18 @@ module Outbound.Storage.BuildStatuses.InMemory (initStorage, buildStatusesApiToI
 import Core.BuildStatuses (BuildStatuses (..), BuildStatusesApi (..))
 import Data.Time (getCurrentTime)
 import Polysemy
+import qualified Polysemy.Reader as R
 import Relude
 
 initStorage :: IO (IORef BuildStatuses)
 initStorage = newIORef NoSuccessfulUpdateYet
 
-buildStatusesApiToIO :: (Member (Embed IO) r) => IORef BuildStatuses -> InterpreterFor BuildStatusesApi r
-buildStatusesApiToIO ioRef = interpret $ \case
-  GetStatuses -> readIORef ioRef
-  SetStatuses results -> embed $ do
-    updateTime <- getCurrentTime
-    let res = Statuses (updateTime, results)
-    atomicWriteIORef ioRef res
+buildStatusesApiToIO :: ((Member (Embed IO) r), Member (R.Reader (IORef BuildStatuses)) r) => InterpreterFor BuildStatusesApi r
+buildStatusesApiToIO = interpret $ \case
+  GetStatuses -> R.ask >>= readIORef
+  SetStatuses results -> do
+    ioRef <- R.ask
+    embed $ do
+      updateTime <- getCurrentTime
+      let res = Statuses (updateTime, results)
+      atomicWriteIORef ioRef res

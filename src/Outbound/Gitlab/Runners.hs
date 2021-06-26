@@ -21,24 +21,33 @@ import Metrics.Metrics (OutgoingHttpRequestsHistogram)
 import Outbound.Gitlab.Helpers
 import Outbound.Gitlab.Instances ()
 import Polysemy
+import qualified Polysemy.Reader as R
 import Relude
 import System.Clock
 
 initCache :: RunnerCacheTtlSeconds -> IO (Cache (Id Group) [Runner])
 initCache (RunnerCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
-runnersApiToIO :: Member (Embed IO) r => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Runner] -> InterpreterFor RunnersApi r
-runnersApiToIO baseUrl apiToken histogram cache = interpret $ \case
-  GetOnlineRunnersForGroup groupId -> embed $ do
-    cached <- lookup cache groupId
-    case cached of
-      (Just runners) -> pure $ Right runners
-      Nothing -> do
-        let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online|]
-        result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
-        traverse_ (insert cache groupId) result
-        pure result
+runnersApiToIO :: (Member (Embed IO) r, Member (R.Reader (Url GitlabHost)) r, Member (R.Reader ApiToken) r, Member (R.Reader OutgoingHttpRequestsHistogram) r, Member (R.Reader (Cache (Id Group) [Runner])) r) => InterpreterFor RunnersApi r
+runnersApiToIO = interpret $ \case
+  GetOnlineRunnersForGroup groupId -> do
+    cache <- R.ask
+    baseUrl <- R.ask
+    apiToken <- R.ask
+    histogram <- R.ask
+    embed $ do
+      cached <- lookup cache groupId
+      case cached of
+        (Just runners) -> pure $ Right runners
+        Nothing -> do
+          let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online|]
+          result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
+          traverse_ (insert cache groupId) result
+          pure result
   GetRunningJobsForRunner groupId runnerId -> do
+    baseUrl <- R.ask
+    apiToken <- R.ask
+    histogram <- R.ask
     let template = [uriTemplate|/api/v4/runners/{runnerId}/jobs?status=running|]
     embed $ fetchDataPaginated baseUrl apiToken template [("runnerId", (stringValue . show) runnerId)] groupId histogram
 

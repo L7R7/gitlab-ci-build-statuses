@@ -8,34 +8,37 @@
 
 module UseCases.Runners (updateRunnersJobs) where
 
+import Core.BuildStatuses (Project)
 import Core.Effects
 import Core.Runners
 import Core.Shared
 import Data.Aeson (ToJSON)
 import Data.Map (fromAscListWith, mapKeys)
 import Polysemy
+import qualified Polysemy.Reader as R
 import Relude
-import Core.BuildStatuses (Project)
 
-updateRunnersJobs :: (Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r (Map Runner [Job])
-updateRunnersJobs groupId excludeList = do
-  currentJobs <- currentKnownRunnersJobs groupId excludeList
+updateRunnersJobs :: (Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r (Map Runner [Job])
+updateRunnersJobs = do
+  currentJobs <- currentKnownRunnersJobs
   setJobs currentJobs
   logCurrentRunnersJobs
   pure currentJobs
 
-currentKnownRunnersJobs :: (Member RunnersApi r, Member Logger r, Member ParTraverse r) => Id Group -> [Id Project] -> Sem r (Map Runner [Job])
-currentKnownRunnersJobs groupId excludeList = do
-  runner <- findRunners groupId
-  results <- traverseP (evalRunner groupId excludeList) runner
+currentKnownRunnersJobs :: (Member RunnersApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r (Map Runner [Job])
+currentKnownRunnersJobs = do
+  runner <- findRunners
+  results <- traverseP evalRunner runner
   pure $ fromAscListWith (<>) $ catMaybes results
 
-findRunners :: (Member RunnersApi r, Member Logger r) => Id Group -> Sem r [Runner]
-findRunners groupId = addContext "groupId" groupId $ do
-  result <- getOnlineRunnersForGroup groupId
-  case result of
-    Left err -> [] <$ logWarn (unwords ["Couldn't load runners. Error was", show err])
-    Right runners -> pure runners
+findRunners :: (Member RunnersApi r, Member Logger r, Member (R.Reader (Id Group)) r) => Sem r [Runner]
+findRunners = do
+  groupId <- R.ask
+  addContext "groupId" groupId $ do
+    result <- getOnlineRunnersForGroup groupId
+    case result of
+      Left err -> [] <$ logWarn (unwords ["Couldn't load runners. Error was", show err])
+      Right runners -> pure runners
 
 logCurrentRunnersJobs :: (Member RunnersJobsApi r, Member Logger r) => Sem r ()
 logCurrentRunnersJobs = do
@@ -47,8 +50,10 @@ logCurrentRunnersJobs = do
         then logDebug "No running jobs found"
         else addContext "jobs" (fmap jobId <$> mapKeys (show @Text . runnerId) jobs) $ logDebug "Running jobs found"
 
-evalRunner :: (Member RunnersApi r, Member Logger r) => Id Group -> [Id Project] -> Runner -> Sem r (Maybe (Runner, [Job]))
-evalRunner groupId excludeList r@Runner {..} = addContext "runnerId" runnerId $ do
+evalRunner :: (Member RunnersApi r, Member Logger r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Runner -> Sem r (Maybe (Runner, [Job]))
+evalRunner r@Runner {..} = addContext "runnerId" runnerId $ do
+  groupId <- R.ask
+  excludeList <- R.ask
   jobs <- getRunningJobsForRunner groupId runnerId
   case jobs of
     Left err -> Nothing <$ logWarn (unwords ["Couldn't get jobs for runner. Error was", show err])
