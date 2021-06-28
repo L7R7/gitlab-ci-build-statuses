@@ -34,18 +34,19 @@ import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
 type API = "statuses" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
 
-template :: (Member BuildStatusesApi r, Member (Time UTCTime d) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r) => AutoRefresh -> Sem r Html
+template :: (Member BuildStatusesApi r, Member (Time UTCTime d) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r, Member (R.Reader JobsView) r) => AutoRefresh -> Sem r Html
 template autoRefresh = do
+  jobsView <- R.ask
   dataUpdateInterval <- R.ask
   uiUpdateInterval <- R.ask
   gitCommit <- R.ask
   now <- Time.now
-  template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> getStatuses
+  template' now jobsView dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> getStatuses
 
-template' :: UTCTime -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
-template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh buildStatuses = do
+template' :: UTCTime -> JobsView -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
+template' now jobsView dataUpdateInterval uiUpdateInterval gitCommit autoRefresh buildStatuses = do
   pageHeader uiUpdateInterval gitCommit autoRefresh buildStatuses
-  pageBody dataUpdateInterval now buildStatuses
+  pageBody dataUpdateInterval jobsView now buildStatuses
 
 pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildStatuses =
@@ -57,7 +58,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         H.title "Build Statuses"
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-d66ed4fc6f.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-484548c1a7.css"
         script ! type_ "text/javascript" ! src "static/script-909ec6a089.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
   where
@@ -70,17 +71,21 @@ faviconPrefix status
   | status `elem` [O.Warning, O.Unknown] = "warning"
   | otherwise = "failed"
 
-pageBody :: DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Html
-pageBody dataUpdateInterval now buildStatuses = H.body $ section ! class_ "statuses" $ statusesToHtml dataUpdateInterval now buildStatuses
+pageBody :: DataUpdateIntervalSeconds -> JobsView -> UTCTime -> BuildStatuses -> Html
+pageBody dataUpdateInterval jobsView now buildStatuses = H.body $
+  section ! class_ "statuses" $ do
+    statusesToHtml dataUpdateInterval jobsView now buildStatuses
 
-statusesToHtml :: DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Html
-statusesToHtml _ _ NoSuccessfulUpdateYet = H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
-statusesToHtml dataUpdateInterval now (Statuses (lastUpdated, [])) = do
+statusesToHtml :: DataUpdateIntervalSeconds -> JobsView -> UTCTime -> BuildStatuses -> Html
+statusesToHtml _ _ _ NoSuccessfulUpdateYet = H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
+statusesToHtml dataUpdateInterval jobsView now (Statuses (lastUpdated, [])) = do
   emptyResults
   lastUpdatedToHtml dataUpdateInterval now lastUpdated
-statusesToHtml dataUpdateInterval now (Statuses (lastUpdated, results)) = do
+  linkToJobs jobsView
+statusesToHtml dataUpdateInterval jobsView now (Statuses (lastUpdated, results)) = do
   toHtml (resultToHtml <$> results)
   lastUpdatedToHtml dataUpdateInterval now lastUpdated
+  linkToJobs jobsView
 
 resultToHtml :: Result -> Html
 resultToHtml Result {..} =
@@ -116,6 +121,10 @@ lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.
 
 emptyResults :: Html
 emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results for default branches found"
+
+linkToJobs :: JobsView -> Html
+linkToJobs Disabled = mempty
+linkToJobs Enabled = H.div ! class_ "status" $ H.div $ a ! class_ "link-to-jobs" ! href "/jobs" $ "Go to the current running jobs"
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"
