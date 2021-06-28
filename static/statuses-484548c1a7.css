@@ -1,9 +1,25 @@
 @import url(https://fonts.googleapis.com/css?family=Noto+Sans:400,900);
 
+a {
+    text-decoration: none;
+    font-weight: bold;
+    color: black;
+}
+
+html {
+    height: 100%;
+    font-family: 'Noto Sans', sans-serif;
+    background: #0b0c0e;
+}
+
+body {
+    margin: 0;
+    padding: 8px
+}
+
 .status {
     padding: 1em;
     text-align: center;
-    background: white;
     justify-content: center;
     display: grid;
 }
@@ -22,14 +38,18 @@
     margin: auto;
 }
 
-.empty-results, .no-successful-update, .timestamp {
+.empty-results, .no-successful-update, .timestamp, .link-to-jobs {
     background-color: transparent;
     color: white;
 }
 
-.timestamp {
+.timestamp, .link-to-jobs {
     line-height: 1.2;
     font-size: smaller;
+}
+
+a.link-to-jobs {
+    font-weight: normal;
 }
 
 .timestamp.cancelled {
@@ -66,21 +86,4 @@
     grid-column-gap: 0.4em;
     grid-row-gap: 0.4em;
     grid-template-columns: repeat(auto-fit, minmax(11em, 10fr));
-}
-
-a {
-    text-decoration: none;
-    font-weight: bold;
-    color: black;
-}
-
-html {
-    height: 100%;
-    font-family: 'Noto Sans', sans-serif;
-    background: #0b0c0e;
-}
-
-body {
-    margin: 0;
-    padding: 8px
 }
