@@ -34,7 +34,9 @@ import Relude
 import Servant
 import System.Posix.Signals hiding (Handler)
 
-type API =
+type API = "builds" :> API' :<|> API'
+
+type API' =
   Health.API
     :<|> BuildStatuses.API
     :<|> Runners.API
@@ -44,11 +46,13 @@ api :: Proxy API
 api = Proxy
 
 server :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member (Time UTCTime d) r, Member Health r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r, Member (R.Reader JobsView) r) => ServerT API (Sem r)
-server =
-  getCurrentHealthStatus
-    :<|> (BuildStatuses.template . norefreshFlag)
-    :<|> (Runners.template . norefreshFlag)
-    :<|> serveDirectoryWebApp "/service/static"
+server = s :<|> s
+  where
+    s =
+      getCurrentHealthStatus
+        :<|> (BuildStatuses.template . norefreshFlag)
+        :<|> (Runners.template . norefreshFlag)
+        :<|> serveDirectoryWebApp "/service/static"
 
 norefreshFlag :: Bool -> AutoRefresh
 norefreshFlag True = NoRefresh

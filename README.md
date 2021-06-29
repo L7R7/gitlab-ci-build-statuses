@@ -82,6 +82,9 @@ You can use the query flag `norefresh` to disable that (this is probably only he
 The status code will be either 200 or 503, the body will always be JSON and will include a `status` field that's either "HEALTHY" or "UNHEALTHY" alongside a `build` field that shows which version of the code is running
 * `/metrics`: Returns [Prometheus](https://prometheus.io/) application metrics
 
+All endpoints are available under the prefix `/builds` as well.
+This is especially helpful when you deploy the app behind something like an ingress proxy where you want to have a clear prefix to do the routing.
+
 ## Operating showcase
 
 This repository includes a showcase for a docker-compose based deployment in [docker-compose](docker-compose/).
