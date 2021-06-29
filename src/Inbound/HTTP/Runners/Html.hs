@@ -17,11 +17,11 @@ where
 import Config.Backbone
 import Config.Config
 import Core.Runners
-import Core.Shared (DataUpdateIntervalSeconds (DataUpdateIntervalSeconds), Ref (Ref))
+import Core.Shared (DataUpdateIntervalSeconds, Ref (Ref))
 import Data.Map (toList)
 import qualified Data.Text as T
-import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
-import Inbound.HTTP.Util (AutoRefresh (Refresh))
+import Data.Time (UTCTime)
+import Inbound.HTTP.Util (AutoRefresh (Refresh), lastUpdatedToHtml)
 import Polysemy
 import qualified Polysemy.Reader as R
 import Polysemy.Time (Time)
@@ -66,7 +66,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runner
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> faviconPrefix runnersJobs <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/jobs-dc83fdaa51.css"
-        script ! type_ "text/javascript" ! src "static/script-909ec6a089.js" $ mempty
+        script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
 
 faviconPrefix :: Maybe RunnersJobs -> AttributeValue
@@ -75,7 +75,11 @@ faviconPrefix Nothing = "failed"
 faviconPrefix _ = "idle"
 
 pageBody :: DataUpdateIntervalSeconds -> UTCTime -> RunnersJobs -> Html
-pageBody dataUpdateInterval now runnersJobs = H.body $ runnersJobsToHtml runnersJobs <> lastUpdatedToHtml dataUpdateInterval now runnersJobs
+pageBody dataUpdateInterval now runnersJobs = H.body $ runnersJobsToHtml runnersJobs <> lastUpdated runnersJobs
+  where
+    lastUpdated :: RunnersJobs -> Html
+    lastUpdated NoSuccessfulUpdateYet = mempty
+    lastUpdated (RunnersJobs (t, _)) = lastUpdatedToHtml dataUpdateInterval now t
 
 runnersJobsToHtml :: RunnersJobs -> Html
 runnersJobsToHtml NoSuccessfulUpdateYet = H.div ! class_ "job no-successful-update" $ p "There was no successful update yet"
@@ -106,17 +110,3 @@ deriving newtype instance ToMarkup IpAddress
 truncateRef :: Ref -> Html
 truncateRef (Ref ref) | T.length ref <= 40 = toHtml ref
 truncateRef (Ref ref) = toHtml $ T.take 17 ref <> "..." <> T.drop (T.length ref - 20) ref
-
-lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> RunnersJobs -> Html
-lastUpdatedToHtml _ _ NoSuccessfulUpdateYet = mempty
-lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now (RunnersJobs (lastUpdate, _)) = H.div ! class_ classes ! staleDataTitle $
-  H.div $ do
-    p $ "Last Update at: " <> br <> (H.span ! A.id "update-timestamp" $ toHtml (unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"]))
-  where
-    lastUpdateTooOld = diffUTCTime now lastUpdate > fromIntegral (3 * updateInterval)
-    staleDataTitle
-      | lastUpdateTooOld = A.title "data is stale. Please check the logs"
-      | otherwise = mempty
-    classes
-      | lastUpdateTooOld = "job timestamp cancelled"
-      | otherwise = "job timestamp"

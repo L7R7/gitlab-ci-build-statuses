@@ -20,7 +20,7 @@ import Core.BuildStatuses
 import Core.OverallStatus (isRunning, overallStatus)
 import qualified Core.OverallStatus as O (OverallStatus (Successful, Unknown, Warning))
 import Core.Shared
-import Data.Time (UTCTime, defaultTimeLocale, diffUTCTime, formatTime)
+import Data.Time (UTCTime)
 import Inbound.HTTP.Util
 import Polysemy
 import qualified Polysemy.Reader as R
@@ -58,7 +58,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-d66ed4fc6f.css"
-        script ! type_ "text/javascript" ! src "static/script-909ec6a089.js" $ mempty
+        script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
   where
     prefix = faviconPrefix (overallStatus buildStatuses)
@@ -99,20 +99,6 @@ resultToHtml Result {..} =
     classesForStatus Successful = class_ "status successful"
     classesForStatus SuccessfulWithWarnings = class_ "status passed-with-warnings"
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
-
-lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> Html
-lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.div ! class_ classes ! staleDataTitle $
-  H.div $ do
-    p "Last Update at:"
-    p ! A.id "update-timestamp" $ toHtml (unwords [toText $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" lastUpdate, "UTC"])
-  where
-    lastUpdateTooOld = diffUTCTime now lastUpdate > fromIntegral (3 * updateInterval)
-    staleDataTitle
-      | lastUpdateTooOld = A.title "data is stale. Please check the logs"
-      | otherwise = mempty
-    classes
-      | lastUpdateTooOld = "status timestamp cancelled"
-      | otherwise = "status timestamp"
 
 emptyResults :: Html
 emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results for default branches found"

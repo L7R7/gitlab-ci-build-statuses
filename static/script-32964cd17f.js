@@ -3,7 +3,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (timestamp != null) {
     if (timestamp.innerText != null) {
       const formatted = new Date(timestamp.innerText);
-      timestamp.innerHTML = `${formatted.toLocaleDateString()}<br>${formatted.toLocaleTimeString()}`;
+      if (!isNaN(formatted)) {
+        timestamp.innerHTML = `${formatted.toLocaleDateString()}<br>${formatted.toLocaleTimeString()}`;
+      }
     }
   }
 });
