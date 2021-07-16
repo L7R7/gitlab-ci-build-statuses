@@ -72,7 +72,7 @@ jobs:
 
       - name: Docker meta
         id: docker_meta
-        uses: docker/metadata-action@v3.3.0
+        uses: docker/metadata-action@v3.4.1
         with:
           images: l7r7/gitlab-ci-build-statuses
           flavor: |
