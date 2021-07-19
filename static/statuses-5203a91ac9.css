@@ -52,10 +52,6 @@ a.link-to-jobs {
     font-weight: normal;
 }
 
-.timestamp.cancelled {
-    color: black;
-}
-
 .successful {
     background-color: #388729;
 }
@@ -85,5 +81,6 @@ a.link-to-jobs {
     display: grid;
     grid-column-gap: 0.4em;
     grid-row-gap: 0.4em;
+    grid-auto-rows: 1fr;
     grid-template-columns: repeat(auto-fit, minmax(11em, 10fr));
 }

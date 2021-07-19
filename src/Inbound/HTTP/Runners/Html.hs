@@ -65,7 +65,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runner
         H.title "Running jobs per runner"
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> faviconPrefix runnersJobs <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/jobs-dc83fdaa51.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/jobs-6bdb3fb7f1.css"
         script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
 

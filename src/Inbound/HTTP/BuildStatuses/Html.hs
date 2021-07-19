@@ -58,7 +58,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
         H.title "Build Statuses"
         link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
         link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-484548c1a7.css"
+        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-5203a91ac9.css"
         script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
         textComment . toText $ ("Version: " <> show gitCommit :: String)
   where

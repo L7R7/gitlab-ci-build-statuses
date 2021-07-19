@@ -35,6 +35,7 @@
     display: grid;
     grid-column-gap: 0.4em;
     grid-row-gap: 0.4em;
+    grid-auto-rows: 1fr;
     grid-template-columns: repeat(4, minmax(11em, 10fr));
 }
 
