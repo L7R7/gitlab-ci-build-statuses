@@ -110,7 +110,7 @@ emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results fo
 
 linkToJobs :: JobsView -> Html
 linkToJobs Disabled = mempty
-linkToJobs Enabled = H.div ! class_ "status" $ H.div $ a ! class_ "link-to-jobs" ! href "/builds/jobs" $ "Go to the current running jobs"
+linkToJobs Enabled = H.div ! class_ "status" $ H.div $ a ! class_ "link-to-jobs" ! href "/builds/jobs" $ "Go to the currently running jobs"
 
 instance ToMarkup BuildStatus where
   toMarkup Unknown = string "unknown"
