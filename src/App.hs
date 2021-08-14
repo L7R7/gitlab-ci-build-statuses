@@ -54,6 +54,7 @@ startStatusUpdatingJob config@Config {..} backbone = do
     . runBackbone backbone
     . buildStatusesApiToIO
     . pipelinesApiToIO
+    . metricsApiToIO
     . projectsApiToIO
     . parTraverseToIO
     . interpretTimeGhc
@@ -74,6 +75,7 @@ startRunnersJobsUpdatingJob config@Config {..} backbone = do
     . runConfig config
     . runBackbone backbone
     . runnersJobsApiToIO
+    . metricsApiToIO
     . runnersApiToIO
     . parTraverseToIO
     . interpretTimeGhc

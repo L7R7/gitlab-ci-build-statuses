@@ -13,7 +13,7 @@ import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (Project
 import Core.BuildStatuses (Project, ProjectsApi (..))
 import Core.Shared (Group, Id, Url (..))
 import Data.Cache
-import Metrics.Metrics (OutgoingHttpRequestsHistogram)
+import Metrics.Metrics (CacheResult (..), CacheTag (CacheTag), MetricsApi, OutgoingHttpRequestsHistogram, recordCacheLookupResult)
 import Outbound.Gitlab.Helpers
 import Outbound.Gitlab.Instances ()
 import Polysemy
@@ -24,7 +24,7 @@ import System.Clock
 initCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Project])
 initCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
-projectsApiToIO :: (Member (Embed IO) r, Member (R.Reader (Url GitlabHost)) r, Member (R.Reader ApiToken) r, Member (R.Reader SharedProjects) r, Member (R.Reader OutgoingHttpRequestsHistogram) r, Member (R.Reader (Cache (Id Group) [Project])) r) => InterpreterFor ProjectsApi r
+projectsApiToIO :: (Member (Embed IO) r, Member MetricsApi r, Member (R.Reader (Url GitlabHost)) r, Member (R.Reader ApiToken) r, Member (R.Reader SharedProjects) r, Member (R.Reader OutgoingHttpRequestsHistogram) r, Member (R.Reader (Cache (Id Group) [Project])) r) => InterpreterFor ProjectsApi r
 projectsApiToIO = interpret $ \case
   GetProjects groupId -> do
     cache <- R.ask
@@ -32,15 +32,17 @@ projectsApiToIO = interpret $ \case
     apiToken <- R.ask
     sharedProjects <- R.ask
     histogram <- R.ask
-    embed $ do
+    (result, cacheResult) <- embed $ do
       cached <- lookup cache groupId
       case cached of
-        (Just projects) -> pure $ Right projects
+        (Just projects) -> pure (Right projects, Hit)
         Nothing -> do
           let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false{&with_shared}|]
           result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId), ("with_shared", withShared sharedProjects)] groupId histogram
           traverse_ (insert cache groupId) result
-          pure result
+          pure (result, Miss)
+    recordCacheLookupResult (CacheTag "projects") cacheResult
+    pure result
   where
     withShared Include = stringValue "true"
     withShared Exclude = stringValue "false"

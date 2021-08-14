@@ -17,6 +17,7 @@ module Metrics.Metrics
     PipelinesOverviewGauge (..),
     RunningJobsGauge (..),
     UpdateJobDurationHistogram (..),
+    CacheResultsCounter (..),
     Metrics (..),
     registerMetrics,
     updateMetricsRegularly,
@@ -24,6 +25,10 @@ module Metrics.Metrics
     DurationObservation,
     observeDuration,
     observeDurationToIO,
+    recordCacheLookupResult,
+    CacheTag (..),
+    CacheResult (..),
+    MetricsApi,
   )
 where
 
@@ -57,6 +62,7 @@ registerAppMetrics =
   Metrics <$> registerPipelinesOverviewMetric
     <*> registerOutgoingHttpRequestsHistogram
     <*> registerUpdateJobDurationHistogram
+    <*> registerCacheResultsCounter
     <*> registerOnlineRunnersMetric
     <*> registerRunningJobsMetric
 
@@ -75,6 +81,9 @@ registerOutgoingHttpRequestsHistogram = OutgoingHttpRequestsHistogram <$> regist
 registerUpdateJobDurationHistogram :: IO UpdateJobDurationHistogram
 registerUpdateJobDurationHistogram = UpdateJobDurationHistogram <$> register (vector ("group_id", "tag") $ histogram (Info "update_job_duration_histogram" "Histogram indicating how long the update job took") (exponentialBuckets 0.5 1.25 20))
 
+registerCacheResultsCounter :: IO CacheResultsCounter
+registerCacheResultsCounter = CacheResultsCounter <$> register (vector ("group_id", "tag", "result") $ counter (Info "cache_results_count" "Counter that indicates the results of the different caches. Includes labels for group id, cache tag, and result(hit/miss)"))
+
 newtype PipelinesOverviewGauge = PipelinesOverviewGauge (Vector Label2 Gauge)
 
 newtype OnlineRunnersGauge = OnlineRunnersGauge (Vector Label1 Gauge)
@@ -85,10 +94,13 @@ newtype OutgoingHttpRequestsHistogram = OutgoingHttpRequestsHistogram (Vector La
 
 newtype UpdateJobDurationHistogram = UpdateJobDurationHistogram (Vector Label2 Histogram)
 
+newtype CacheResultsCounter = CacheResultsCounter (Vector Label3 Counter)
+
 data Metrics = Metrics
   { currentPipelinesOverview :: !PipelinesOverviewGauge,
     outgoingHttpRequestsHistogram :: !OutgoingHttpRequestsHistogram,
     updateJobDurationHistogram :: !UpdateJobDurationHistogram,
+    cacheResultsCounter :: CacheResultsCounter,
     onlineRunnersGauge :: !OnlineRunnersGauge,
     runningJobsGauge :: !RunningJobsGauge
   }
@@ -115,35 +127,41 @@ observeDurationToIO' groupId@(Id gId) updateJobDurationHistogram@(UpdateJobDurat
     embed (observe (VectorWithLabel h (show gId, tag)) timeTaken :: IO ())
     pure res
 
+newtype CacheTag = CacheTag Text
+
+data CacheResult = Hit | Miss
+
+cacheResultToProm :: CacheResult -> Text
+cacheResultToProm Hit = "hit"
+cacheResultToProm Miss = "miss"
+
 data MetricsApi m a where
   UpdatePipelinesOverviewMetric :: B.BuildStatuses -> MetricsApi m ()
   UpdateHealthy :: Int -> MetricsApi m ()
   UpdateUnhealthy :: Int -> MetricsApi m ()
   UpdateOnlineRunners :: Int -> MetricsApi m ()
   UpdateRunningJobs :: Int -> MetricsApi m ()
+  RecordCacheLookupResult :: CacheTag -> CacheResult -> MetricsApi m ()
 
 makeSem ''MetricsApi
 
-metricsApiToIO :: (Member (Embed IO) r, Member (R.Reader (Id Group)) r, Member (R.Reader PipelinesOverviewGauge) r, Member (R.Reader OnlineRunnersGauge) r, Member (R.Reader RunningJobsGauge) r) => InterpreterFor MetricsApi r
+metricsApiToIO :: (Member (Embed IO) r, Member (R.Reader (Id Group)) r, Member (R.Reader PipelinesOverviewGauge) r, Member (R.Reader OnlineRunnersGauge) r, Member (R.Reader RunningJobsGauge) r, Member (R.Reader CacheResultsCounter) r) => InterpreterFor MetricsApi r
 metricsApiToIO sem = do
   groupId <- R.ask
   pipelinesOverviewGauge <- R.ask
   onlineRunnersGauge <- R.ask
   runningJobsGauge <- R.ask
-  metricsApiToIO' groupId pipelinesOverviewGauge onlineRunnersGauge runningJobsGauge sem
+  cacheResultsCounter <- R.ask
+  metricsApiToIO' groupId pipelinesOverviewGauge onlineRunnersGauge runningJobsGauge cacheResultsCounter sem
 
-metricsApiToIO' :: (Member (Embed IO) r) => Id Group -> PipelinesOverviewGauge -> OnlineRunnersGauge -> RunningJobsGauge -> InterpreterFor MetricsApi r
-metricsApiToIO' groupId pipelinesOverviewGauge@(PipelinesOverviewGauge currentPipelinesOverview) (OnlineRunnersGauge onlineRunnersGauge) (RunningJobsGauge runningJobsGauge) = interpret $ \case
-  UpdatePipelinesOverviewMetric buildStatuses -> do
-    embed $ updatePipelinesOverviewMetricIO groupId pipelinesOverviewGauge buildStatuses
-  UpdateHealthy healthyCount -> do
-    embed (withLabel currentPipelinesOverview (show groupId, "healthy") (`setGauge` fromIntegral healthyCount))
-  UpdateUnhealthy unhealthyCount -> do
-    embed (withLabel currentPipelinesOverview (show groupId, "unhealthy") (`setGauge` fromIntegral unhealthyCount))
-  UpdateOnlineRunners runners -> do
-    embed (withLabel onlineRunnersGauge (show groupId) (`setGauge` fromIntegral runners))
-  UpdateRunningJobs jobs -> do
-    embed (withLabel runningJobsGauge (show groupId) (`setGauge` fromIntegral jobs))
+metricsApiToIO' :: (Member (Embed IO) r) => Id Group -> PipelinesOverviewGauge -> OnlineRunnersGauge -> RunningJobsGauge -> CacheResultsCounter -> InterpreterFor MetricsApi r
+metricsApiToIO' groupId pipelinesOverviewGauge@(PipelinesOverviewGauge currentPipelinesOverview) (OnlineRunnersGauge onlineRunnersGauge) (RunningJobsGauge runningJobsGauge) (CacheResultsCounter cacheResults) = interpret $ \case
+  UpdatePipelinesOverviewMetric buildStatuses -> embed $ updatePipelinesOverviewMetricIO groupId pipelinesOverviewGauge buildStatuses
+  UpdateHealthy healthyCount -> embed (withLabel currentPipelinesOverview (show groupId, "healthy") (`setGauge` fromIntegral healthyCount))
+  UpdateUnhealthy unhealthyCount -> embed (withLabel currentPipelinesOverview (show groupId, "unhealthy") (`setGauge` fromIntegral unhealthyCount))
+  UpdateOnlineRunners runners -> embed (withLabel onlineRunnersGauge (show groupId) (`setGauge` fromIntegral runners))
+  UpdateRunningJobs jobs -> embed (withLabel runningJobsGauge (show groupId) (`setGauge` fromIntegral jobs))
+  RecordCacheLookupResult (CacheTag tag) result -> embed (withLabel cacheResults (show groupId, tag, cacheResultToProm result) incCounter)
 
 updatePipelinesOverviewMetricIO :: Id Group -> PipelinesOverviewGauge -> B.BuildStatuses -> IO ()
 updatePipelinesOverviewMetricIO _ _ B.NoSuccessfulUpdateYet = pass

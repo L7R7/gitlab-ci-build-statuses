@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 1,
-  "iteration": 1624651693464,
+  "iteration": 1628931270802,
   "links": [],
   "panels": [
     {
@@ -1072,7 +1072,7 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "datasource": "Prometheus",
       "gridPos": {
         "h": 1,
@@ -1081,8 +1081,133 @@
         "y": 25
       },
       "id": 22,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": true,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 26
+          },
+          "id": 5,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "single"
+            }
+          },
+          "pluginVersion": "8.0.1",
+          "repeat": "path",
+          "repeatDirection": "h",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
+              "interval": "",
+              "legendFormat": "p50",
+              "refId": "A"
+            },
+            {
+              "expr": "histogram_quantile(0.75, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
+              "interval": "",
+              "legendFormat": "p75",
+              "refId": "B"
+            },
+            {
+              "expr": "histogram_quantile(0.9, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
+              "interval": "",
+              "legendFormat": "p90",
+              "refId": "C"
+            },
+            {
+              "expr": "histogram_quantile(0.975, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
+              "interval": "",
+              "legendFormat": "p97.5",
+              "refId": "D"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
+              "interval": "",
+              "legendFormat": "p99",
+              "refId": "E"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "request duration outgoing requests - $path",
+          "type": "timeseries"
+        }
+      ],
       "title": "outgoing requests per path",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 63,
+      "panels": [],
+      "title": "Caching",
       "type": "row"
     },
     {
@@ -1097,7 +1222,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -1110,8 +1235,8 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
-            "spanNulls": true,
+            "showPoints": "auto",
+            "spanNulls": false,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1133,18 +1258,49 @@
                 "value": 80
               }
             ]
-          },
-          "unit": "s"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "miss - runners"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF780A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 12,
         "x": 0,
-        "y": 26
+        "y": 27
       },
-      "id": 5,
+      "id": 66,
       "options": {
         "legend": {
           "calcs": [],
@@ -1155,45 +1311,294 @@
           "mode": "single"
         }
       },
-      "pluginVersion": "8.0.1",
-      "repeat": "path",
-      "repeatDirection": "h",
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
+          "exemplar": true,
+          "expr": "sum(increase(cache_results_count{result=\"hit\"}[2m])) by(result,tag)",
           "interval": "",
-          "legendFormat": "p50",
+          "legendFormat": "hit - {{tag}}",
+          "queryType": "randomWalk",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.75, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
+          "exemplar": true,
+          "expr": "sum(increase(cache_results_count{result=\"miss\"}[2m])) by(result,tag)",
+          "hide": false,
           "interval": "",
-          "legendFormat": "p75",
+          "legendFormat": "miss - {{tag}}",
+          "queryType": "randomWalk",
           "refId": "B"
-        },
-        {
-          "expr": "histogram_quantile(0.9, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
-          "interval": "",
-          "legendFormat": "p90",
-          "refId": "C"
-        },
-        {
-          "expr": "histogram_quantile(0.975, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
-          "interval": "",
-          "legendFormat": "p97.5",
-          "refId": "D"
-        },
-        {
-          "expr": "histogram_quantile(0.99, sum(rate(outgoing_http_requests_histogram_bucket{path=~\"$path\"}[2m])) by (le))",
-          "interval": "",
-          "legendFormat": "p99",
-          "refId": "E"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "request duration outgoing requests - $path",
+      "title": "Cache HIts/Misses",
       "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "miss - runners"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF780A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 27
+      },
+      "id": 67,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.0.1",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(cache_results_count{result=\"hit\"}[5m])) / sum(increase(cache_results_count[5m]))",
+          "interval": "",
+          "legendFormat": "hit rate",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Cache hit rate all Caches",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "miss - runners"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF780A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 16,
+        "y": 27
+      },
+      "id": 69,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.0.1",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(cache_results_count{result=\"hit\",tag=\"projects\"}[5m])) / sum(increase(cache_results_count{tag=\"projects\"}[5m]))",
+          "interval": "",
+          "legendFormat": "hit rate",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Cache hit rate projects",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "miss - runners"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF780A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 27
+      },
+      "id": 68,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.0.1",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(cache_results_count{result=\"hit\",tag=\"runners\"}[5m])) / sum(increase(cache_results_count{tag=\"runners\"}[5m]))",
+          "interval": "",
+          "legendFormat": "hit rate",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Cache hit rate runners",
+      "type": "stat"
     },
     {
       "collapsed": true,
@@ -1202,7 +1607,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 35
       },
       "id": 26,
       "panels": [
@@ -1385,7 +1790,7 @@
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 43
+            "y": 36
           },
           "id": 40,
           "options": {
@@ -1608,7 +2013,7 @@
             "h": 10,
             "w": 12,
             "x": 12,
-            "y": 43
+            "y": 36
           },
           "id": 44,
           "options": {
@@ -1829,7 +2234,7 @@
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 53
+            "y": 46
           },
           "id": 42,
           "options": {
@@ -1914,7 +2319,7 @@
             "h": 10,
             "w": 6,
             "x": 12,
-            "y": 53
+            "y": 46
           },
           "id": 28,
           "options": {
@@ -2004,7 +2409,7 @@
             "h": 10,
             "w": 6,
             "x": 18,
-            "y": 53
+            "y": 46
           },
           "id": 30,
           "options": {
@@ -2129,5 +2534,5 @@
   "timezone": "",
   "title": "Build Statuses",
   "uid": "oD7GwCVMk",
-  "version": 6
+  "version": 8
 }
