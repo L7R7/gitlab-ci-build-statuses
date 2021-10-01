@@ -25,49 +25,49 @@ spec = do
 
     it "works when all required values are provided" $
       parseConfigFromEnv mandatoryConfig
-        `shouldBe` Success config
+        `shouldBe` Success expectedConfig
 
-    describe "overriding for  non-mandatory fields" $ do
+    describe "overriding for non-mandatory fields" $ do
       it "should allow overriding data update interval" $
         parseConfigFromEnv (("GCB_DATA_UPDATE_INTERVAL_SECS", "5") : mandatoryConfig)
-          `shouldBe` Success (config {dataUpdateIntervalSecs = DataUpdateIntervalSeconds 5})
+          `shouldBe` Success (expectedConfig {dataUpdateIntervalSecs = DataUpdateIntervalSeconds 5})
       it "should allow overriding UI update interval" $
         parseConfigFromEnv (("GCB_UI_UPDATE_INTERVAL_SECS", "10") : mandatoryConfig)
-          `shouldBe` Success (config {uiUpdateIntervalSecs = UiUpdateIntervalSeconds 10})
+          `shouldBe` Success (expectedConfig {uiUpdateIntervalSecs = UiUpdateIntervalSeconds 10})
       it "should allow overriding project cache TTL" $
         parseConfigFromEnv (("GCB_PROJECT_CACHE_TTL_SECS", "5") : mandatoryConfig)
-          `shouldBe` Success (config {projectCacheTtlSecs = ProjectCacheTtlSeconds 5})
+          `shouldBe` Success (expectedConfig {projectCacheTtlSecs = ProjectCacheTtlSeconds 5})
       it "should allow overriding runner cache TTL" $
         parseConfigFromEnv (("GCB_RUNNER_CACHE_TTL_SECS", "5") : mandatoryConfig)
-          `shouldBe` Success (config {runnerCacheTtlSecs = RunnerCacheTtlSeconds 5})
+          `shouldBe` Success (expectedConfig {runnerCacheTtlSecs = RunnerCacheTtlSeconds 5})
       it "should allow overriding maximum concurency" $
         parseConfigFromEnv (("GCB_MAX_CONCURRENCY", "5") : mandatoryConfig)
-          `shouldBe` Success (config {maxConcurrency = MaxConcurrency 5})
+          `shouldBe` Success (expectedConfig {maxConcurrency = MaxConcurrency 5})
       it "should allow overriding whether to include shared projects" $
         parseConfigFromEnv (("GCB_INCLUDE_SHARED_PROJECTS", "exclude") : mandatoryConfig)
-          `shouldBe` Success (config {includeSharedProjects = Exclude})
+          `shouldBe` Success (expectedConfig {includeSharedProjects = Exclude})
       it "should allow overriding whether to enable jobs view" $
         parseConfigFromEnv (("GCB_JOBS_VIEW", "enabled") : mandatoryConfig)
-          `shouldBe` Success (config {jobsView = Enabled})
+          `shouldBe` Success (expectedConfig {jobsView = Enabled})
       it "should allow overriding the log level" $
         parseConfigFromEnv (("GCB_LOG_LEVEL", "ERROR") : mandatoryConfig)
-          `shouldBe` Success (config {logLevel = ErrorS})
+          `shouldBe` Success (expectedConfig {logLevel = ErrorS})
       describe "project exclude list" $ do
         it "should allow overriding a single project ID" $
           parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12") : mandatoryConfig)
-            `shouldBe` Success (config {projectExcludeList = [Id 12]})
+            `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12]})
         it "should allow overriding multiple project IDs" $
           parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12,13") : mandatoryConfig)
-            `shouldBe` Success (config {projectExcludeList = [Id 12, Id 13]})
+            `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12, Id 13]})
         it "should deduplicate the list of IDs" $
           parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12,12") : mandatoryConfig)
-            `shouldBe` Success (config {projectExcludeList = [Id 12]})
+            `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12]})
         it "should trim leading and trailing whitespace" $
           parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", " 12,13,14 , 15 ") : mandatoryConfig)
-            `shouldBe` Success (config {projectExcludeList = [Id 12, Id 13, Id 14, Id 15]})
+            `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12, Id 13, Id 14, Id 15]})
         it "should handle empty values" $
           parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "") : mandatoryConfig)
-            `shouldBe` Success config
+            `shouldBe` Success expectedConfig
 
     it "expects a non empty API token" $ do
       parseConfigFromEnv [("GCB_GITLAB_API_TOKEN", ""), ("GCB_GITLAB_GROUP_ID", "123"), ("GCB_GITLAB_BASE_URL", "https://my.gitlab.com")]
@@ -84,7 +84,7 @@ spec = do
         `shouldBe` Failure ("Gitlab base URL is missing (set it via GCB_GITLAB_BASE_URL)" :| [])
   where
     mandatoryConfig = [("GCB_GITLAB_API_TOKEN", "apitoken"), ("GCB_GITLAB_GROUP_ID", "123"), ("GCB_GITLAB_BASE_URL", "https://my.gitlab.com")]
-    config =
+    expectedConfig =
       Config
         (ApiToken "apitoken")
         (Id 123)
