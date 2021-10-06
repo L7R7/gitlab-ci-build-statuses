@@ -1,20 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TupleSections #-}
 
 module App (App.run) where
 
 import Config.Backbone
 import Config.Config
 import Config.Interpreters
-import Control.Concurrent (ThreadId, forkIO)
+import Control.Concurrent.Async (Concurrently (..))
 import qualified Data.Text as T (intercalate)
 import Inbound.HTTP.Server (startServer)
 import Inbound.Jobs.BuildStatuses (updateStatusesRegularly)
 import Inbound.Jobs.Runners (updateRunnersJobsRegularly)
 import Katip hiding (getEnvironment)
 import Logger
-import Metrics.Health (initHealth, initThreads)
 import Metrics.Metrics
 import Outbound.Gitlab.Pipelines (pipelinesApiToIO)
 import Outbound.Gitlab.Projects (projectsApiToIO)
@@ -62,9 +60,9 @@ startStatusUpdatingJob config@Config {..} backbone = do
     . observeDurationToIO
     $ updateStatusesRegularly
 
-startRunnersJobsUpdatingJobIfEnabled :: Config -> Backbone -> IO [ThreadId]
-startRunnersJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pure []
-startRunnersJobsUpdatingJobIfEnabled config backbone = one <$> forkIO (startRunnersJobsUpdatingJob config backbone)
+startRunnersJobsUpdatingJobIfEnabled :: Config -> Backbone -> IO ()
+startRunnersJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pass
+startRunnersJobsUpdatingJobIfEnabled config backbone = startRunnersJobsUpdatingJob config backbone
 
 startRunnersJobsUpdatingJob :: Config -> Backbone -> IO ()
 startRunnersJobsUpdatingJob config@Config {..} backbone = do
@@ -84,25 +82,24 @@ startRunnersJobsUpdatingJob config@Config {..} backbone = do
     $ updateRunnersJobsRegularly
 
 startWithConfig :: Config -> Backbone -> IO ()
-startWithConfig config backbone = do
-  metrics <- forkIO $ startMetricsUpdatingJob config backbone
-  statuses <- forkIO $ startStatusUpdatingJob config backbone
-  runnersJobs <- startRunnersJobsUpdatingJobIfEnabled config backbone
-  atomicWriteIORef (threads backbone) ([(metrics, "metrics"), (statuses, "statuses")] <> ((,"runnersJobs") <$> runnersJobs))
-  startServer config backbone
+startWithConfig config backbone =
+  runConcurrently $
+    (\_ _ _ _ -> ())
+      <$> Concurrently (startMetricsUpdatingJob config backbone)
+        <*> Concurrently (startStatusUpdatingJob config backbone)
+        <*> Concurrently (startRunnersJobsUpdatingJobIfEnabled config backbone)
+        <*> Concurrently (startServer config backbone)
 
 run :: IO ()
 run = do
   environment <- getEnvironment
   statuses <- Statuses.initStorage
   runners <- Runners.initStorage
-  healthThreads <- initThreads
   metrics <- registerMetrics
-  health <- initHealth
   case parseConfigFromEnv environment of
     Success config ->
       withLogEnv (logLevel config) $ \lE -> do
-        let backbone = initBackbone metrics statuses runners healthThreads health (LogConfig mempty mempty lE)
+        let backbone = initBackbone metrics statuses runners (LogConfig mempty mempty lE)
         singleLog lE InfoS $ "Using config: " <> show config
         singleLog lE InfoS $ "Running version: " <> show (gitCommit backbone)
         startWithConfig config backbone
