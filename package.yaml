@@ -1,48 +1,149 @@
-name:                gitlab-ci-build-statuses
-version:             0.1.0.0
-github:              "l7r7/gitlab-ci-build-statuses"
-license:             BSD3
-author:              "Leonhard Riedisser"
-maintainer:          "leo008180@googlemail.com"
-copyright:           "2020 Leonhard Riedisser"
+name: gitlab-ci-build-statuses
+version: "0.1.0.0"
+description: Please see the README on GitHub at <https://github.com/l7r7/gitlab-ci-build-statuses#readme>
+author: Leonhard Riedisser
+maintainer: leo008180@googlemail.com
+copyright: 2020 Leonhard Riedisser
+license: BSD3
+github: l7r7/gitlab-ci-build-statuses
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - README.md
+  - ChangeLog.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/l7r7/gitlab-ci-build-statuses#readme>
+ghc-options:
+  - -fwrite-ide-info
+  - -hiedir=.hie
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-uni-patterns
+  - -Wincomplete-record-updates
+  - -Wredundant-constraints
+  - -fhide-source-paths
+  - -Wpartial-fields
+  - -Wmissing-deriving-strategies
+  - -Wunused-packages
 
 dependencies:
-- base >= 4.7 && < 5
+  - base >=4.7 && <5
+
+default-extensions:
+  - DerivingStrategies
+  - StrictData
 
 library:
   source-dirs: src
+  default-extensions:
+    - NoImplicitPrelude
+  ghc-options:
+    - -fno-warn-orphans
+    - -O2
+    - -flate-specialise
+    - -fspecialise-aggressively
+    - -fplugin=Polysemy.Plugin
+    - -Wmissing-export-lists
+  exposed-modules:
+    - App
+    - Config.Backbone
+    - Config.Config
+    - Config.Interpreters
+    - Config.Util
+    - Core.BuildStatuses
+    - Core.Effects
+    - Core.OverallStatus
+    - Core.Runners
+    - Core.Shared
+    - Inbound.HTTP.BuildStatuses.Html
+    - Inbound.HTTP.Runners.Html
+    - Inbound.HTTP.Util
+    - Inbound.HTTP.Server
+    - Inbound.Jobs.BuildStatuses
+    - Inbound.Jobs.Runners
+    - Logger
+    - Metrics.Health
+    - Metrics.Metrics
+    - Metrics.PrometheusUtils
+    - Outbound.Gitlab.Helpers
+    - Outbound.Gitlab.Instances
+    - Outbound.Gitlab.Pipelines
+    - Outbound.Gitlab.Projects
+    - Outbound.Gitlab.RequestResponseUtils
+    - Outbound.Gitlab.Runners
+    - Outbound.Storage.BuildStatuses.InMemory
+    - Outbound.Storage.Runners.InMemory
+    - UseCases.BuildStatuses
+    - UseCases.Runners
+    - Util
+  dependencies:
+    - aeson
+    - aeson-casing
+    - async
+    - barbies
+    - bifunctors
+    - blaze-html
+    - burrito >=1.2.0.0
+    - cache
+    - clock
+    - containers
+    - either
+    - extra
+    - githash
+    - higgledy
+    - http-conduit
+    - http-link-header
+    - http-types
+    - katip
+    - lens
+    - network-uri
+    - polysemy ==1.5.0.0
+    - polysemy-plugin ==0.3.0.0
+    - polysemy-time
+    - prometheus-client
+    - prometheus-metrics-ghc
+    - relude >=1.0.0.1
+    - servant
+    - servant-blaze
+    - servant-server
+    - time
+    - transformers
+    - unix
+    - unliftio
+    - validation-selective
+    - wai-extra
+    - wai-middleware-prometheus
+    - warp
 
 executables:
   gitlab-ci-build-statuses-exe:
-    main:                Main.hs
-    source-dirs:         app
+    main: Main.hs
+    source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-T
     dependencies:
-    - gitlab-ci-build-statuses
+      - gitlab-ci-build-statuses
 
 tests:
   gitlab-ci-build-statuses-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
+    default-extensions:
+      - NoImplicitPrelude
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-T
     dependencies:
-    - gitlab-ci-build-statuses
+      - gitlab-ci-build-statuses
+      - containers
+      - hedgehog
+      - hspec
+      - hspec-hedgehog
+      - katip
+      - network-uri
+      - polysemy ==1.5.0.0
+      - polysemy-plugin ==0.3.0.0
+      - relude >=1.0.0.1
+      - validation-selective
