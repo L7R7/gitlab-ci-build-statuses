@@ -7,24 +7,24 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
       - targets:
-          - 127.0.0.1:9090
+          - prometheus:9090
   - job_name: builds
     scrape_interval: 5s
     static_configs:
       - targets:
-          - 127.0.0.1:8282
+          - gitlab-ci-build-statuses:8282
   - job_name: nodeexporter
     scrape_interval: 5s
     static_configs:
       - targets:
-          - 127.0.0.1:9100
+          - node-exporter:9100
   - job_name: cadvisor
     scrape_interval: 5s
     static_configs:
       - targets:
-          - 127.0.0.1:8081
+          - cadvisor:8081
   - job_name: grafana
     scrape_interval: 5s
     static_configs:
       - targets:
-          - 127.0.0.1:3000
+          - grafana:3000
