@@ -48,7 +48,7 @@ Defaults to an empty list if the value is not set or can't be parsed.
 If you specify projects that don't appear in the result from the API, a warning will be logged.
 * `GCB_JOBS_VIEW` (optional): Enables/disables whether to fetch the data for the currently running pipeline jobs.
 Possible values are `enabled` and `disabled`.
-* Default value is `disabled`.
+Default value is `disabled`.
 * `GCB_RUNNER_CACHE_TTL_SECS` (optional): You can configure caching for the list of online runners to reduce the load on the Gitlab API.
 The provided value must be positive and sets the TTL of cached values in seconds.
 Default value is `300` (5m).
