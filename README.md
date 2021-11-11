@@ -97,7 +97,6 @@ It includes a dashboard that looks like this:
 
 ![screencapture-localhost-3000-d-oD7GwCVMk-build-statuses-2021-11-11-15_30_55](https://user-images.githubusercontent.com/16477399/141315436-deebaf4e-2eda-4366-bc2b-a835c74249f0.png)
 
-
 ## FAQ
 
 ### My Gitlab group has subgroups. Will the pipelines of projects in there be included?
