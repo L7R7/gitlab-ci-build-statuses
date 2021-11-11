@@ -90,12 +90,29 @@ This is especially helpful when you deploy the app behind something like an ingr
 This repository includes a showcase for a docker-compose based deployment in [docker-compose](docker-compose/).
 This includes the app itself (you have to configure it in [the docker-compose file](docker-compose/docker-compose.yml)), a Prometheus and a Grafana including a ready to go setup with some dashboards to demonstrate what the app offers.
 
+### Grafana
+
+You'll find the Grafana instance at localhost:3000.
+It includes a dashboard that looks like this:
+
+![screencapture-localhost-3000-d-oD7GwCVMk-build-statuses-2021-11-11-15_30_55](https://user-images.githubusercontent.com/16477399/141315436-deebaf4e-2eda-4366-bc2b-a835c74249f0.png)
+
+
 ## FAQ
 
 ### My Gitlab group has subgroups. Will the pipelines of projects in there be included?
 
 Yes. Projects in subgroups will be included.
 At the moment the status page will show a flat list of pipeline statuses.
+
+### Can I do horizontal scaling by using multiple instances?
+
+Yes. Be aware, though, that there's no shared persistence between the instances.
+Each instance will fetch all the data it needs and will store it in memory.
+So it's not efficient, but the different instances won't step on each other's toes (up until you reach the point where you're essentially DDoS'ing your Gitlab instance).  
+I don't think it will be necessary to run more than one instance.
+In my experience the performance of a single instance and the available possibilities of vertical scaling is more than enough for medium sized teams with a large number of projects.
+If you still encounter scalability issues, feel free to open an issue and let me know!
 
 ### How is it possible for a project to have no default branch?
 
@@ -106,7 +123,7 @@ The corresponding [API docs](https://docs.gitlab.com/ee/api/projects.html#list-a
 When I built this, I found out that the API is not always ideal for my needs.
 In my project, we're using jobs that are allowed to fail (e.g. because they require manual steps, or just run some checks that shouldn't break the pipeline).
 I'd like to make it clear on the status page if a pipeline was successful or if it ended with warnings.
-However, if a pipeline fails with warnings the status that is returned by the [List Project Pipelines](https://docs.gitlab.com/ee/api/pipelines.html#list-project-pipelines) Endpoint will be `success`.
+However, if a pipeline fails with warnings the status that is returned by the [List Project Pipelines](https://docs.gitlab.com/ee/api/pipelines.html#list-project-pipelines) endpoint will be `success`.
 To get the exact status, a request to the [Single Pipeline](https://docs.gitlab.com/ee/api/pipelines.html#get-a-single-pipeline) Endpoint is necessary for a pipeline that seems to be successful.  
 There are two open issues that address this inconsistency in the API (see [here](https://gitlab.com/gitlab-org/gitlab/-/issues/323025) and [here](https://gitlab.com/gitlab-org/gitlab/-/issues/229137)).
 
