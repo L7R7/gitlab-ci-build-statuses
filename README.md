@@ -11,12 +11,23 @@ Optionally, collect information about the pipeline jobs that are running at the 
     * Plain HTML and CSS, barely any JS involved
     * Refreshes automatically, so you always see the latest statuses
     * The favicon will show an indicator summarizing all statuses, so you can directly see if everything is fine (this is especially helpful if you pin the tab in your browser)
+    * Direct links to the pipeline/job, so you can get to the details fast
 * Production-ready Docker container including Prometheus metrics, health endpoint, and configurable structured JSON logging
 * Caching for the list of projects of the group to speed up the regular updates as well as reduce the load on the Gitlab API
 * The pipelines will be determined in the following way:
     * Get all the projects for the given group
     * For all projects that have a default branch, try to get the latest pipeline run for the default branch
     * Determine the status of the pipeline and include it in the result
+
+## UI samples
+
+### Current build statuses:
+
+![frame_chrome_win10_light (1)](https://user-images.githubusercontent.com/16477399/141801876-cdcd3517-3931-486c-8c21-45c85c5ff979.png)
+
+### Currently running jobs:
+
+![frame_chrome_win10_light](https://user-images.githubusercontent.com/16477399/141801911-53e67c17-3909-42a6-b1cd-0a9f58ae9ec9.png)
 
 ## Usage
 
