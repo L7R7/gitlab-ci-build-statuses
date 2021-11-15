@@ -21,11 +21,11 @@ Optionally, collect information about the pipeline jobs that are running at the 
 
 ## UI samples
 
-### Current build statuses:
+### Current build statuses (GET `/statuses`)
 
 ![frame_chrome_win10_light (1)](https://user-images.githubusercontent.com/16477399/141801876-cdcd3517-3931-486c-8c21-45c85c5ff979.png)
 
-### Currently running jobs:
+### Currently running jobs (GET `/jobs`, if the jobs view is enabled)
 
 ![frame_chrome_win10_light](https://user-images.githubusercontent.com/16477399/141801911-53e67c17-3909-42a6-b1cd-0a9f58ae9ec9.png)
 
