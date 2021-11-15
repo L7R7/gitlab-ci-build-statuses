@@ -1,11 +1,6 @@
 name: Build
 
-on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+on: push
 
 jobs:
   ormolu:
@@ -59,6 +54,7 @@ jobs:
   docker:
     name: Docker build & push
     needs: build
+    if: success() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
