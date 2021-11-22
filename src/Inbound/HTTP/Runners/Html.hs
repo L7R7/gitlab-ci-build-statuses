@@ -90,7 +90,7 @@ runnerJobsToHtml :: (Runner, [Job]) -> Html
 runnerJobsToHtml (runner, jobs) = H.div ! class_ "runner-container" $ runnerToHtml runner <> (section ! class_ "jobs" $ jobsToHtml jobs)
 
 runnerToHtml :: Runner -> Html
-runnerToHtml Runner {..} = H.div ! class_ "runner-info" $ "#" <> toHtml runnerId <> " - " <> toHtml runnerName <> " - " <> toHtml runnerDescription <> " - @" <> toHtml runnerIpAddress
+runnerToHtml Runner {..} = H.div ! class_ "runner-info" $ "#" <> toHtml runnerId <> " - " <> toHtml runnerDescription <> " - @" <> toHtml runnerIpAddress
 
 jobsToHtml :: [Job] -> Html
 jobsToHtml [] = H.div ! class_ "job empty" $ p "No running jobs"
