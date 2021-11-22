@@ -55,7 +55,7 @@ a {
     text-align: center;
 }
 
-.runner-container:not(:first-child) {
+.runner-container {
     margin-top: 20px;
 }
 
