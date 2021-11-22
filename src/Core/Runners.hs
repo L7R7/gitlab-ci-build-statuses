@@ -10,6 +10,7 @@
 
 module Core.Runners
   ( Runner (..),
+    Description (..),
     Job (..),
     Stage (..),
     IpAddress (..),
@@ -32,9 +33,12 @@ import Relude
 data Runner = Runner
   { runnerId :: Id Runner,
     runnerName :: Name Runner,
+    runnerDescription :: Description,
     runnerIpAddress :: IpAddress
   }
   deriving stock (Eq, Generic)
+
+newtype Description = Description Text deriving newtype (Eq)
 
 data Job = Job
   { jobId :: Id Job,

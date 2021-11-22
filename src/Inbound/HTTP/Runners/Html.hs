@@ -90,7 +90,7 @@ runnerJobsToHtml :: (Runner, [Job]) -> Html
 runnerJobsToHtml (runner, jobs) = H.div ! class_ "runner-container" $ runnerToHtml runner <> (section ! class_ "jobs" $ jobsToHtml jobs)
 
 runnerToHtml :: Runner -> Html
-runnerToHtml Runner {..} = H.div ! class_ "runner-info" $ "#" <> toHtml runnerId <> " - " <> toHtml runnerName <> " - @" <> toHtml runnerIpAddress
+runnerToHtml Runner {..} = H.div ! class_ "runner-info" $ "#" <> toHtml runnerId <> " - " <> toHtml runnerName <> " - " <> toHtml runnerDescription <> " - @" <> toHtml runnerIpAddress
 
 jobsToHtml :: [Job] -> Html
 jobsToHtml [] = H.div ! class_ "job empty" $ p "No running jobs"
@@ -106,6 +106,8 @@ jobToHtml Job {..} = a ! href (toValue jobWebUrl) ! target "_blank" ! class_ "jo
 deriving newtype instance ToMarkup Stage
 
 deriving newtype instance ToMarkup IpAddress
+
+deriving newtype instance ToMarkup Description
 
 truncateRef :: Ref -> Html
 truncateRef (Ref ref) | T.length ref <= 40 = toHtml ref

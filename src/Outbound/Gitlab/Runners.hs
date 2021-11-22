@@ -12,7 +12,7 @@ module Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds))
-import Core.Runners (IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..))
+import Core.Runners (Description (..), IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..))
 import Core.Shared (Group, Id, Url (..))
 import Data.Aeson
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
@@ -71,3 +71,5 @@ deriving newtype instance FromJSON IpAddress
 
 instance FromJSON Runner where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+deriving newtype instance FromJSON Description
