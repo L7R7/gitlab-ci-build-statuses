@@ -8,7 +8,7 @@ module Inbound.Jobs.BuildStatuses
 where
 
 import Core.BuildStatuses (BuildStatusesApi, PipelinesApi, Project, ProjectsApi)
-import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug, logInfo)
+import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Shared
 import Metrics.Metrics
 import Polysemy
@@ -28,4 +28,4 @@ updateWithDurationObservation =
   observeDuration "projects" $ do
     logDebug "updating build statuses"
     results <- updateStatuses
-    addContext "numResults" (length results) $ logInfo "Done updating"
+    addContext "numResults" (length results) $ logDebug "Done updating"

@@ -8,7 +8,7 @@ module Inbound.Jobs.Runners
 where
 
 import Core.BuildStatuses (Project)
-import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug, logInfo)
+import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Runners
 import Core.Shared
 import Metrics.Metrics
@@ -29,4 +29,4 @@ updateWithDurationObservation =
   observeDuration "runners" $ do
     logDebug "updating runnersJobs"
     results <- updateRunnersJobs
-    addContext "numResults" (length results) $ logInfo "Done updating"
+    addContext "numResults" (length results) $ logDebug "Done updating"
