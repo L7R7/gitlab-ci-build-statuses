@@ -45,7 +45,13 @@ instance FromJSON (Url a) where
   parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (toString v))
 
 instance FromJSON Project where
-  parseJSON = genericParseJSON $ aesonPrefix snakeCase
+  parseJSON = withObject "project" $ \project -> do
+    projectId <- project .: "id"
+    projectName <- project .: "name"
+    projectWebUrl <- project .: "web_url"
+    projectDefaultBranch <- project .: "default_branch"
+    projectNamespacePath <- project .: "namespace" >>= \n -> n .: "full_path"
+    pure Project {..}
 
 deriving newtype instance FromJSON (Id a)
 

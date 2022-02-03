@@ -96,6 +96,7 @@ library:
     - katip
     - lens
     - network-uri
+    - path
     - polysemy ==1.5.0.0
     - polysemy-plugin ==0.3.0.0
     - polysemy-time
@@ -143,6 +144,7 @@ tests:
       - hspec-hedgehog
       - katip
       - network-uri
+      - path
       - polysemy ==1.5.0.0
       - polysemy-plugin ==0.3.0.0
       - relude >=1.0.0.1

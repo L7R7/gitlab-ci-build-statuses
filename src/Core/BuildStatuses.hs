@@ -33,6 +33,7 @@ import Core.Shared
 import Data.Time (UTCTime (..))
 import Polysemy
 import Relude
+import Path
 
 data Pipeline = Pipeline
   { pipelineId :: Id Pipeline,
@@ -85,7 +86,8 @@ data Project = Project
   { projectId :: Id Project,
     projectName :: Name Project,
     projectWebUrl :: Url Project,
-    projectDefaultBranch :: Maybe Ref
+    projectDefaultBranch :: Maybe Ref,
+    projectNamespacePath :: Path Rel Dir
   }
   deriving stock (Generic, Show)
 

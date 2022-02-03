@@ -14,6 +14,7 @@ import Relude
 import Test.Hspec
 import TestUtils
 import UseCases.BuildStatuses
+import Path
 
 spec :: Spec
 spec = do
@@ -36,8 +37,8 @@ spec = do
         . projectsApiFromMap
           ( M.fromList
               [ ( Id 42,
-                  [ Project (Id 312) (Name "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing,
-                    Project (Id 311) (Name "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main")
+                  [ Project (Id 312) (Name "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing $(mkRelDir "foo"),
+                    Project (Id 311) (Name "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main") $(mkRelDir "bar")
                   ]
                 )
               ]
