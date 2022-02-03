@@ -8,13 +8,13 @@ import Core.BuildStatuses
 import Core.Shared
 import qualified Data.Map as M
 import Network.URI.Static
+import Path
 import Polysemy
 import qualified Polysemy.Reader as R
 import Relude
 import Test.Hspec
 import TestUtils
 import UseCases.BuildStatuses
-import Path
 
 spec :: Spec
 spec = do

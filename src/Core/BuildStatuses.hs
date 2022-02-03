@@ -31,9 +31,9 @@ where
 
 import Core.Shared
 import Data.Time (UTCTime (..))
+import Path
 import Polysemy
 import Relude
-import Path
 
 data Pipeline = Pipeline
   { pipelineId :: Id Pipeline,
