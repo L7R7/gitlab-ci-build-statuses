@@ -69,7 +69,7 @@ There will be a log message with the details before the application exits.
 
 ### Run it
 
-The most straightforward way to use this is to run the Docker image that's provided.
+The most straightforward way to use this is to run the Docker image that's provided via [Docker Hub](https://hub.docker.com/r/l7r7/gitlab-ci-build-statuses).
 
 ```sh
  docker run -p 8282:8282 \
