@@ -31,8 +31,9 @@ setTimeout request = request {responseTimeout = responseTimeoutMicro 5000000}
 -- TODO: 2020-08-31 can we use lenses for that (does it make sense to do that?)
 removeApiTokenFromUpdateError :: UpdateError -> UpdateError
 removeApiTokenFromUpdateError (HttpError httpException) = HttpError (removeApiTokenFromHttpException httpException)
-removeApiTokenFromUpdateError (ConversionError jsonException) = ConversionError (removeApiTokenFromJsonException jsonException)
 removeApiTokenFromUpdateError EmptyResult = EmptyResult
+removeApiTokenFromUpdateError (RequestFailedWithStatus request s) = RequestFailedWithStatus (removeApiTokenFromRequest request) s
+removeApiTokenFromUpdateError (JSONError request response s) = JSONError (removeApiTokenFromRequest request) response s
 
 removeApiTokenFromHttpException :: HttpException -> HttpException
 removeApiTokenFromHttpException = set (reqPrism . _1 . headers . tokenHeader) "xxxxx"
@@ -54,10 +55,6 @@ headers = lens getter setter
   where
     getter = requestHeaders
     setter r h = r {requestHeaders = h}
-
-removeApiTokenFromJsonException :: JSONException -> JSONException
-removeApiTokenFromJsonException (JSONParseException request response parseError) = JSONParseException (removeApiTokenFromRequest request) response parseError
-removeApiTokenFromJsonException (JSONConversionException request response s) = JSONConversionException (removeApiTokenFromRequest request) response s
 
 removeApiTokenFromRequest :: Request -> Request
 removeApiTokenFromRequest = set (headers . tokenHeader) "xxxxx"

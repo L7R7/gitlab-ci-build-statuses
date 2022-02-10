@@ -12,7 +12,9 @@ module Core.Shared
   )
 where
 
-import Network.HTTP.Simple (HttpException, JSONException)
+import qualified Data.ByteString.Lazy as L
+import Network.HTTP.Simple (HttpException, Request, Response)
+import Network.HTTP.Types (Status)
 import Network.URI
 import Relude
 
@@ -20,7 +22,8 @@ data Group
 
 data UpdateError
   = HttpError HttpException
-  | ConversionError JSONException
+  | JSONError Request (Response L.ByteString) String
+  | RequestFailedWithStatus Request Status
   | EmptyResult
   deriving stock (Show)
 

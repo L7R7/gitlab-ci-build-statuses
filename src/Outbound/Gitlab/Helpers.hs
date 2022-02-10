@@ -14,7 +14,8 @@ import Data.Aeson hiding (Result, Value)
 import Data.Either.Combinators (mapLeft)
 import Metrics.Metrics (OutgoingHttpRequestsHistogram (..))
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
-import Network.HTTP.Simple (Request, getResponseBody, httpJSONEither, parseRequest)
+import Network.HTTP.Simple (Request, getResponseBody, getResponseStatus, httpLBS, parseRequest)
+import Network.HTTP.Types
 import Outbound.Gitlab.RequestResponseUtils
 import Prometheus (observeDuration)
 import Relude
@@ -27,8 +28,16 @@ fetchData baseUrl apiToken template vars groupId histogram = do
 
 fetchData' :: (FromJSON a) => ApiToken -> Request -> Template -> Id Group -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError a)
 fetchData' apiToken request template groupId histogram = do
-  result <- measure groupId histogram template (try (mapLeft ConversionError . getResponseBody <$> httpJSONEither (setTimeout $ addToken apiToken request)))
-  pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
+  measure groupId histogram template $ do
+    responseE <- try (httpLBS (setTimeout $ addToken apiToken request))
+    let result = case responseE of
+          Left err -> Left (HttpError err)
+          Right response -> do
+            let responseStatus = getResponseStatus response
+            if responseStatus == status200
+              then mapLeft (JSONError request response) $ eitherDecode (getResponseBody response)
+              else Left (RequestFailedWithStatus request responseStatus)
+    pure $ mapLeft removeApiTokenFromUpdateError result
 
 fetchDataPaginated :: (FromJSON a) => Url GitlabHost -> ApiToken -> Template -> [(String, Value)] -> Id Group -> OutgoingHttpRequestsHistogram -> IO (Either UpdateError [a])
 fetchDataPaginated baseUrl apiToken template vars groupId histogram = do
@@ -39,11 +48,15 @@ fetchDataPaginated baseUrl apiToken template vars groupId histogram = do
 fetchDataPaginated' :: (FromJSON a) => ApiToken -> Request -> Template -> Id Group -> OutgoingHttpRequestsHistogram -> [a] -> IO (Either UpdateError [a])
 fetchDataPaginated' apiToken request template groupId histogram acc = do
   result <- try $ do
-    response <- measure groupId histogram template $ httpJSONEither (setTimeout $ addToken apiToken request)
-    let next = parseNextRequest response
-    case mapLeft ConversionError $ getResponseBody response of
-      Left err -> pure $ Left err
-      Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken req template groupId histogram (as <> acc)) next
+    measure groupId histogram template $ do
+      response <- httpLBS (setTimeout $ addToken apiToken request)
+      let responseStatus = getResponseStatus response
+      let next = parseNextRequest response
+      if responseStatus == status200
+        then case eitherDecode (getResponseBody response) of
+          Left err -> pure $ Left (JSONError request response err)
+          Right as -> maybe (pure $ Right (as <> acc)) (\req -> fetchDataPaginated' apiToken req template groupId histogram (as <> acc)) next
+        else pure $ Left (RequestFailedWithStatus request responseStatus)
   pure $ mapLeft removeApiTokenFromUpdateError $ join $ mapLeft HttpError result
 
 measure :: Id Group -> OutgoingHttpRequestsHistogram -> Template -> IO a -> IO a
