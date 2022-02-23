@@ -19,6 +19,7 @@ import GitHash
 import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics
 import Relude hiding (lookupEnv)
+import qualified Text.Show (show)
 
 initBackbone :: Metrics -> IORef BuildStatuses -> IORef RunnersJobs -> LogConfig -> Backbone
 initBackbone metrics iorefBuilds iorefRunnersJobs logConfig =
@@ -40,6 +41,9 @@ data LogConfig = LogConfig
     _logEnv :: LogEnv
   }
 
-newtype GitCommit = GitCommit String deriving stock (Show)
+newtype GitCommit = GitCommit String
+
+instance Show GitCommit where
+  show (GitCommit commit) = "GitCommit " <> commit
 
 makeLenses ''LogConfig
