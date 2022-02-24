@@ -46,15 +46,9 @@ extra-deps:
   #     - prometheus-client
   #     - prometheus-metrics-ghc
   #     - wai-middleware-prometheus
-  - generic-lens-2.1.0.0@sha256:1af786fb2f347077266f4a137373c718cada59e2a2ed0aa0f5395d805ef9a18d,3867
-  - generic-lens-core-2.1.0.0@sha256:8d650800aa4779366bd5639dce95662a5e368a044f4587689129bce44f2c5be6,2913
   - higgledy-0.4.1.1@sha256:103701c8080ec345a21edd3ef149b4d3b8ec66a12a82d3d0b5c5e4a0d7d6ac26,2238
   - named-0.3.0.1@sha256:418543272f0c844a77639b05276ee3906d5f305cd4cab46fafcb4f15b7f1e60d,2312
-  - polysemy-1.5.0.0@sha256:7edb723e7f703fe273a40e43fe33f6e8f7659fe60759e8698def1481262d314d,6246
-  - polysemy-plugin-0.3.0.0@sha256:22e7553d0fddb48d9484ba1c71d2ed825213fcb214866d9b502ee02bfb960cb4,3121
-  - polysemy-time-0.1.2.1@sha256:7f0f4e582bc5f3b01470bb316adc0e8d77e56ec343b799df4278ad1bd0bfd8e2,5017
-  - prometheus-metrics-ghc-1.0.1.1@sha256:d378a7186a967140fe0e09d325fe5e3bfd7b77a1123934b40f81fdfed2eacbdc,1233
-  - wai-middleware-prometheus-1.0.0@sha256:1625792914fb2139f005685be8ce519111451cfb854816e430fbf54af46238b4,1314
+  - polysemy-time-0.2.0.3@sha256:f649a1c9e9c7d59f18a29e8cb48667233376d949e68df68f5db4b08ad6421ae9,4746
   - relude-1.0.0.1@sha256:35bcdaf14018e79f11e712b0e2314c1aac79976f28f4adc179985457493557d5,11569
 
 # Override default flag values for local packages and extra-deps
