@@ -6,14 +6,14 @@ jobs:
   ormolu:
       runs-on: ubuntu-20.04
       steps:
-        - uses: actions/checkout@v2
+        - uses: actions/checkout@v3
         - uses: mrkkrp/ormolu-action@v5
   build:
     name: Build
     runs-on: ubuntu-20.04
     needs: ormolu
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions/cache@v2.1.7
         name: Cache ~/.stack
@@ -43,7 +43,7 @@ jobs:
     name: Markdown lint
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Markdown Lint
         uses: avto-dev/markdown-lint@v1.5.0
@@ -57,7 +57,7 @@ jobs:
     if: success() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions/download-artifact@v2
         with:
