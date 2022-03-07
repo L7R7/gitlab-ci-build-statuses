@@ -47,8 +47,8 @@ spec = do
         parseConfigFromEnv (("GCB_INCLUDE_SHARED_PROJECTS", "exclude") : mandatoryConfig)
           `shouldBe` Success (expectedConfig {includeSharedProjects = Exclude})
       it "should allow overriding whether to enable jobs view" $
-        parseConfigFromEnv (("GCB_JOBS_VIEW", "enabled") : mandatoryConfig)
-          `shouldBe` Success (expectedConfig {jobsView = Enabled})
+        parseConfigFromEnv (("GCB_JOBS_VIEW", "disabled") : mandatoryConfig)
+          `shouldBe` Success (expectedConfig {jobsView = Disabled})
       it "should allow overriding the log level" $
         parseConfigFromEnv (("GCB_LOG_LEVEL", "ERROR") : mandatoryConfig)
           `shouldBe` Success (expectedConfig {logLevel = ErrorS})
@@ -97,4 +97,4 @@ spec = do
         Include
         InfoS
         []
-        Disabled
+        Enabled
