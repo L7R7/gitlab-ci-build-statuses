@@ -194,7 +194,7 @@ defaults =
     & field @"includeSharedProjects" .~ Just Include
     & field @"logLevel" .~ Just InfoS
     & field @"projectExcludeList" .~ Just []
-    & field @"jobsView" .~ Just Disabled
+    & field @"jobsView" .~ Just Enabled
 
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
 parseConfigFromEnv env = parseConfig envVarNames errorMessages defaults parse (first EnvVariableName <$> env)
