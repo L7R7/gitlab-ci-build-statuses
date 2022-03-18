@@ -44,7 +44,7 @@ runnersApiToIO' baseUrl apiToken histogram cache = interpret $ \case
       case cached of
         (Just runners) -> pure (Right runners, Hit)
         Nothing -> do
-          let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online|]
+          let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online&type=group_type|]
           result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
           traverse_ (insert cache groupId) result
           pure (result, Miss)
