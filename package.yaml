@@ -82,7 +82,7 @@ library:
     - barbies
     - bifunctors
     - blaze-html
-    - burrito >=1.2.0.0
+    - burrito >=2.0.0.0
     - cache
     - clock
     - containers
@@ -97,9 +97,9 @@ library:
     - lens
     - network-uri
     - path
-    - polysemy ==1.5.0.0
-    - polysemy-plugin ==0.3.0.0
-    - polysemy-time
+    - polysemy >=1.7
+    - polysemy-plugin >=0.4.3.0
+    - polysemy-time >= 0.4.0.0
     - prometheus-client
     - prometheus-metrics-ghc
     - relude >=1.0.0.1
@@ -145,7 +145,7 @@ tests:
       - katip
       - network-uri
       - path
-      - polysemy ==1.5.0.0
-      - polysemy-plugin ==0.3.0.0
+      - polysemy >=1.7
+      - polysemy-plugin >=0.4.3.0
       - relude >=1.0.0.1
       - validation-selective
