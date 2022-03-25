@@ -8,17 +8,17 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Outbound.Gitlab.Pipelines (pipelinesApiToIO) where
+module Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost)
 import Core.BuildStatuses (PipelinesApi (..))
 import Core.Shared (Group, Id (Id), Ref (Ref), UpdateError (..), Url (..))
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)
-import Outbound.Gitlab.Helpers
-import Outbound.Gitlab.Instances ()
 import Polysemy
 import qualified Polysemy.Reader as R
+import Ports.Outbound.Gitlab.Helpers
+import Ports.Outbound.Gitlab.Instances ()
 import Relude
 
 pipelinesApiToIO :: (Member (Embed IO) r, Member (R.Reader (Id Group)) r, Member (R.Reader (Url GitlabHost)) r, Member (R.Reader ApiToken) r, Member (R.Reader OutgoingHttpRequestsHistogram) r) => InterpreterFor PipelinesApi r

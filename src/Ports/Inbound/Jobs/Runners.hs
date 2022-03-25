@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Inbound.Jobs.Runners
+module Ports.Inbound.Jobs.Runners
   ( updateRunnersJobsRegularly,
   )
 where

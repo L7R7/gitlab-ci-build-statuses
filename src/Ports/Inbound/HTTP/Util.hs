@@ -3,7 +3,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Inbound.HTTP.Util (AutoRefresh (..), lastUpdatedToHtml) where
+module Ports.Inbound.HTTP.Util (AutoRefresh (..), lastUpdatedToHtml) where
 
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)

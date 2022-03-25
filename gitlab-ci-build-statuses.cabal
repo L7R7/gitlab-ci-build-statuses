@@ -35,24 +35,24 @@ library
       Core.OverallStatus
       Core.Runners
       Core.Shared
-      Inbound.HTTP.BuildStatuses.Html
-      Inbound.HTTP.Runners.Html
-      Inbound.HTTP.Util
-      Inbound.HTTP.Server
-      Inbound.Jobs.BuildStatuses
-      Inbound.Jobs.Runners
       Logger
       Metrics.Health
       Metrics.Metrics
       Metrics.PrometheusUtils
-      Outbound.Gitlab.Helpers
-      Outbound.Gitlab.Instances
-      Outbound.Gitlab.Pipelines
-      Outbound.Gitlab.Projects
-      Outbound.Gitlab.RequestResponseUtils
-      Outbound.Gitlab.Runners
-      Outbound.Storage.BuildStatuses.InMemory
-      Outbound.Storage.Runners.InMemory
+      Ports.Inbound.HTTP.BuildStatuses.Html
+      Ports.Inbound.HTTP.Runners.Html
+      Ports.Inbound.HTTP.Server
+      Ports.Inbound.HTTP.Util
+      Ports.Inbound.Jobs.BuildStatuses
+      Ports.Inbound.Jobs.Runners
+      Ports.Outbound.Gitlab.Helpers
+      Ports.Outbound.Gitlab.Instances
+      Ports.Outbound.Gitlab.Pipelines
+      Ports.Outbound.Gitlab.Projects
+      Ports.Outbound.Gitlab.RequestResponseUtils
+      Ports.Outbound.Gitlab.Runners
+      Ports.Outbound.Storage.BuildStatuses.InMemory
+      Ports.Outbound.Storage.Runners.InMemory
       UseCases.BuildStatuses
       UseCases.Runners
       Util

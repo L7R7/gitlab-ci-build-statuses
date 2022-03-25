@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Inbound.HTTP.Server
+module Ports.Inbound.HTTP.Server
   ( startServer,
   )
 where
@@ -16,19 +16,19 @@ import Core.BuildStatuses (BuildStatuses, BuildStatusesApi)
 import Core.Runners (RunnersJobs, RunnersJobsApi)
 import Core.Shared (DataUpdateIntervalSeconds)
 import Data.Time
-import qualified Inbound.HTTP.BuildStatuses.Html as BuildStatuses
-import qualified Inbound.HTTP.Runners.Html as Runners
-import Inbound.HTTP.Util
 import Metrics.Health (getCurrentHealthStatus)
 import qualified Metrics.Health as Health
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Gzip (gzip)
 import Network.Wai.Middleware.Prometheus (def, prometheus)
-import Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
-import Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
 import Polysemy hiding (run)
 import qualified Polysemy.Reader as R
 import Polysemy.Time (Time, interpretTimeGhc)
+import qualified Ports.Inbound.HTTP.BuildStatuses.Html as BuildStatuses
+import qualified Ports.Inbound.HTTP.Runners.Html as Runners
+import Ports.Inbound.HTTP.Util
+import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
+import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
 import Relude
 import Servant
 import System.Posix.Signals hiding (Handler)

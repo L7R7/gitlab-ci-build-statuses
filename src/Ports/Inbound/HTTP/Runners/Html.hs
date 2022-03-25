@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Inbound.HTTP.Runners.Html
+module Ports.Inbound.HTTP.Runners.Html
   ( API,
     template,
   )
@@ -21,11 +21,11 @@ import Core.Shared (DataUpdateIntervalSeconds, Ref (Ref))
 import Data.Map (toList)
 import qualified Data.Text as T
 import Data.Time (UTCTime)
-import Inbound.HTTP.Util (AutoRefresh (Refresh), lastUpdatedToHtml)
 import Polysemy
 import qualified Polysemy.Reader as R
 import Polysemy.Time (Time)
 import qualified Polysemy.Time as Time
+import Ports.Inbound.HTTP.Util (AutoRefresh (Refresh), lastUpdatedToHtml)
 import Relude
 import Servant (Get, QueryFlag, (:>))
 import Servant.HTML.Blaze (HTML)

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Outbound.Gitlab.RequestResponseUtils (privateToken, removeApiTokenFromUpdateError, parseNextRequest, addToken, setTimeout) where
+module Ports.Outbound.Gitlab.RequestResponseUtils (privateToken, removeApiTokenFromUpdateError, parseNextRequest, addToken, setTimeout) where
 
 import Config.Config
 import Control.Lens (Lens', Prism', Traversal', filtered, lens, prism', set, _1, _2)

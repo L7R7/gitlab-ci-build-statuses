@@ -8,7 +8,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
+module Ports.Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds))
@@ -18,10 +18,10 @@ import Data.Aeson
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Cache
 import Metrics.Metrics (CacheResult (..), CacheTag (CacheTag), MetricsApi, OutgoingHttpRequestsHistogram, recordCacheLookupResult)
-import Outbound.Gitlab.Helpers
-import Outbound.Gitlab.Instances ()
 import Polysemy
 import qualified Polysemy.Reader as R
+import Ports.Outbound.Gitlab.Helpers
+import Ports.Outbound.Gitlab.Instances ()
 import Relude
 import System.Clock
 

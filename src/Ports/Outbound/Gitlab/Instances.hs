@@ -3,7 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Outbound.Gitlab.Instances () where
+module Ports.Outbound.Gitlab.Instances () where
 
 import Core.BuildStatuses
 import Core.Shared

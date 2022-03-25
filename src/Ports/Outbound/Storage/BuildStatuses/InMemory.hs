@@ -3,7 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Outbound.Storage.BuildStatuses.InMemory (initStorage, buildStatusesApiToIO) where
+module Ports.Outbound.Storage.BuildStatuses.InMemory (initStorage, buildStatusesApiToIO) where
 
 import Core.BuildStatuses (BuildStatuses (..), BuildStatusesApi (..))
 import Data.Time (getCurrentTime)

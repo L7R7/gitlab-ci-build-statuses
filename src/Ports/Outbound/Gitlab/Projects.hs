@@ -6,7 +6,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Outbound.Gitlab.Projects (initCache, projectsApiToIO) where
+module Ports.Outbound.Gitlab.Projects (initCache, projectsApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
@@ -14,10 +14,10 @@ import Core.BuildStatuses (Project, ProjectsApi (..))
 import Core.Shared (Group, Id, Url (..))
 import Data.Cache
 import Metrics.Metrics (CacheResult (..), CacheTag (CacheTag), MetricsApi, OutgoingHttpRequestsHistogram, recordCacheLookupResult)
-import Outbound.Gitlab.Helpers
-import Outbound.Gitlab.Instances ()
 import Polysemy
 import qualified Polysemy.Reader as R
+import Ports.Outbound.Gitlab.Helpers
+import Ports.Outbound.Gitlab.Instances ()
 import Relude
 import System.Clock
 

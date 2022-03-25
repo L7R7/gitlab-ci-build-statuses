@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Inbound.HTTP.BuildStatuses.Html
+module Ports.Inbound.HTTP.BuildStatuses.Html
   ( API,
     template,
   )
@@ -21,11 +21,11 @@ import Core.OverallStatus (isRunning, overallStatus)
 import qualified Core.OverallStatus as O (OverallStatus (Successful, Unknown, Warning))
 import Core.Shared
 import Data.Time (UTCTime)
-import Inbound.HTTP.Util
 import Polysemy
 import qualified Polysemy.Reader as R
 import Polysemy.Time (Time)
 import qualified Polysemy.Time as Time
+import Ports.Inbound.HTTP.Util
 import Relude
 import Servant
 import Servant.HTML.Blaze (HTML)

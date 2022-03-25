@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Outbound.Gitlab.Helpers (fetchData, fetchDataPaginated) where
+module Ports.Outbound.Gitlab.Helpers (fetchData, fetchDataPaginated) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost)
@@ -16,7 +16,7 @@ import Metrics.Metrics (OutgoingHttpRequestsHistogram (..))
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Simple (Request, getResponseBody, getResponseStatus, httpLBS, parseRequest)
 import Network.HTTP.Types
-import Outbound.Gitlab.RequestResponseUtils
+import Ports.Outbound.Gitlab.RequestResponseUtils
 import Prometheus (observeDuration)
 import Relude
 

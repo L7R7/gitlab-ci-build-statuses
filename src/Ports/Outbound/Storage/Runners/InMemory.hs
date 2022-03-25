@@ -3,7 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Outbound.Storage.Runners.InMemory (initStorage, runnersJobsApiToIO) where
+module Ports.Outbound.Storage.Runners.InMemory (initStorage, runnersJobsApiToIO) where
 
 import Core.Runners
 import Data.Time (getCurrentTime)

@@ -8,24 +8,24 @@ import Config.Config
 import Config.Interpreters
 import Control.Concurrent.Async (Concurrently (..))
 import qualified Data.Text as T (intercalate)
-import Inbound.HTTP.Server (startServer)
-import Inbound.Jobs.BuildStatuses (updateStatusesRegularly)
-import Inbound.Jobs.Runners (updateRunnersJobsRegularly)
 import Katip hiding (getEnvironment)
 import Logger
 import Metrics.Metrics
-import Outbound.Gitlab.Pipelines (pipelinesApiToIO)
-import Outbound.Gitlab.Projects (projectsApiToIO)
-import qualified Outbound.Gitlab.Projects as Projects (initCache)
-import Outbound.Gitlab.Runners (runnersApiToIO)
-import qualified Outbound.Gitlab.Runners as Runners (initCache)
-import Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
-import qualified Outbound.Storage.BuildStatuses.InMemory as Statuses (initStorage)
-import Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
-import qualified Outbound.Storage.Runners.InMemory as Runners (initStorage)
 import Polysemy
 import qualified Polysemy.Reader as R
 import Polysemy.Time (interpretTimeGhc)
+import Ports.Inbound.HTTP.Server (startServer)
+import Ports.Inbound.Jobs.BuildStatuses (updateStatusesRegularly)
+import Ports.Inbound.Jobs.Runners (updateRunnersJobsRegularly)
+import Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO)
+import Ports.Outbound.Gitlab.Projects (projectsApiToIO)
+import qualified Ports.Outbound.Gitlab.Projects as Projects (initCache)
+import Ports.Outbound.Gitlab.Runners (runnersApiToIO)
+import qualified Ports.Outbound.Gitlab.Runners as Runners (initCache)
+import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
+import qualified Ports.Outbound.Storage.BuildStatuses.InMemory as Statuses (initStorage)
+import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
+import qualified Ports.Outbound.Storage.Runners.InMemory as Runners (initStorage)
 import Relude
 import System.Environment
 import Util (parTraverseToIO)
