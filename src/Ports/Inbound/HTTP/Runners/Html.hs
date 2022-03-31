@@ -110,5 +110,5 @@ deriving newtype instance ToMarkup IpAddress
 deriving newtype instance ToMarkup Description
 
 truncateRef :: Ref -> Html
-truncateRef (Ref ref) | T.length ref <= 40 = toHtml ref
-truncateRef (Ref ref) = toHtml $ T.take 17 ref <> "..." <> T.drop (T.length ref - 20) ref
+truncateRef (Ref ref) | T.length ref <= 26 = toHtml ref
+truncateRef (Ref ref) = toHtml $ T.take 10 ref <> "..." <> T.drop (T.length ref - 13) ref
