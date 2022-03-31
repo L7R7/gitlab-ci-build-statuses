@@ -19,7 +19,7 @@ jobs:
         name: Cache ~/.stack
         with:
           path: ~/.stack
-          key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('**/stack.yaml','**/stack.yaml.lock','**/package.yaml') }}
+          key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('**/stack.yaml','**/stack.yaml.lock','**/package.yaml') }}-v2
           restore-keys: |
             ${{ runner.os }}-${{ matrix.ghc }}-
       - uses: haskell/actions/setup@v1.2.9
