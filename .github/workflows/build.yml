@@ -24,9 +24,9 @@ jobs:
             ${{ runner.os }}-${{ matrix.ghc }}-
       - uses: haskell/actions/setup@v1.2.9
         with:
-          ghc-version: '8.10.4'
+          ghc-version: '8.10.7'
           enable-stack: true
-          stack-version: '2.5.1'
+          stack-version: '2.7.5'
 
       - name: Install dependencies
         run: stack --no-terminal --install-ghc test --only-dependencies
