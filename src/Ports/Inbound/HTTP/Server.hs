@@ -13,6 +13,7 @@ import Config.Backbone (Backbone (..), GitCommit)
 import Config.Config (Config (..), JobsView, UiUpdateIntervalSeconds)
 import Control.Exception (try)
 import Core.BuildStatuses (BuildStatuses, BuildStatusesApi)
+import Core.Jobs (WaitingJobs, WaitingJobsApi)
 import Core.Runners (RunnersJobs, RunnersJobsApi)
 import Core.Shared (DataUpdateIntervalSeconds)
 import Data.Time
@@ -29,6 +30,7 @@ import qualified Ports.Inbound.HTTP.Runners.Html as Runners
 import Ports.Inbound.HTTP.Util
 import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
+import Ports.Outbound.Storage.WaitingJobs.InMemory (waitingJobsApiToIO)
 import Relude
 import Servant
 import System.Posix.Signals hiding (Handler)
@@ -44,7 +46,7 @@ type API' =
 api :: Proxy API
 api = Proxy
 
-server :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member (Time UTCTime d) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r, Member (R.Reader JobsView) r) => ServerT API (Sem r)
+server :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member WaitingJobsApi r, Member (Time UTCTime d) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r, Member (R.Reader JobsView) r) => ServerT API (Sem r)
 server = s :<|> s
   where
     s =
@@ -60,11 +62,12 @@ norefreshFlag False = Refresh
 hoist :: Config -> Backbone -> ServerT API Handler
 hoist config backbone = hoistServer api (liftServer config backbone) server
 
-liftServer :: Config -> Backbone -> Sem '[BuildStatusesApi, RunnersJobsApi, Time UTCTime Day, R.Reader DataUpdateIntervalSeconds, R.Reader UiUpdateIntervalSeconds, R.Reader GitCommit, R.Reader JobsView, R.Reader (IORef BuildStatuses), R.Reader (IORef RunnersJobs), Embed IO] a -> Handler a
+liftServer :: Config -> Backbone -> Sem '[BuildStatusesApi, RunnersJobsApi, WaitingJobsApi, Time UTCTime Day, R.Reader DataUpdateIntervalSeconds, R.Reader UiUpdateIntervalSeconds, R.Reader GitCommit, R.Reader JobsView, R.Reader (IORef BuildStatuses), R.Reader (IORef RunnersJobs), R.Reader (IORef WaitingJobs), Embed IO] a -> Handler a
 liftServer Config {..} Backbone {..} sem =
   sem
     & buildStatusesApiToIO
     & runnersJobsApiToIO
+    & waitingJobsApiToIO
     & interpretTimeGhc
     & R.runReader dataUpdateIntervalSecs
     & R.runReader uiUpdateIntervalSecs
@@ -72,6 +75,7 @@ liftServer Config {..} Backbone {..} sem =
     & R.runReader jobsView
     & R.runReader statuses
     & R.runReader runners
+    & R.runReader waitingJobs
     & runM
     & Handler . ExceptT . try
 

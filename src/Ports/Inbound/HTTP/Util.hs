@@ -2,9 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ports.Inbound.HTTP.Util (AutoRefresh (..), lastUpdatedToHtml) where
 
+import Core.BuildStatuses (BuildStatus (..))
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
@@ -37,3 +39,21 @@ lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.
     classes
       | lastUpdateTooOld = "job status timestamp cancelled"
       | otherwise = "job status timestamp"
+
+instance ToMarkup BuildStatus where
+  toMarkup Unknown = string "unknown"
+  toMarkup Cancelled = string "cancelled"
+  toMarkup Created = string "created"
+  toMarkup Failed = string "failed"
+  toMarkup Manual = string "manual"
+  toMarkup Pending = string "pending"
+  toMarkup Preparing = string "preparing"
+  toMarkup Running = string "running"
+  toMarkup Scheduled = string "scheduled"
+  toMarkup Skipped = string "skipped"
+  toMarkup Successful = string "successful"
+  toMarkup SuccessfulWithWarnings = string "successful with warnings"
+  toMarkup WaitingForResource = string "waiting for resource"
+
+instance ToValue BuildStatus where
+  toValue = toValue @String . show

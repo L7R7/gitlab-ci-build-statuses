@@ -32,6 +32,7 @@ library
       Config.Util
       Core.BuildStatuses
       Core.Effects
+      Core.Jobs
       Core.OverallStatus
       Core.Runners
       Core.Shared
@@ -45,16 +46,21 @@ library
       Ports.Inbound.HTTP.Util
       Ports.Inbound.Jobs.BuildStatuses
       Ports.Inbound.Jobs.Runners
+      Ports.Inbound.Jobs.WaitingJobs
       Ports.Outbound.Gitlab.Helpers
       Ports.Outbound.Gitlab.Instances
+      Ports.Outbound.Gitlab.Jobs
       Ports.Outbound.Gitlab.Pipelines
       Ports.Outbound.Gitlab.Projects
       Ports.Outbound.Gitlab.RequestResponseUtils
       Ports.Outbound.Gitlab.Runners
       Ports.Outbound.Storage.BuildStatuses.InMemory
       Ports.Outbound.Storage.Runners.InMemory
+      Ports.Outbound.Storage.WaitingJobs.InMemory
       UseCases.BuildStatuses
       UseCases.Runners
+      UseCases.Shared
+      UseCases.WaitingJobs
       Util
   other-modules:
       Paths_gitlab_ci_build_statuses

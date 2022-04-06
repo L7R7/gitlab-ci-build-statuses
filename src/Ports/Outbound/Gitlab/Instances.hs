@@ -2,8 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ports.Outbound.Gitlab.Instances () where
+module Ports.Outbound.Gitlab.Instances (buildStatusToApiString) where
 
 import Core.BuildStatuses
 import Core.Shared

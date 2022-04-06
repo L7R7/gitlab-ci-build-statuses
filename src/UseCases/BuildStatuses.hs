@@ -1,10 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeApplications #-}
 
 module UseCases.BuildStatuses
   ( updateStatuses,
@@ -16,12 +13,12 @@ where
 import Core.BuildStatuses
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Core.Shared
-import Data.Aeson (ToJSON)
 import Data.List (partition)
 import qualified Data.Text as T (intercalate, toLower)
 import Polysemy
 import qualified Polysemy.Reader as R
 import Relude
+import UseCases.Shared (findProjects)
 
 updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r [Result]
 updateStatuses = do
@@ -38,20 +35,6 @@ currentBuildStatuses = do
   projects <- findProjects
   results <- traverseP evalProject projects
   pure $ sortOn (T.toLower . coerce . name) results
-
-findProjects :: (Member ProjectsApi r, Member Logger r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r [Project]
-findProjects = do
-  groupId <- R.ask
-  excludeList <- R.ask
-  addContext "groupId" groupId $ do
-    result <- getProjects groupId
-    case result of
-      Left err -> [] <$ logWarn (unwords ["Couldn't load projects. Error was", show err])
-      Right ps -> do
-        let orphansInExcludeList = filter (\pId -> pId `notElem` (projectId <$> ps)) excludeList
-        unless (null orphansInExcludeList) $ addContext "orphanProjects" (show @String orphansInExcludeList) $ logWarn "There are projects on the exclude list that are not included in the result. This is probably a configuration error"
-        let filtered = filter (\p -> projectId p `notElem` excludeList) ps
-        pure filtered
 
 logCurrentBuildStatuses :: (Member BuildStatusesApi r, Member Logger r) => Sem r ()
 logCurrentBuildStatuses = do
@@ -90,5 +73,3 @@ detailedStatusForPipeline projectId pipelineId =
     case singlePipelineResult of
       Left uError -> Nothing <$ logWarn (unwords ["Couldn't get details for pipeline, error was", show uError])
       Right dp -> pure . Just $ detailedPipelineStatus dp
-
-deriving newtype instance ToJSON (Id a)

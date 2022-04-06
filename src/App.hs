@@ -12,11 +12,12 @@ import Katip hiding (getEnvironment)
 import Logger
 import Metrics.Metrics
 import Polysemy
-import qualified Polysemy.Reader as R
 import Polysemy.Time (interpretTimeGhc)
 import Ports.Inbound.HTTP.Server (startServer)
 import Ports.Inbound.Jobs.BuildStatuses (updateStatusesRegularly)
 import Ports.Inbound.Jobs.Runners (updateRunnersJobsRegularly)
+import Ports.Inbound.Jobs.WaitingJobs (updateWaitingJobsRegularly)
+import Ports.Outbound.Gitlab.Jobs (jobsApiToIO)
 import Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO)
 import Ports.Outbound.Gitlab.Projects (projectsApiToIO)
 import qualified Ports.Outbound.Gitlab.Projects as Projects (initCache)
@@ -26,6 +27,8 @@ import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import qualified Ports.Outbound.Storage.BuildStatuses.InMemory as Statuses (initStorage)
 import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
 import qualified Ports.Outbound.Storage.Runners.InMemory as Runners (initStorage)
+import Ports.Outbound.Storage.WaitingJobs.InMemory (waitingJobsApiToIO)
+import qualified Ports.Outbound.Storage.WaitingJobs.InMemory as WaitingJobs (initStorage)
 import Relude
 import System.Environment
 import Util (parTraverseToIO)
@@ -43,11 +46,9 @@ startMetricsUpdatingJob config backbone =
     $ updateMetricsRegularly
 
 startStatusUpdatingJob :: Config -> Backbone -> IO ()
-startStatusUpdatingJob config@Config {..} backbone = do
-  cache <- Projects.initCache projectCacheTtlSecs
+startStatusUpdatingJob config backbone =
   runFinal
     . embedToFinal
-    . R.runReader cache
     . runConfig config
     . runBackbone backbone
     . buildStatusesApiToIO
@@ -65,11 +66,9 @@ startRunnersJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pa
 startRunnersJobsUpdatingJobIfEnabled config backbone = startRunnersJobsUpdatingJob config backbone
 
 startRunnersJobsUpdatingJob :: Config -> Backbone -> IO ()
-startRunnersJobsUpdatingJob config@Config {..} backbone = do
-  cache <- Runners.initCache runnerCacheTtlSecs
+startRunnersJobsUpdatingJob config backbone = do
   runFinal
     . embedToFinal
-    . R.runReader cache
     . runConfig config
     . runBackbone backbone
     . runnersJobsApiToIO
@@ -81,12 +80,33 @@ startRunnersJobsUpdatingJob config@Config {..} backbone = do
     . observeDurationToIO
     $ updateRunnersJobsRegularly
 
+startWaitingJobsUpdatingJobIfEnabled :: Config -> Backbone -> IO ()
+startWaitingJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pass
+startWaitingJobsUpdatingJobIfEnabled config backbone = startWaitingJobsUpdatingJob config backbone
+
+startWaitingJobsUpdatingJob :: Config -> Backbone -> IO ()
+startWaitingJobsUpdatingJob config backbone =
+  runFinal
+    . embedToFinal
+    . runConfig config
+    . runBackbone backbone
+    . waitingJobsApiToIO
+    . metricsApiToIO
+    . jobsApiToIO
+    . projectsApiToIO
+    . parTraverseToIO
+    . interpretTimeGhc
+    . loggerToIO
+    . observeDurationToIO
+    $ updateWaitingJobsRegularly
+
 startWithConfig :: Config -> Backbone -> IO ()
 startWithConfig config backbone =
   runConcurrently $
     Concurrently (startMetricsUpdatingJob config backbone)
       *> Concurrently (startStatusUpdatingJob config backbone)
       *> Concurrently (startRunnersJobsUpdatingJobIfEnabled config backbone)
+      *> Concurrently (startWaitingJobsUpdatingJobIfEnabled config backbone)
       *> Concurrently (startServer config backbone)
 
 run :: IO ()
@@ -94,11 +114,15 @@ run = do
   environment <- getEnvironment
   statuses <- Statuses.initStorage
   runners <- Runners.initStorage
+  waitingJobs <- WaitingJobs.initStorage
+
   metrics <- registerMetrics
   case parseConfigFromEnv environment of
-    Success config ->
-      withLogEnv (logLevel config) $ \lE -> do
-        let backbone = initBackbone metrics statuses runners (LogConfig mempty mempty lE)
+    Success config@Config {..} ->
+      withLogEnv logLevel $ \lE -> do
+        projectCache <- Projects.initCache projectCacheTtlSecs
+        runnersCache <- Runners.initCache runnerCacheTtlSecs
+        let backbone = initBackbone metrics statuses runners waitingJobs projectCache runnersCache (LogConfig mempty mempty lE)
         singleLog lE InfoS $ "Using config: " <> show config
         singleLog lE InfoS $ "Running version: " <> show (gitCommit backbone)
         startWithConfig config backbone

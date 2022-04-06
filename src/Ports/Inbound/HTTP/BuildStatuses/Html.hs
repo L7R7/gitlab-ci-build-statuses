@@ -4,7 +4,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -111,21 +110,3 @@ emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results fo
 linkToJobs :: JobsView -> Html
 linkToJobs Disabled = mempty
 linkToJobs Enabled = H.div ! class_ "status" $ H.div $ a ! class_ "link-to-jobs" ! href "/builds/jobs" $ "Go to the currently running jobs"
-
-instance ToMarkup BuildStatus where
-  toMarkup Unknown = string "unknown"
-  toMarkup Cancelled = string "cancelled"
-  toMarkup Created = string "created"
-  toMarkup Failed = string "failed"
-  toMarkup Manual = string "manual"
-  toMarkup Pending = string "pending"
-  toMarkup Preparing = string "preparing"
-  toMarkup Running = string "running"
-  toMarkup Scheduled = string "scheduled"
-  toMarkup Skipped = string "skipped"
-  toMarkup Successful = string "successful"
-  toMarkup SuccessfulWithWarnings = string "successful with warnings"
-  toMarkup WaitingForResource = string "waiting for resource"
-
-instance ToValue BuildStatus where
-  toValue = toValue @String . show
