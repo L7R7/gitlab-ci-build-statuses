@@ -16,6 +16,7 @@ module Metrics.Metrics
     OutgoingHttpRequestsHistogram (..),
     PipelinesOverviewGauge (..),
     RunningJobsGauge (..),
+    WaitingJobsGauge (..),
     UpdateJobDurationHistogram (..),
     CacheResultsCounter (..),
     Metrics (..),
@@ -34,12 +35,14 @@ where
 
 import Core.BuildStatuses (BuildStatus, BuildStatusesApi, Result (..), getStatuses, isHealthy)
 import qualified Core.BuildStatuses as B (BuildStatuses (..))
+import qualified Core.Jobs as J
 import Core.Runners (RunnersJobsApi, getJobs)
 import qualified Core.Runners as R (RunnersJobs (..))
 import Core.Shared (Group, Id (..))
 import Data.List (partition)
-import Data.List.Extra (enumerate)
+import Data.List.Extra (enumerate, sumOn')
 import Data.Map hiding (partition)
+import qualified Data.Map as M
 import Data.Text (toLower)
 import GHC.Clock (getMonotonicTime)
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
@@ -65,6 +68,7 @@ registerAppMetrics =
     <*> registerCacheResultsCounter
     <*> registerOnlineRunnersMetric
     <*> registerRunningJobsMetric
+    <*> registerWaitingJobsMetric
 
 registerPipelinesOverviewMetric :: IO PipelinesOverviewGauge
 registerPipelinesOverviewMetric = PipelinesOverviewGauge <$> register (vector ("group_id", "build_status") $ gauge (Info "build_pipelines_by_status_gauge" "Gauge that indicates the count of the pipeline statuses grouped by their result"))
@@ -74,6 +78,9 @@ registerOnlineRunnersMetric = OnlineRunnersGauge <$> register (vector "group_id"
 
 registerRunningJobsMetric :: IO RunningJobsGauge
 registerRunningJobsMetric = RunningJobsGauge <$> register (vector "group_id" $ gauge (Info "running_jobs_gauge" "Gauge that indicates how many jobs are running"))
+
+registerWaitingJobsMetric :: IO WaitingJobsGauge
+registerWaitingJobsMetric = WaitingJobsGauge <$> register (vector "group_id" $ gauge (Info "waiting_jobs_gauge" "Gauge that indicates how many jobs are waiting"))
 
 registerOutgoingHttpRequestsHistogram :: IO OutgoingHttpRequestsHistogram
 registerOutgoingHttpRequestsHistogram = OutgoingHttpRequestsHistogram <$> register (vector ("group_id", "path") $ histogram (Info "outgoing_http_requests_histogram" "Histogram indicating how long outgoing HTTP request durations") defaultBuckets)
@@ -90,6 +97,8 @@ newtype OnlineRunnersGauge = OnlineRunnersGauge (Vector Label1 Gauge)
 
 newtype RunningJobsGauge = RunningJobsGauge (Vector Label1 Gauge)
 
+newtype WaitingJobsGauge = WaitingJobsGauge (Vector Label1 Gauge)
+
 newtype OutgoingHttpRequestsHistogram = OutgoingHttpRequestsHistogram (Vector Label2 Histogram)
 
 newtype UpdateJobDurationHistogram = UpdateJobDurationHistogram (Vector Label2 Histogram)
@@ -102,7 +111,8 @@ data Metrics = Metrics
     updateJobDurationHistogram :: !UpdateJobDurationHistogram,
     cacheResultsCounter :: CacheResultsCounter,
     onlineRunnersGauge :: !OnlineRunnersGauge,
-    runningJobsGauge :: !RunningJobsGauge
+    runningJobsGauge :: !RunningJobsGauge,
+    waitingJobsGauge :: !WaitingJobsGauge
   }
 
 data DurationObservation m a where
@@ -141,26 +151,29 @@ data MetricsApi m a where
   UpdateUnhealthy :: Int -> MetricsApi m ()
   UpdateOnlineRunners :: Int -> MetricsApi m ()
   UpdateRunningJobs :: Int -> MetricsApi m ()
+  UpdateWaitingJobs :: Int -> MetricsApi m ()
   RecordCacheLookupResult :: CacheTag -> CacheResult -> MetricsApi m ()
 
 makeSem ''MetricsApi
 
-metricsApiToIO :: (Member (Embed IO) r, Member (R.Reader (Id Group)) r, Member (R.Reader PipelinesOverviewGauge) r, Member (R.Reader OnlineRunnersGauge) r, Member (R.Reader RunningJobsGauge) r, Member (R.Reader CacheResultsCounter) r) => InterpreterFor MetricsApi r
+metricsApiToIO :: (Member (Embed IO) r, Member (R.Reader (Id Group)) r, Member (R.Reader PipelinesOverviewGauge) r, Member (R.Reader OnlineRunnersGauge) r, Member (R.Reader RunningJobsGauge) r, Member (R.Reader WaitingJobsGauge) r, Member (R.Reader CacheResultsCounter) r) => InterpreterFor MetricsApi r
 metricsApiToIO sem = do
   groupId <- R.ask
   pipelinesOverviewGauge <- R.ask
   onlineRunnersGauge <- R.ask
   runningJobsGauge <- R.ask
   cacheResultsCounter <- R.ask
-  metricsApiToIO' groupId pipelinesOverviewGauge onlineRunnersGauge runningJobsGauge cacheResultsCounter sem
+  waitingJobsGauge <- R.ask
+  metricsApiToIO' groupId pipelinesOverviewGauge onlineRunnersGauge runningJobsGauge waitingJobsGauge cacheResultsCounter sem
 
-metricsApiToIO' :: (Member (Embed IO) r) => Id Group -> PipelinesOverviewGauge -> OnlineRunnersGauge -> RunningJobsGauge -> CacheResultsCounter -> InterpreterFor MetricsApi r
-metricsApiToIO' groupId pipelinesOverviewGauge@(PipelinesOverviewGauge currentPipelinesOverview) (OnlineRunnersGauge onlineRunnersGauge) (RunningJobsGauge runningJobsGauge) (CacheResultsCounter cacheResults) = interpret $ \case
+metricsApiToIO' :: (Member (Embed IO) r) => Id Group -> PipelinesOverviewGauge -> OnlineRunnersGauge -> RunningJobsGauge -> WaitingJobsGauge -> CacheResultsCounter -> InterpreterFor MetricsApi r
+metricsApiToIO' groupId pipelinesOverviewGauge@(PipelinesOverviewGauge currentPipelinesOverview) (OnlineRunnersGauge onlineRunnersGauge) (RunningJobsGauge runningJobsGauge) (WaitingJobsGauge waitingJobsGauge) (CacheResultsCounter cacheResults) = interpret $ \case
   UpdatePipelinesOverviewMetric buildStatuses -> embed $ updatePipelinesOverviewMetricIO groupId pipelinesOverviewGauge buildStatuses
   UpdateHealthy healthyCount -> embed (withLabel currentPipelinesOverview (show groupId, "healthy") (`setGauge` fromIntegral healthyCount))
   UpdateUnhealthy unhealthyCount -> embed (withLabel currentPipelinesOverview (show groupId, "unhealthy") (`setGauge` fromIntegral unhealthyCount))
   UpdateOnlineRunners runners -> embed (withLabel onlineRunnersGauge (show groupId) (`setGauge` fromIntegral runners))
   UpdateRunningJobs jobs -> embed (withLabel runningJobsGauge (show groupId) (`setGauge` fromIntegral jobs))
+  UpdateWaitingJobs jobs -> embed (withLabel waitingJobsGauge (show groupId) (`setGauge` fromIntegral jobs))
   RecordCacheLookupResult (CacheTag tag) result -> embed (withLabel cacheResults (show groupId, tag, cacheResultToProm result) incCounter)
 
 updatePipelinesOverviewMetricIO :: Id Group -> PipelinesOverviewGauge -> B.BuildStatuses -> IO ()
@@ -176,11 +189,11 @@ countByBuildStatus results = countOccurrences buildStatus results `union` resetV
 resetValues :: Map BuildStatus Double
 resetValues = Data.Map.fromList $ (,0) <$> enumerate
 
-updateMetricsRegularly :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member MetricsApi r, Member (Time t d) r) => Sem r ()
+updateMetricsRegularly :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member J.WaitingJobsApi r, Member MetricsApi r, Member (Time t d) r) => Sem r ()
 updateMetricsRegularly = pass <$> infinitely (updateMetrics >> Time.sleep (Seconds 10))
 
-updateMetrics :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member MetricsApi r) => Sem r ()
-updateMetrics = updateBuildStatusesMetrics >> updateRunnersMetrics
+updateMetrics :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member J.WaitingJobsApi r, Member MetricsApi r) => Sem r ()
+updateMetrics = updateBuildStatusesMetrics >> updateRunnersMetrics >> updateWaitingJobsMetrics
 
 updateBuildStatusesMetrics :: (Member BuildStatusesApi r, Member MetricsApi r) => Sem r ()
 updateBuildStatusesMetrics = do
@@ -211,6 +224,15 @@ runningJobs (R.RunnersJobs (_, rs)) = getSum $ foldMap (Sum . length) rs
 onlineRunners :: R.RunnersJobs -> Int
 onlineRunners R.NoSuccessfulUpdateYet = 0
 onlineRunners (R.RunnersJobs (_, rs)) = size rs
+
+updateWaitingJobsMetrics :: (Member J.WaitingJobsApi r, Member MetricsApi r) => Sem r ()
+updateWaitingJobsMetrics = do
+  jobs <- J.getJobs
+  updateWaitingJobs $ waitingJobs jobs
+
+waitingJobs :: J.WaitingJobs -> Int
+waitingJobs J.NoSuccessfulUpdateYet = 0
+waitingJobs (J.WaitingJobs (_, jobs)) = sumOn' (\(_, jobs') -> length jobs') $ M.toList jobs
 
 countOccurrences :: (Ord k, Num a) => (t -> k) -> [t] -> Map k a
 countOccurrences f xs = fromListWith (+) [(f x, 1) | x <- xs]

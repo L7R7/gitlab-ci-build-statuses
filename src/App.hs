@@ -34,6 +34,7 @@ startMetricsUpdatingJob config backbone =
   runM
     . runConfig config
     . runBackbone backbone
+    . waitingJobsApiToIO
     . runnersJobsApiToIO
     . metricsApiToIO
     . buildStatusesApiToIO

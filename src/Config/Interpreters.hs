@@ -27,7 +27,7 @@ runConfig Config {..} =
     . runReader apiToken
     . runReader includeSharedProjects
 
-runBackbone :: Backbone -> Sem (Reader (IORef WaitingJobs) : Reader (IORef RunnersJobs) : Reader (IORef BuildStatuses) : Reader (Cache (Id Group) [Project]) : Reader (Cache (Id Group) [Runner]) : Reader LogConfig : Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
+runBackbone :: Backbone -> Sem (Reader (IORef WaitingJobs) : Reader (IORef RunnersJobs) : Reader (IORef BuildStatuses) : Reader (Cache (Id Group) [Project]) : Reader (Cache (Id Group) [Runner]) : Reader LogConfig : Reader WaitingJobsGauge : Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
 runBackbone Backbone {..} =
   runMetrics metrics
     . runReader logConfig
@@ -37,7 +37,7 @@ runBackbone Backbone {..} =
     . runReader runners
     . runReader waitingJobs
 
-runMetrics :: Metrics -> Sem (Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
+runMetrics :: Metrics -> Sem (Reader WaitingJobsGauge : Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
 runMetrics Metrics {..} =
   runReader cacheResultsCounter
     . runReader updateJobDurationHistogram
@@ -45,3 +45,4 @@ runMetrics Metrics {..} =
     . runReader currentPipelinesOverview
     . runReader onlineRunnersGauge
     . runReader runningJobsGauge
+    . runReader waitingJobsGauge
