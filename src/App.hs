@@ -20,15 +20,10 @@ import Ports.Inbound.Jobs.WaitingJobs (updateWaitingJobsRegularly)
 import Ports.Outbound.Gitlab.Jobs (jobsApiToIO)
 import Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO)
 import Ports.Outbound.Gitlab.Projects (projectsApiToIO)
-import qualified Ports.Outbound.Gitlab.Projects as Projects (initCache)
 import Ports.Outbound.Gitlab.Runners (runnersApiToIO)
-import qualified Ports.Outbound.Gitlab.Runners as Runners (initCache)
 import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
-import qualified Ports.Outbound.Storage.BuildStatuses.InMemory as Statuses (initStorage)
 import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
-import qualified Ports.Outbound.Storage.Runners.InMemory as Runners (initStorage)
 import Ports.Outbound.Storage.WaitingJobs.InMemory (waitingJobsApiToIO)
-import qualified Ports.Outbound.Storage.WaitingJobs.InMemory as WaitingJobs (initStorage)
 import Relude
 import System.Environment
 import Util (parTraverseToIO)
@@ -112,17 +107,10 @@ startWithConfig config backbone =
 run :: IO ()
 run = do
   environment <- getEnvironment
-  statuses <- Statuses.initStorage
-  runners <- Runners.initStorage
-  waitingJobs <- WaitingJobs.initStorage
-
-  metrics <- registerMetrics
   case parseConfigFromEnv environment of
     Success config@Config {..} ->
       withLogEnv logLevel $ \lE -> do
-        projectCache <- Projects.initCache projectCacheTtlSecs
-        runnersCache <- Runners.initCache runnerCacheTtlSecs
-        let backbone = initBackbone metrics statuses runners waitingJobs projectCache runnersCache (LogConfig mempty mempty lE)
+        backbone <- initBackbone lE config
         singleLog lE InfoS $ "Using config: " <> show config
         singleLog lE InfoS $ "Running version: " <> show (gitCommit backbone)
         startWithConfig config backbone

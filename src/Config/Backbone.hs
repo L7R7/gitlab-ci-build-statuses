@@ -12,6 +12,7 @@ module Config.Backbone
   )
 where
 
+import Config.Config
 import Control.Lens
 import Core.BuildStatuses (BuildStatuses, Project)
 import Core.Jobs (WaitingJobs)
@@ -21,12 +22,24 @@ import Data.Cache (Cache)
 import GitHash
 import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics
+import qualified Ports.Outbound.Gitlab.Projects as Projects (initCache)
+import qualified Ports.Outbound.Gitlab.Runners as Runners (initCache)
+import qualified Ports.Outbound.Storage.BuildStatuses.InMemory as Statuses (initStorage)
+import qualified Ports.Outbound.Storage.Runners.InMemory as Runners (initStorage)
+import qualified Ports.Outbound.Storage.WaitingJobs.InMemory as WaitingJobs (initStorage)
 import Relude hiding (lookupEnv)
 import qualified Text.Show (show)
 
-initBackbone :: Metrics -> IORef BuildStatuses -> IORef RunnersJobs -> IORef WaitingJobs -> Cache (Id Group) [Project] -> Cache (Id Group) [Runner] -> LogConfig -> Backbone
-initBackbone metrics iorefBuilds iorefRunnersJobs ioRefWaitingJobs projectsCache runnersCache logConfig =
-  Backbone metrics iorefBuilds iorefRunnersJobs ioRefWaitingJobs projectsCache runnersCache logConfig (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit)
+initBackbone :: LogEnv -> Config -> IO Backbone
+initBackbone logEnv Config {..} = do
+  statuses <- Statuses.initStorage
+  runners <- Runners.initStorage
+  waitingJobs <- WaitingJobs.initStorage
+  metrics <- registerMetrics
+  projectsCache <- Projects.initCache projectCacheTtlSecs
+  runnersCache <- Runners.initCache runnerCacheTtlSecs
+  let logConfig = LogConfig mempty mempty logEnv
+  pure $ Backbone metrics statuses runners waitingJobs projectsCache runnersCache logConfig (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit)
   where
     gitCommit = $$tGitInfoCwd
 
