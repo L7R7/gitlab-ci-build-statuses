@@ -9,7 +9,7 @@ module UseCases.WaitingJobs
 where
 
 import Core.BuildStatuses hiding (BuildStatuses (..))
-import Core.Effects (Logger, ParTraverse, addContext, logDebug, logInfo, logWarn, traverseP)
+import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Core.Jobs
 import Core.Shared
 import qualified Data.Map as M
@@ -36,7 +36,7 @@ logCurrentWaitingJobs = do
   result <- getJobs
   case result of
     NoSuccessfulUpdateYet -> logDebug "There was no successful update yet, so there are no waiting jobs available"
-    (WaitingJobs (_, jobs)) -> logInfo $ "waiting jobs " <> show (fmap jobId <$> jobs)
+    (WaitingJobs (_, jobs)) -> logDebug $ "waiting jobs " <> show (fmap jobId <$> jobs)
 
 evalProject :: (Member JobsApi r, Member Logger r) => Project -> Sem r [Job]
 evalProject Project {..} = getWaitingJobsForProject projectId
