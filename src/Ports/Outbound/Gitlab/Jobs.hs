@@ -34,8 +34,8 @@ jobsApiToIO sem = do
 jobsApiToIO' :: (Member (Embed IO) r) => Url GitlabHost -> ApiToken -> Id Group -> OutgoingHttpRequestsHistogram -> InterpreterFor JobsApi r
 jobsApiToIO' baseUrl apiToken groupId histogram = interpret $ \case
   GetJobsWithStatuses projectId statuses -> do
-    let template = [uriTemplate|/api/v4/projects/{projectId}/jobs{?scope*}|]
-    embed $ fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId), ("scope", listValue (buildStatusToApiString <$> toList statuses))] groupId histogram
+    let template = [uriTemplate|/api/v4/projects/{projectId}/jobs{?scope%5B%5D*}|]
+    embed $ fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId), ("scope%5B%5D", listValue (buildStatusToApiString <$> toList statuses))] groupId histogram
 
 instance FromJSON Job where
   parseJSON = withObject "job" $ \job -> do
