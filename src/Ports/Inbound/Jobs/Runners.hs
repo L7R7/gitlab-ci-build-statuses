@@ -19,12 +19,32 @@ import qualified Polysemy.Time as Time
 import Relude
 import UseCases.Runners (updateRunnersJobs)
 
-updateRunnersJobsRegularly :: (Member DurationObservation r, Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member (Time t d) r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader [Id Project]) r) => Sem r ()
+updateRunnersJobsRegularly ::
+  ( Member DurationObservation r,
+    Member RunnersApi r,
+    Member RunnersJobsApi r,
+    Member Logger r,
+    Member (Time t d) r,
+    Member ParTraverse r,
+    Member (R.Reader (Id Group)) r,
+    Member (R.Reader DataUpdateIntervalSeconds) r,
+    Member (R.Reader [Id Project]) r
+  ) =>
+  Sem r ()
 updateRunnersJobsRegularly = do
   (DataUpdateIntervalSeconds updateInterval) <- R.ask
   addNamespace "update-runners-jobs" $ pass <$> infinitely (updateWithDurationObservation >> Time.sleep (Seconds (fromIntegral updateInterval)))
 
-updateWithDurationObservation :: (Member DurationObservation r, Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r ()
+updateWithDurationObservation ::
+  ( Member DurationObservation r,
+    Member RunnersApi r,
+    Member RunnersJobsApi r,
+    Member Logger r,
+    Member ParTraverse r,
+    Member (R.Reader (Id Group)) r,
+    Member (R.Reader [Id Project]) r
+  ) =>
+  Sem r ()
 updateWithDurationObservation =
   observeDuration "runners" $ do
     logDebug "updating runnersJobs"

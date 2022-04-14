@@ -24,13 +24,25 @@ updateRunnersJobs = do
   logCurrentRunnersJobs
   pure currentJobs
 
-currentKnownRunnersJobs :: (Member RunnersApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r (Map Runner [Job])
+currentKnownRunnersJobs ::
+  ( Member RunnersApi r,
+    Member Logger r,
+    Member ParTraverse r,
+    Member (R.Reader (Id Group)) r,
+    Member (R.Reader [Id Project]) r
+  ) =>
+  Sem r (Map Runner [Job])
 currentKnownRunnersJobs = do
   runner <- findRunners
   results <- traverseP evalRunner runner
   pure $ fromAscListWith (<>) $ catMaybes results
 
-findRunners :: (Member RunnersApi r, Member Logger r, Member (R.Reader (Id Group)) r) => Sem r [Runner]
+findRunners ::
+  ( Member RunnersApi r,
+    Member Logger r,
+    Member (R.Reader (Id Group)) r
+  ) =>
+  Sem r [Runner]
 findRunners = do
   groupId <- R.ask
   addContext "groupId" groupId $ do
@@ -39,7 +51,11 @@ findRunners = do
       Left err -> [] <$ logWarn (unwords ["Couldn't load runners. Error was", show err])
       Right runners -> pure runners
 
-logCurrentRunnersJobs :: (Member RunnersJobsApi r, Member Logger r) => Sem r ()
+logCurrentRunnersJobs ::
+  ( Member RunnersJobsApi r,
+    Member Logger r
+  ) =>
+  Sem r ()
 logCurrentRunnersJobs = do
   result <- getJobs
   case result of
@@ -49,7 +65,14 @@ logCurrentRunnersJobs = do
         then logDebug "No running jobs found"
         else addContext "jobs" (fmap jobId <$> mapKeys (show @Text . runnerId) jobs) $ logDebug "Running jobs found"
 
-evalRunner :: (Member RunnersApi r, Member Logger r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Runner -> Sem r (Maybe (Runner, [Job]))
+evalRunner ::
+  ( Member RunnersApi r,
+    Member Logger r,
+    Member (R.Reader (Id Group)) r,
+    Member (R.Reader [Id Project]) r
+  ) =>
+  Runner ->
+  Sem r (Maybe (Runner, [Job]))
 evalRunner r@Runner {..} = addContext "runnerId" runnerId $ do
   groupId <- R.ask
   excludeList <- R.ask

@@ -39,7 +39,17 @@ import Text.Blaze.Html5.Attributes as A hiding (icon, name)
 
 type API = "jobs" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
 
-template :: (Member RunnersJobsApi r, Member WaitingJobsApi r, Member (Time UTCTime d) r, Member (R.Reader JobsView) r, Member (R.Reader DataUpdateIntervalSeconds) r, Member (R.Reader UiUpdateIntervalSeconds) r, Member (R.Reader GitCommit) r) => AutoRefresh -> Sem r Html
+template ::
+  ( Member RunnersJobsApi r,
+    Member WaitingJobsApi r,
+    Member (Time UTCTime d) r,
+    Member (R.Reader JobsView) r,
+    Member (R.Reader DataUpdateIntervalSeconds) r,
+    Member (R.Reader UiUpdateIntervalSeconds) r,
+    Member (R.Reader GitCommit) r
+  ) =>
+  AutoRefresh ->
+  Sem r Html
 template autoRefresh = do
   dataUpdateInterval <- R.ask
   uiUpdateInterval <- R.ask

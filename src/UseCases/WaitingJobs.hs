@@ -18,31 +18,60 @@ import qualified Polysemy.Reader as R
 import Relude
 import UseCases.Shared ()
 
-updateWaitingJobs :: (Member ProjectsWithoutExcludesApi r, Member JobsApi r, Member WaitingJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r) => Sem r (Map BuildStatus [Job])
+updateWaitingJobs ::
+  ( Member ProjectsWithoutExcludesApi r,
+    Member JobsApi r,
+    Member WaitingJobsApi r,
+    Member Logger r,
+    Member ParTraverse r,
+    Member (R.Reader (Id Group)) r
+  ) =>
+  Sem r (Map BuildStatus [Job])
 updateWaitingJobs = do
   waitingJobs <- currentWaitingJobs
   setJobs waitingJobs
   logCurrentWaitingJobs
   pure waitingJobs
 
-currentWaitingJobs :: (Member ProjectsWithoutExcludesApi r, Member JobsApi r, Member ParTraverse r, Member Logger r, Member (R.Reader (Id Group)) r) => Sem r (Map BuildStatus [Job])
+currentWaitingJobs ::
+  ( Member ProjectsWithoutExcludesApi r,
+    Member JobsApi r,
+    Member ParTraverse r,
+    Member Logger r,
+    Member (R.Reader (Id Group)) r
+  ) =>
+  Sem r (Map BuildStatus [Job])
 currentWaitingJobs = do
   groupId <- R.ask
   projects <- getProjectsNotOnExcludeListOrEmpty groupId
   results <- traverseP evalProject projects
   pure $ groupByStatus (join results)
 
-logCurrentWaitingJobs :: (Member WaitingJobsApi r, Member Logger r) => Sem r ()
+logCurrentWaitingJobs ::
+  ( Member WaitingJobsApi r,
+    Member Logger r
+  ) =>
+  Sem r ()
 logCurrentWaitingJobs = do
   result <- getJobs
   case result of
     NoSuccessfulUpdateYet -> logDebug "There was no successful update yet, so there are no waiting jobs available"
     (WaitingJobs (_, jobs)) -> logDebug $ "waiting jobs " <> show (fmap jobId <$> jobs)
 
-evalProject :: (Member JobsApi r, Member Logger r) => Project -> Sem r [Job]
+evalProject ::
+  ( Member JobsApi r,
+    Member Logger r
+  ) =>
+  Project ->
+  Sem r [Job]
 evalProject Project {..} = getWaitingJobsForProject projectId
 
-getWaitingJobsForProject :: (Member JobsApi r, Member Logger r) => Id Project -> Sem r [Job]
+getWaitingJobsForProject ::
+  ( Member JobsApi r,
+    Member Logger r
+  ) =>
+  Id Project ->
+  Sem r [Job]
 getWaitingJobsForProject projectId = addContext "projectId" projectId $ do
   let waitingStatuses = Created :| [Pending, Preparing, Scheduled, WaitingForResource]
   result <- getJobsWithStatuses projectId waitingStatuses

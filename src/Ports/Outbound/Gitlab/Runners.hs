@@ -30,7 +30,15 @@ import System.Clock
 initCache :: RunnerCacheTtlSeconds -> IO (Cache (Id Group) [Runner])
 initCache (RunnerCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
-runnersApiToIO :: (Member (Embed IO) r, Member MetricsApi r, Member (R.Reader (Url GitlabHost)) r, Member (R.Reader ApiToken) r, Member (R.Reader OutgoingHttpRequestsHistogram) r, Member (R.Reader (Cache (Id Group) [Runner])) r) => InterpreterFor RunnersApi r
+runnersApiToIO ::
+  ( Member (Embed IO) r,
+    Member MetricsApi r,
+    Member (R.Reader (Url GitlabHost)) r,
+    Member (R.Reader ApiToken) r,
+    Member (R.Reader OutgoingHttpRequestsHistogram) r,
+    Member (R.Reader (Cache (Id Group) [Runner])) r
+  ) =>
+  InterpreterFor RunnersApi r
 runnersApiToIO sem = do
   baseUrl <- R.ask
   apiToken <- R.ask
@@ -38,7 +46,15 @@ runnersApiToIO sem = do
   cache <- R.ask
   runnersApiToIO' baseUrl apiToken histogram cache sem
 
-runnersApiToIO' :: (Member (Embed IO) r, Member MetricsApi r) => Url GitlabHost -> ApiToken -> OutgoingHttpRequestsHistogram -> Cache (Id Group) [Runner] -> InterpreterFor RunnersApi r
+runnersApiToIO' ::
+  ( Member (Embed IO) r,
+    Member MetricsApi r
+  ) =>
+  Url GitlabHost ->
+  ApiToken ->
+  OutgoingHttpRequestsHistogram ->
+  Cache (Id Group) [Runner] ->
+  InterpreterFor RunnersApi r
 runnersApiToIO' baseUrl apiToken histogram cache = interpret $ \case
   GetOnlineRunnersForGroup groupId -> do
     (result, cacheResult) <- embed $ do

@@ -29,7 +29,16 @@ import System.Clock
 initCache :: ProjectCacheTtlSeconds -> IO (Cache (Id Group) [Project])
 initCache (ProjectCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
-projectsApiToIO :: (Member (Embed IO) r, Member MetricsApi r, Member (R.Reader (Url GitlabHost)) r, Member (R.Reader ApiToken) r, Member (R.Reader SharedProjects) r, Member (R.Reader OutgoingHttpRequestsHistogram) r, Member (R.Reader (Cache (Id Group) [Project])) r) => InterpreterFor ProjectsApi r
+projectsApiToIO ::
+  ( Member (Embed IO) r,
+    Member MetricsApi r,
+    Member (R.Reader (Url GitlabHost)) r,
+    Member (R.Reader ApiToken) r,
+    Member (R.Reader SharedProjects) r,
+    Member (R.Reader OutgoingHttpRequestsHistogram) r,
+    Member (R.Reader (Cache (Id Group) [Project])) r
+  ) =>
+  InterpreterFor ProjectsApi r
 projectsApiToIO = interpret $ \case
   GetProjects groupId -> do
     cache <- R.ask
@@ -52,7 +61,12 @@ projectsApiToIO = interpret $ \case
     withShared Include = stringValue "true"
     withShared Exclude = stringValue "false"
 
-projectsWithoutExcludesApiInTermsOfProjects :: (Member ProjectsApi r, Member Logger r, Member (R.Reader [Id Project]) r) => InterpreterFor ProjectsWithoutExcludesApi r
+projectsWithoutExcludesApiInTermsOfProjects ::
+  ( Member ProjectsApi r,
+    Member Logger r,
+    Member (R.Reader [Id Project]) r
+  ) =>
+  InterpreterFor ProjectsWithoutExcludesApi r
 projectsWithoutExcludesApiInTermsOfProjects = interpret $ \case
   GetProjectsNotOnExcludeListOrEmpty groupId -> do
     excludeList <- R.ask
