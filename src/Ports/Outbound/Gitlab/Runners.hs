@@ -28,7 +28,7 @@ import Ports.Outbound.Gitlab.Instances ()
 import Relude
 import System.Clock
 
-initCache :: RunnerCacheTtlSeconds -> IO (Cache (Id Group) [Runner])
+initCache :: RunnerCacheTtlSeconds -> IO (Cache (Id Group) v)
 initCache (RunnerCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 
 runnersApiToIO ::
@@ -38,15 +38,17 @@ runnersApiToIO ::
     Member (R.Reader (Url GitlabHost)) r,
     Member (R.Reader ApiToken) r,
     Member (R.Reader OutgoingHttpRequestsHistogram) r,
-    Member (R.Reader (Cache (Id Group) [Runner])) r
+    Member (R.Reader (Cache (Id Group) [Runner])) r,
+    Member (R.Reader (Cache (Id Group) [(Id Project, [Runner])])) r
   ) =>
   InterpreterFor RunnersApi r
 runnersApiToIO sem = do
   baseUrl <- R.ask
   apiToken <- R.ask
   histogram <- R.ask
-  cache <- R.ask
-  runnersApiToIO' baseUrl apiToken histogram cache sem
+  groupCache <- R.ask
+  projectCache <- R.ask
+  runnersApiToIO' baseUrl apiToken histogram groupCache projectCache sem
 
 runnersApiToIO' ::
   ( Member (Embed IO) r,
@@ -57,24 +59,33 @@ runnersApiToIO' ::
   ApiToken ->
   OutgoingHttpRequestsHistogram ->
   Cache (Id Group) [Runner] ->
+  Cache (Id Group) [(Id Project, [Runner])] ->
   InterpreterFor RunnersApi r
-runnersApiToIO' baseUrl apiToken histogram cache = interpret $ \case
+runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $ \case
   GetOnlineRunnersForGroup groupId -> do
     (result, cacheResult) <- embed $ do
-      cached <- lookup cache groupId
+      cached <- lookup groupCache groupId
       case cached of
         (Just runners) -> pure (Right runners, Hit)
         Nothing -> do
           let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online&type=group_type|]
           result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
-          traverse_ (insert cache groupId) result
+          traverse_ (insert groupCache groupId) result
           pure (result, Miss)
     recordCacheLookupResult (CacheTag "runners") cacheResult
     pure result
   GetProjectRunnersForGroup groupId -> do
-    -- todo: caching for project runners
-    projects <- getProjectsNotOnExcludeListOrEmpty groupId
-    sequence <$> traverse (\(Project projectId _ _ _ _) -> fmap (projectId,) <$> getRunnersForProject projectId) projects
+    (result, cacheResult) <- do
+      cached <- embed $ lookup projectCache groupId
+      case cached of
+        (Just runners) -> pure (Right runners, Hit)
+        Nothing -> do
+          projects <- getProjectsNotOnExcludeListOrEmpty groupId
+          result <- sequence <$> traverse (\(Project projectId _ _ _ _) -> fmap (projectId,) <$> getRunnersForProject projectId) projects
+          embed $ traverse_ (insert projectCache groupId) result
+          pure (result, Miss)
+    recordCacheLookupResult (CacheTag "project-runners") cacheResult
+    pure result
     where
       getRunnersForProject projectId = do
         let template = [uriTemplate|/api/v4/projects/{projectId}/runners?type=project_type|]

@@ -37,9 +37,10 @@ initBackbone logEnv Config {..} = do
   waitingJobs <- WaitingJobs.initStorage
   metrics <- registerMetrics
   projectsCache <- Projects.initCache projectCacheTtlSecs
-  runnersCache <- Runners.initCache runnerCacheTtlSecs
+  groupRunnersCache <- Runners.initCache runnerCacheTtlSecs
+  projectRunnersCache <- Runners.initCache runnerCacheTtlSecs
   let logConfig = LogConfig mempty mempty logEnv
-  pure $ Backbone metrics statuses runners waitingJobs projectsCache runnersCache logConfig (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit)
+  pure $ Backbone metrics statuses runners waitingJobs projectsCache groupRunnersCache projectRunnersCache logConfig (GitCommit $ giTag gitCommit <> "/" <> giBranch gitCommit <> "@" <> giHash gitCommit)
   where
     gitCommit = $$tGitInfoCwd
 
@@ -49,7 +50,8 @@ data Backbone = Backbone
     runners :: IORef RunnersJobs,
     waitingJobs :: IORef WaitingJobs,
     projectsCache :: Cache (Id Group) [Project],
-    runnersCache :: Cache (Id Group) [Runner],
+    groupRunnersCache :: Cache (Id Group) [Runner],
+    projectRunnersCache :: Cache (Id Group) [(Id Project, [Runner])],
     logConfig :: LogConfig,
     gitCommit :: GitCommit
   }
