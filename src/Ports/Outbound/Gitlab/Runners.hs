@@ -13,6 +13,7 @@ module Ports.Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds))
+import Core.BuildStatuses (ProjectsApi, getProjects)
 import Core.Runners (Description (..), IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..))
 import Core.Shared (Group, Id, Url (..))
 import Data.Aeson

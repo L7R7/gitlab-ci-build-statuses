@@ -15,6 +15,8 @@ module Core.BuildStatuses
     Result (..),
     ProjectsApi (..),
     getProjects,
+    ProjectsWithoutExcludesApi (..),
+    getProjectsNotOnExcludeListOrEmpty,
     BuildStatusesApi (..),
     getStatuses,
     setStatuses,

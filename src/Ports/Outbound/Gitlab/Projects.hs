@@ -1,17 +1,22 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
-module Ports.Outbound.Gitlab.Projects (initCache, projectsApiToIO) where
+module Ports.Outbound.Gitlab.Projects (initCache, projectsApiToIO, projectsWithoutExcludesApiInTermsOfProjects) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
-import Core.BuildStatuses (Project, ProjectsApi (..))
-import Core.Shared (Group, Id, Url (..))
+import Core.BuildStatuses (Project (projectId), ProjectsApi (..), ProjectsWithoutExcludesApi (..), getProjects)
+import Core.Effects
+import Core.Shared (Group, Id (..), Url (..))
+import Data.Aeson (ToJSON)
 import Data.Cache
 import Metrics.Metrics (CacheResult (..), CacheTag (CacheTag), MetricsApi, OutgoingHttpRequestsHistogram, recordCacheLookupResult)
 import Polysemy
@@ -46,3 +51,19 @@ projectsApiToIO = interpret $ \case
   where
     withShared Include = stringValue "true"
     withShared Exclude = stringValue "false"
+
+projectsWithoutExcludesApiInTermsOfProjects :: (Member ProjectsApi r, Member Logger r, Member (R.Reader [Id Project]) r) => InterpreterFor ProjectsWithoutExcludesApi r
+projectsWithoutExcludesApiInTermsOfProjects = interpret $ \case
+  GetProjectsNotOnExcludeListOrEmpty groupId -> do
+    excludeList <- R.ask
+    addContext "groupId" groupId $ do
+      result <- getProjects groupId
+      case result of
+        Left err -> [] <$ logWarn (unwords ["Couldn't load projects. Error was", show err])
+        Right ps -> do
+          let orphansInExcludeList = filter (\pId -> pId `notElem` (projectId <$> ps)) excludeList
+          unless (null orphansInExcludeList) $ addContext "orphanProjects" (show @String orphansInExcludeList) $ logWarn "There are projects on the exclude list that are not included in the result. This is probably a configuration error"
+          let filtered = filter (\p -> projectId p `notElem` excludeList) ps
+          pure filtered
+
+deriving newtype instance ToJSON (Id a)

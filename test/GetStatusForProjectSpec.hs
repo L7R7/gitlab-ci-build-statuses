@@ -11,6 +11,7 @@ import Network.URI.Static
 import Path
 import Polysemy
 import qualified Polysemy.Reader as R
+import Ports.Outbound.Gitlab.Projects (projectsWithoutExcludesApiInTermsOfProjects)
 import Relude
 import Test.Hspec
 import TestUtils
@@ -44,6 +45,7 @@ spec = do
               ]
           )
         . parTraversePure
+        . projectsWithoutExcludesApiInTermsOfProjects
     result = [result1, result2]
     result1 = Result (Id 311) (Name "my-other-project") Running (Right (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))
     result2 = Result (Id 312) (Name "myProj") Unknown (Left (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")))

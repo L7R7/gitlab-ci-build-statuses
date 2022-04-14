@@ -1,9 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -13,11 +11,11 @@ import Core.BuildStatuses (Project)
 import Core.Effects
 import Core.Runners
 import Core.Shared
-import Data.Aeson (ToJSON)
 import Data.Map (fromAscListWith, mapKeys)
 import Polysemy
 import qualified Polysemy.Reader as R
 import Relude
+import UseCases.Shared ()
 
 updateRunnersJobs :: (Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r (Map Runner [Job])
 updateRunnersJobs = do
@@ -59,5 +57,3 @@ evalRunner r@Runner {..} = addContext "runnerId" runnerId $ do
   case jobs of
     Left err -> Nothing <$ logWarn (unwords ["Couldn't get jobs for runner. Error was", show err])
     Right js -> pure $ Just (r, filter (\j -> jobProjectId j `notElem` excludeList) js)
-
-deriving newtype instance ToJSON (Id a)

@@ -18,21 +18,22 @@ import qualified Data.Text as T (intercalate, toLower)
 import Polysemy
 import qualified Polysemy.Reader as R
 import Relude
-import UseCases.Shared (findProjects)
+import UseCases.Shared ()
 
-updateStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r [Result]
+updateStatuses :: (Member ProjectsWithoutExcludesApi r, Member PipelinesApi r, Member BuildStatusesApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r) => Sem r [Result]
 updateStatuses = do
   currentStatuses <- currentKnownBuildStatuses
   unless (null currentStatuses) $ setStatuses currentStatuses
   logCurrentBuildStatuses
   pure currentStatuses
 
-currentKnownBuildStatuses :: (Member ProjectsApi r, Member PipelinesApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r [Result]
+currentKnownBuildStatuses :: (Member ProjectsWithoutExcludesApi r, Member PipelinesApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r) => Sem r [Result]
 currentKnownBuildStatuses = filter ((/= Unknown) . buildStatus) <$> currentBuildStatuses
 
-currentBuildStatuses :: (Member ParTraverse r, Member ProjectsApi r, Member PipelinesApi r, Member Logger r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r [Result]
+currentBuildStatuses :: (Member ParTraverse r, Member ProjectsWithoutExcludesApi r, Member PipelinesApi r, Member Logger r, Member (R.Reader (Id Group)) r) => Sem r [Result]
 currentBuildStatuses = do
-  projects <- findProjects
+  groupId <- R.ask
+  projects <- getProjectsNotOnExcludeListOrEmpty groupId
   results <- traverseP evalProject projects
   pure $ sortOn (T.toLower . coerce . name) results
 

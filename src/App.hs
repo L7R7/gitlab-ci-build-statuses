@@ -19,7 +19,7 @@ import Ports.Inbound.Jobs.Runners (updateRunnersJobsRegularly)
 import Ports.Inbound.Jobs.WaitingJobs (updateWaitingJobsRegularly)
 import Ports.Outbound.Gitlab.Jobs (jobsApiToIO)
 import Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO)
-import Ports.Outbound.Gitlab.Projects (projectsApiToIO)
+import Ports.Outbound.Gitlab.Projects (projectsApiToIO, projectsWithoutExcludesApiInTermsOfProjects)
 import Ports.Outbound.Gitlab.Runners (runnersApiToIO)
 import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
@@ -54,6 +54,7 @@ startStatusUpdatingJob config backbone =
     . parTraverseToIO
     . interpretTimeGhc
     . loggerToIO
+    . projectsWithoutExcludesApiInTermsOfProjects
     . observeDurationToIO
     $ updateStatusesRegularly
 
@@ -93,6 +94,7 @@ startWaitingJobsUpdatingJob config backbone =
     . parTraverseToIO
     . interpretTimeGhc
     . loggerToIO
+    . projectsWithoutExcludesApiInTermsOfProjects
     . observeDurationToIO
     $ updateWaitingJobsRegularly
 

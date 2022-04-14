@@ -16,18 +16,19 @@ import qualified Data.Map as M
 import Polysemy
 import qualified Polysemy.Reader as R
 import Relude
-import UseCases.Shared (findProjects)
+import UseCases.Shared ()
 
-updateWaitingJobs :: (Member ProjectsApi r, Member JobsApi r, Member WaitingJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r (Map BuildStatus [Job])
+updateWaitingJobs :: (Member ProjectsWithoutExcludesApi r, Member JobsApi r, Member WaitingJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r) => Sem r (Map BuildStatus [Job])
 updateWaitingJobs = do
   waitingJobs <- currentWaitingJobs
   setJobs waitingJobs
   logCurrentWaitingJobs
   pure waitingJobs
 
-currentWaitingJobs :: (Member ProjectsApi r, Member JobsApi r, Member ParTraverse r, Member Logger r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r (Map BuildStatus [Job])
+currentWaitingJobs :: (Member ProjectsWithoutExcludesApi r, Member JobsApi r, Member ParTraverse r, Member Logger r, Member (R.Reader (Id Group)) r) => Sem r (Map BuildStatus [Job])
 currentWaitingJobs = do
-  projects <- findProjects
+  groupId <- R.ask
+  projects <- getProjectsNotOnExcludeListOrEmpty groupId
   results <- traverseP evalProject projects
   pure $ groupByStatus (join results)
 
@@ -49,5 +50,5 @@ getWaitingJobsForProject projectId = addContext "projectId" projectId $ do
     Left uError -> [] <$ logWarn (unwords ["Couldn't eval project. Error was", show uError])
     Right jobs -> pure jobs
 
-groupByStatus :: [Job] -> Map BuildStatus [Job]
-groupByStatus jobs = M.fromListWith (<>) ((\job -> (jobStatus job, [job])) <$> jobs)
+groupByStatus :: (Semigroup (f Job), Applicative f) => [Job] -> Map BuildStatus (f Job)
+groupByStatus jobs = M.fromListWith (<>) ((\job -> (jobStatus job, pure job)) <$> jobs)
