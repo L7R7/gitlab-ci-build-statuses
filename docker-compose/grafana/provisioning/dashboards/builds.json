@@ -21,7 +21,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "iteration": 1649316426456,
+  "iteration": 1649941558462,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -806,7 +806,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 12,
         "x": 0,
         "y": 9
       },
@@ -918,6 +918,100 @@
               }
             ]
           },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "8.0.1",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(increase(update_job_duration_histogram_count[5m])) by (tag)",
+          "interval": "",
+          "legendFormat": "{{tag}} - 5m",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "sum(increase(update_job_duration_histogram_count[15m])) by (tag)",
+          "interval": "",
+          "legendFormat": "{{tag}} - 15m",
+          "refId": "B"
+        }
+      ],
+      "title": "Update job frequency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
           "unit": "s"
         },
         "overrides": []
@@ -926,7 +1020,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 17
+        "y": 25
       },
       "id": 3,
       "options": {
@@ -1030,7 +1124,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 17
+        "y": 25
       },
       "id": 13,
       "options": {
@@ -1057,100 +1151,6 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 17
-      },
-      "id": 14,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
-      },
-      "pluginVersion": "8.0.1",
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum(increase(update_job_duration_histogram_count[5m])) by (tag)",
-          "interval": "",
-          "legendFormat": "{{tag}} - 5m",
-          "refId": "A"
-        },
-        {
-          "exemplar": true,
-          "expr": "sum(increase(update_job_duration_histogram_count[15m])) by (tag)",
-          "interval": "",
-          "legendFormat": "{{tag}} - 15m",
-          "refId": "B"
-        }
-      ],
-      "title": "Update job frequency",
-      "type": "timeseries"
-    },
-    {
       "collapsed": false,
       "datasource": {
         "type": "prometheus",
@@ -1160,7 +1160,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 33
       },
       "id": 22,
       "panels": [],
@@ -1227,7 +1227,7 @@
         "h": 8,
         "w": 6,
         "x": 0,
-        "y": 26
+        "y": 34
       },
       "id": 5,
       "options": {
@@ -1284,7 +1284,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 50
       },
       "id": 63,
       "panels": [],
@@ -1382,7 +1382,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 43
+        "y": 51
       },
       "id": 66,
       "options": {
@@ -1475,9 +1475,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 4,
+        "w": 3,
         "x": 12,
-        "y": 43
+        "y": 51
       },
       "id": 67,
       "options": {
@@ -1567,9 +1567,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 4,
-        "x": 16,
-        "y": 43
+        "w": 3,
+        "x": 15,
+        "y": 51
       },
       "id": 69,
       "options": {
@@ -1659,9 +1659,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 4,
-        "x": 20,
-        "y": 43
+        "w": 3,
+        "x": 18,
+        "y": 51
       },
       "id": 68,
       "options": {
@@ -1690,7 +1690,103 @@
           "refId": "A"
         }
       ],
-      "title": "Cache hit rate runners",
+      "title": "Cache hit rate group runners",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "miss - runners"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF780A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 3,
+        "x": 21,
+        "y": 51
+      },
+      "id": 87,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "sum(increase(cache_results_count{result=\"hit\",tag=\"project-runners\"}[5m])) / sum(increase(cache_results_count{tag=\"project-runners\"}[5m]))",
+          "interval": "",
+          "legendFormat": "hit rate",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Cache hit rate project runners",
       "type": "stat"
     },
     {
@@ -1703,7 +1799,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 51
+        "y": 59
       },
       "id": 26,
       "panels": [],
@@ -1892,7 +1988,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 52
+        "y": 60
       },
       "id": 40,
       "options": {
@@ -2116,7 +2212,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 52
+        "y": 60
       },
       "id": 44,
       "options": {
@@ -2338,7 +2434,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 62
+        "y": 70
       },
       "id": 42,
       "options": {
@@ -2424,7 +2520,7 @@
         "h": 10,
         "w": 6,
         "x": 12,
-        "y": 62
+        "y": 70
       },
       "id": 28,
       "options": {
@@ -2515,7 +2611,7 @@
         "h": 10,
         "w": 6,
         "x": 18,
-        "y": 62
+        "y": 70
       },
       "id": 30,
       "options": {
@@ -2632,6 +2728,6 @@
   "timezone": "",
   "title": "Build Statuses",
   "uid": "oD7GwCVMk",
-  "version": 9,
+  "version": 10,
   "weekStart": ""
 }
