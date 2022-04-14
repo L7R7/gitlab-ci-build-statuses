@@ -7,13 +7,14 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ports.Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds))
-import Core.BuildStatuses (ProjectsApi, getProjects)
+import Core.BuildStatuses
 import Core.Runners (Description (..), IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..))
 import Core.Shared (Group, Id, Url (..))
 import Data.Aeson
@@ -33,6 +34,7 @@ initCache (RunnerCacheTtlSeconds ttl) = newCache (Just (TimeSpec ttl 0))
 runnersApiToIO ::
   ( Member (Embed IO) r,
     Member MetricsApi r,
+    Member ProjectsWithoutExcludesApi r,
     Member (R.Reader (Url GitlabHost)) r,
     Member (R.Reader ApiToken) r,
     Member (R.Reader OutgoingHttpRequestsHistogram) r,
@@ -48,7 +50,8 @@ runnersApiToIO sem = do
 
 runnersApiToIO' ::
   ( Member (Embed IO) r,
-    Member MetricsApi r
+    Member MetricsApi r,
+    Member ProjectsWithoutExcludesApi r
   ) =>
   Url GitlabHost ->
   ApiToken ->
@@ -68,6 +71,14 @@ runnersApiToIO' baseUrl apiToken histogram cache = interpret $ \case
           pure (result, Miss)
     recordCacheLookupResult (CacheTag "runners") cacheResult
     pure result
+  GetProjectRunnersForGroup groupId -> do
+    -- todo: caching for project runners
+    projects <- getProjectsNotOnExcludeListOrEmpty groupId
+    sequence <$> traverse (\(Project projectId _ _ _ _) -> fmap (projectId,) <$> getRunnersForProject projectId) projects
+    where
+      getRunnersForProject projectId = do
+        let template = [uriTemplate|/api/v4/projects/{projectId}/runners?type=project_type|]
+        embed $ fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId)] groupId histogram
   GetRunningJobsForRunner groupId runnerId -> do
     let template = [uriTemplate|/api/v4/runners/{runnerId}/jobs?status=running|]
     embed $ fetchDataPaginated baseUrl apiToken template [("runnerId", (stringValue . show) runnerId)] groupId histogram

@@ -70,10 +70,12 @@ startRunnersJobsUpdatingJob config backbone = do
     . runBackbone backbone
     . runnersJobsApiToIO
     . metricsApiToIO
-    . runnersApiToIO
+    . projectsApiToIO
     . parTraverseToIO
     . interpretTimeGhc
     . loggerToIO
+    . projectsWithoutExcludesApiInTermsOfProjects
+    . runnersApiToIO
     . observeDurationToIO
     $ updateRunnersJobsRegularly
 

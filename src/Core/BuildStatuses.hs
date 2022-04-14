@@ -104,6 +104,11 @@ data ProjectsApi m a where
 
 makeSem ''ProjectsApi
 
+data ProjectsWithoutExcludesApi m a where
+  GetProjectsNotOnExcludeListOrEmpty :: Id Group -> ProjectsWithoutExcludesApi m [Project]
+
+makeSem ''ProjectsWithoutExcludesApi
+
 data BuildStatusesApi m a where
   GetStatuses :: BuildStatusesApi m BuildStatuses
   SetStatuses :: [Result] -> BuildStatusesApi m ()

@@ -11,6 +11,7 @@ import Core.BuildStatuses (Project)
 import Core.Effects
 import Core.Runners
 import Core.Shared
+import Data.List.Extra (nubOrdOn)
 import Data.Map (fromAscListWith, mapKeys)
 import Polysemy
 import qualified Polysemy.Reader as R
@@ -48,8 +49,13 @@ findRunners = do
   addContext "groupId" groupId $ do
     result <- getOnlineRunnersForGroup groupId
     case result of
-      Left err -> [] <$ logWarn (unwords ["Couldn't load runners. Error was", show err])
-      Right runners -> pure runners
+      Left err -> [] <$ logWarn (unwords ["Couldn't load group runners. Error was", show err])
+      Right groupRunners -> do
+        projectResult <- getProjectRunnersForGroup groupId
+        projectRunners <- case projectResult of
+          Left err -> [] <$ logWarn (unwords ["Couldn't load project runners. Error was", show err])
+          Right runners -> pure $ runners >>= snd
+        pure $ nubOrdOn runnerId groupRunners <> projectRunners
 
 logCurrentRunnersJobs ::
   ( Member RunnersJobsApi r,
