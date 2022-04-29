@@ -122,7 +122,7 @@ executable gitlab-ci-build-statuses-exe
   default-extensions:
       DerivingStrategies
       StrictData
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -Wincomplete-uni-patterns -Wincomplete-record-updates -Wredundant-constraints -fhide-source-paths -Wpartial-fields -Wmissing-deriving-strategies -Wunused-packages -threaded -rtsopts -with-rtsopts=-T
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -Wincomplete-uni-patterns -Wincomplete-record-updates -Wredundant-constraints -fhide-source-paths -Wpartial-fields -Wmissing-deriving-strategies -Wunused-packages -static -optl-static -fPIC -threaded -rtsopts -with-rtsopts=-TN
   build-depends:
       base >=4.7 && <5
     , gitlab-ci-build-statuses

@@ -88,9 +88,12 @@ executables:
     main: Main.hs
     source-dirs: app
     ghc-options:
+      - -static
+      - -optl-static
+      - -fPIC
       - -threaded
       - -rtsopts
-      - -with-rtsopts=-T
+      - -with-rtsopts=-TN
     dependencies:
       - gitlab-ci-build-statuses
 

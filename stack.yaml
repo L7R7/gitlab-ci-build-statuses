@@ -74,3 +74,8 @@ extra-deps:
 # compiler-check: newer-minor
 ghc-options:
   $everything: -split-sections
+
+docker:
+  enable: true
+  stack-exe: host
+  image: utdemir/ghc-musl:v24-ghc8107
