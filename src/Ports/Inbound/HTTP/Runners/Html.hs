@@ -66,9 +66,9 @@ runnersViewDisabled uiUpdateInterval gitCommit autoRefresh = do
   H.body $ H.div ! class_ "job no-successful-update" $ p "Runners view is disabled. Update your config to enable it"
 
 template' :: UTCTime -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> RunnersJobs -> WaitingJobs -> Html
-template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh buildStatuses waitingJobs = do
-  pageHeader uiUpdateInterval gitCommit autoRefresh (Just buildStatuses)
-  pageBody dataUpdateInterval now buildStatuses waitingJobs
+template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh runnersJobs waitingJobs = do
+  pageHeader uiUpdateInterval gitCommit autoRefresh (Just runnersJobs)
+  pageBody dataUpdateInterval now runnersJobs waitingJobs
 
 pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Maybe RunnersJobs -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runnersJobs =
@@ -99,7 +99,7 @@ pageBody dataUpdateInterval now runnersJobs waitingJobs = H.body $ runnersJobsTo
 runnersJobsToHtml :: RunnersJobs -> Html
 runnersJobsToHtml NoSuccessfulUpdateYet = H.div ! class_ "job no-successful-update" $ p "There was no successful update yet"
 runnersJobsToHtml (RunnersJobs (_, runners)) | null runners = H.div ! class_ "job empty-results" $ p "No online runners found"
-runnersJobsToHtml (RunnersJobs (_, runners)) = toHtml $ runnerJobsToHtml <$> Data.Map.toList runners
+runnersJobsToHtml (RunnersJobs (_, runners)) = toHtml $ runnerJobsToHtml <$> sortOn (\(runner, _) -> runnerId runner) (Data.Map.toList runners)
 
 runnerJobsToHtml :: (Runner, [Job]) -> Html
 runnerJobsToHtml (runner, jobs) = H.div ! class_ "runner-container" $ runnerToHtml runner <> (section ! class_ "jobs" $ jobsToHtml jobs)
