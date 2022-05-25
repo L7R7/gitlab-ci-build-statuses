@@ -62,7 +62,8 @@ registerGhcMetrics = register ghcMetrics
 
 registerAppMetrics :: IO Metrics
 registerAppMetrics =
-  Metrics <$> registerPipelinesOverviewMetric
+  Metrics
+    <$> registerPipelinesOverviewMetric
     <*> registerOutgoingHttpRequestsHistogram
     <*> registerUpdateJobDurationHistogram
     <*> registerCacheResultsCounter
