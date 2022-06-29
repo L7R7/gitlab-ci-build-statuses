@@ -38,8 +38,8 @@ spec = do
         . projectsApiFromMap
           ( M.fromList
               [ ( Id 42,
-                  [ Project (Id 312) (Name "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing $(mkRelDir "foo"),
-                    Project (Id 311) (Name "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main") $(mkRelDir "bar")
+                  [ Project (Id 312) (Name "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing (ProjectNamespace (Id 12) (ProjectNamespaceFullPath $(mkRelDir "foo"))),
+                    Project (Id 311) (Name "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main") (ProjectNamespace (Id 13) (ProjectNamespaceFullPath $(mkRelDir "bar")))
                   ]
                 )
               ]
@@ -47,8 +47,8 @@ spec = do
         . parTraversePure
         . projectsWithoutExcludesApiInTermsOfProjects
     result = [result1, result2]
-    result1 = Result (Id 311) (Name "my-other-project") Running (Right (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))
-    result2 = Result (Id 312) (Name "myProj") Unknown (Left (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")))
+    result1 = Result (Id 311) (Name "my-other-project") (ProjectNamespaceFullPath $(mkRelDir "bar")) Running (Right (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))
+    result2 = Result (Id 312) (Name "myProj") (ProjectNamespaceFullPath $(mkRelDir "foo")) Unknown (Left (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")))
     projects =
       M.fromList
         [ ((Id 50, Ref "main"), Pipeline (Id 151) (Ref "main") Successful (Url $$(staticURI "https://sample.de/50"))),

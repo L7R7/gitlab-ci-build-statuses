@@ -26,6 +26,8 @@ module Core.BuildStatuses
     DetailedPipeline (..),
     Pipeline (..),
     Project (..),
+    ProjectNamespace (..),
+    ProjectNamespaceFullPath (..),
     isHealthy,
     toResult,
   )
@@ -54,6 +56,7 @@ instance Ord Pipeline where
 data Result = Result
   { projId :: Id Project,
     name :: Name Project,
+    namespace :: ProjectNamespaceFullPath,
     buildStatus :: BuildStatus,
     url :: Either (Url Project) (Url Pipeline)
   }
@@ -89,9 +92,19 @@ data Project = Project
     projectName :: Name Project,
     projectWebUrl :: Url Project,
     projectDefaultBranch :: Maybe Ref,
-    projectNamespacePath :: Path Rel Dir
+    projectNamespace :: ProjectNamespace
   }
   deriving stock (Generic, Show)
+
+data ProjectNamespace = ProjectNamespace
+  { projectNamespaceId :: Id ProjectNamespace,
+    projectNamespaceFullPath :: ProjectNamespaceFullPath
+  }
+  deriving stock (Generic, Show)
+
+newtype ProjectNamespaceFullPath = ProjectNamespaceFullPath (Path Rel Dir)
+  deriving stock (Generic)
+  deriving newtype (Eq, Ord, Show)
 
 data PipelinesApi m a where
   GetLatestPipelineForRef :: Id Project -> Ref -> PipelinesApi m (Either UpdateError Pipeline)
@@ -131,5 +144,5 @@ isHealthy SuccessfulWithWarnings = False
 isHealthy WaitingForResource = True
 
 toResult :: Project -> Maybe (BuildStatus, Url Pipeline) -> Result
-toResult Project {..} Nothing = Result projectId projectName Unknown (Left projectWebUrl)
-toResult Project {..} (Just (status, url)) = Result projectId projectName status (Right url)
+toResult Project {..} Nothing = Result projectId projectName (projectNamespaceFullPath projectNamespace) Unknown (Left projectWebUrl)
+toResult Project {..} (Just (status, url)) = Result projectId projectName (projectNamespaceFullPath projectNamespace) status (Right url)

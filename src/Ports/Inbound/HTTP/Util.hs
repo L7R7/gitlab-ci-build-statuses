@@ -4,13 +4,14 @@
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ports.Inbound.HTTP.Util (AutoRefresh (..), lastUpdatedToHtml) where
+module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), lastUpdatedToHtml) where
 
 import Core.BuildStatuses (BuildStatus (..))
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import Relude
+import Servant (FromHttpApiData (..))
 import Text.Blaze.Html
 import Text.Blaze.Html5
 import qualified Text.Blaze.Html5 as H
@@ -18,6 +19,15 @@ import Text.Blaze.Html5.Attributes
 import qualified Text.Blaze.Html5.Attributes as A
 
 data AutoRefresh = Refresh | NoRefresh deriving stock (Eq)
+
+data ViewMode = Plain | Grouped deriving stock (Bounded, Eq, Enum)
+
+viewModeToText :: ViewMode -> Text
+viewModeToText Plain = "plain"
+viewModeToText Grouped = "grouped"
+
+instance FromHttpApiData ViewMode where
+  parseQueryParam = maybeToRight "can't parse ViewMode param" . inverseMap viewModeToText
 
 instance ToValue (Url a) where
   toValue (Url url) = toValue @String (show url)

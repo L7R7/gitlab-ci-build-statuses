@@ -38,17 +38,17 @@ body {
     margin: auto;
 }
 
-.empty-results, .no-successful-update, .timestamp, .link-to-jobs {
+.empty-results, .no-successful-update, .timestamp, .link-to-jobs, .subgroup-name, .link-to-view-toggle {
     background-color: transparent;
     color: white;
 }
 
-.timestamp, .link-to-jobs {
+.timestamp, .link-to-jobs, .link-to-view-toggle {
     line-height: 1.2;
     font-size: smaller;
 }
 
-a.link-to-jobs {
+a.link-to-jobs, a.link-to-view-toggle {
     font-weight: normal;
 }
 
@@ -83,4 +83,14 @@ a.link-to-jobs {
     grid-row-gap: 0.4em;
     grid-auto-rows: 1fr;
     grid-template-columns: repeat(auto-fit, minmax(11em, 10fr));
+}
+
+.statuses-grouped {
+    width: 100%;
+    display: grid;
+    grid-column-gap: 0.4em;
+    grid-row-gap: 0.4em;
+    grid-auto-rows: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(11em, 10fr));
+    margin-bottom: 0.4em
 }

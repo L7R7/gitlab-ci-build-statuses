@@ -51,11 +51,19 @@ instance FromJSON Project where
     projectName <- project .: "name"
     projectWebUrl <- project .: "web_url"
     projectDefaultBranch <- project .: "default_branch"
-    projectNamespacePath <- project .: "namespace" >>= \n -> n .: "full_path"
+    projectNamespace <- project .: "namespace"
     pure Project {..}
+
+instance FromJSON ProjectNamespace where
+  parseJSON = withObject "namespace" $ \namespace -> do
+    projectNamespaceId <- namespace .: "id"
+    projectNamespaceFullPath <- namespace .: "full_path"
+    pure ProjectNamespace {..}
 
 deriving newtype instance FromJSON (Id a)
 
 deriving newtype instance FromJSON (Name a)
 
 deriving newtype instance FromJSON Ref
+
+deriving newtype instance FromJSON ProjectNamespaceFullPath

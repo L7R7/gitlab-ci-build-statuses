@@ -21,9 +21,11 @@ Optionally, collect information about the pipeline jobs that are running at the 
 
 ## UI samples
 
-### Current build statuses (GET `/statuses`)
+### Current build statuses (GET `/statuses`, GET `/statuses?view=plain`)
 
 ![statuses](https://user-images.githubusercontent.com/16477399/141801876-cdcd3517-3931-486c-8c21-45c85c5ff979.png)
+
+### Current build statuses grouped by subgroups (GET `/statuses?view=grouped`)
 
 ### Current running jobs (GET `/jobs`, if the jobs view is enabled)
 
@@ -86,6 +88,8 @@ The app exposes the following endpoints:
 
 * `/statuses`: Responds with an HTML page that shows the current statuses of the pipelines.
 This page will automatically refresh using the configured UI update interval.
+You can choose between a plain view of projects and a grouped view, in which the tiles will be arranged according to the subgropus in your group.
+There's a link on the page to toggle the view, you can also use the `view` query parameter to choose. Possible values are `plain` and `grouped`, the former being the default.
 You can use the query flag `norefresh` to disable that (this is probably only helpful for debugging)
 * `/jobs`: Responds with an HTML page that shows the current running jobs on the online runners.
 This page will automatically refresh using the configured UI update interval.
