@@ -27,6 +27,8 @@ Optionally, collect information about the pipeline jobs that are running at the 
 
 ### Current build statuses grouped by subgroups (GET `/statuses?view=grouped`)
 
+![statuses-grouped](https://user-images.githubusercontent.com/16477399/176452677-7d330c43-0c90-4fef-ae77-8841a9c40601.png)
+
 ### Current running jobs (GET `/jobs`, if the jobs view is enabled)
 
 ![jobs](https://user-images.githubusercontent.com/16477399/141801911-53e67c17-3909-42a6-b1cd-0a9f58ae9ec9.png)
