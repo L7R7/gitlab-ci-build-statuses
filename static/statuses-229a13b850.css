@@ -64,7 +64,7 @@ a.link-to-jobs, a.link-to-view-toggle {
     background-color: #1857B8;
 }
 
-.skipped, .passed-with-warnings {
+.skipped, .passed-with-warnings, .manual {
     background-color: #fa6400;
 }
 
