@@ -17,7 +17,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-18.28
+resolver: lts-19.19
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -40,14 +40,11 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-  - burrito-2.0.1.0@sha256:ca877f4ded955869b45fa7016bb20974afab05e2bd4df69af880431307ece89c,3177
   - higgledy-0.4.1.1@sha256:103701c8080ec345a21edd3ef149b4d3b8ec66a12a82d3d0b5c5e4a0d7d6ac26,2238
-  - named-0.3.0.1@sha256:418543272f0c844a77639b05276ee3906d5f305cd4cab46fafcb4f15b7f1e60d,2312
   - polysemy-1.7.1.0@sha256:3ead7a332abd70b202920ed3bf2e36866de163f821e643adfdcc9d39867b8033,5977
   - polysemy-plugin-0.4.3.0@sha256:f209949af8e70175add9998d8343020fff78e01ea8d70f4e0bda1eaac132acce,3154
   - polysemy-time-0.2.0.3@sha256:f649a1c9e9c7d59f18a29e8cb48667233376d949e68df68f5db4b08ad6421ae9,4746
-  - relude-1.0.0.1@sha256:35bcdaf14018e79f11e712b0e2314c1aac79976f28f4adc179985457493557d5,11569
-  - validation-selective-0.1.0.1@sha256:9a5aa8b801efc6a4ffb120e1b28e80c5f7d090043be56bba11222cd20c393044,3621
+  - validation-selective-0.1.0.2@sha256:c878846bfffeba69efa3b4866025f249656e0e0a129fed6d446eb602382d328b,3856
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
