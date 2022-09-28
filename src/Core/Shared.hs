@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Core.Shared
   ( DataUpdateIntervalSeconds (..),

@@ -1,8 +1,6 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Ports.Outbound.Gitlab.Helpers (fetchData, fetchDataPaginated) where
 

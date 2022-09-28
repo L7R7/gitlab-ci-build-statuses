@@ -1,6 +1,4 @@
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
 module Config.Util (parseConfig, EnvVariableName (..), ErrorMessage (..)) where

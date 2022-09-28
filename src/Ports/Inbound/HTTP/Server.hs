@@ -1,8 +1,6 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Ports.Inbound.HTTP.Server
   ( startServer,

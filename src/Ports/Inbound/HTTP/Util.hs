@@ -1,7 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), lastUpdatedToHtml) where

@@ -1,7 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Ports.Outbound.Storage.Runners.InMemory (initStorage, runnersJobsApiToIO) where
 

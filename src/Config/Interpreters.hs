@@ -1,7 +1,5 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Config.Interpreters (runBackbone, runConfig) where
 

@@ -1,7 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Ports.Outbound.Storage.WaitingJobs.InMemory (initStorage, waitingJobsApiToIO) where
 

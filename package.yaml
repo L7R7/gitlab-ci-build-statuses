@@ -6,6 +6,7 @@ maintainer: leo008180@googlemail.com
 copyright: 2020 Leonhard Riedisser
 license: BSD3
 github: l7r7/gitlab-ci-build-statuses
+language: GHC2021
 
 extra-source-files:
   - README.md
