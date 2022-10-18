@@ -13,9 +13,9 @@ import Core.BuildStatuses
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Core.Shared
 import Data.List (partition)
-import qualified Data.Text as T (intercalate, toLower)
+import Data.Text qualified as T (intercalate, toLower)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Relude
 import UseCases.Shared ()
 

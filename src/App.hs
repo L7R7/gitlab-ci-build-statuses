@@ -7,7 +7,7 @@ import Config.Backbone
 import Config.Config
 import Config.Interpreters
 import Control.Concurrent.Async (Concurrently (..))
-import qualified Data.Text as T (intercalate)
+import Data.Text qualified as T (intercalate)
 import Katip hiding (getEnvironment)
 import Logger
 import Metrics.Metrics

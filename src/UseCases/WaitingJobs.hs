@@ -11,9 +11,9 @@ import Core.BuildStatuses hiding (BuildStatuses (..))
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Core.Jobs
 import Core.Shared
-import qualified Data.Map as M
+import Data.Map qualified as M
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Relude
 import UseCases.Shared ()
 

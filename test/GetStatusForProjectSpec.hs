@@ -6,11 +6,11 @@ module GetStatusForProjectSpec where
 
 import Core.BuildStatuses
 import Core.Shared
-import qualified Data.Map as M
+import Data.Map qualified as M
 import Network.URI.Static
 import Path
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Ports.Outbound.Gitlab.Projects (projectsWithoutExcludesApiInTermsOfProjects)
 import Relude
 import Test.Hspec

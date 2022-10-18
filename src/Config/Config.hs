@@ -23,7 +23,7 @@ import Control.Lens
 import Core.BuildStatuses (Project)
 import Core.Shared (DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
 import Data.Biapplicative
-import qualified Data.ByteString as B hiding (pack)
+import Data.ByteString qualified as B hiding (pack)
 import Data.Char (toLower)
 import Data.Generic.HKD
 import Data.List.Extra (splitOn)
@@ -31,7 +31,7 @@ import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)
 import Text.Printf
-import qualified Text.Show (show)
+import Text.Show qualified (show)
 import Validation
 
 data Config = Config

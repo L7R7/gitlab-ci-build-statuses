@@ -28,22 +28,22 @@ module Metrics.Metrics
 where
 
 import Core.BuildStatuses (BuildStatus, BuildStatusesApi, Result (..), getStatuses, isHealthy)
-import qualified Core.BuildStatuses as B (BuildStatuses (..))
-import qualified Core.Jobs as J
+import Core.BuildStatuses qualified as B (BuildStatuses (..))
+import Core.Jobs qualified as J
 import Core.Runners (RunnersJobsApi, getJobs)
-import qualified Core.Runners as R (RunnersJobs (..))
+import Core.Runners qualified as R (RunnersJobs (..))
 import Core.Shared (Group, Id (..))
 import Data.List (partition)
 import Data.List.Extra (enumerate, sumOn')
 import Data.Map hiding (partition)
-import qualified Data.Map as M
+import Data.Map qualified as M
 import Data.Text (toLower)
 import GHC.Clock (getMonotonicTime)
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Polysemy.Time (Seconds (Seconds), Time)
-import qualified Polysemy.Time as Time
+import Polysemy.Time qualified as Time
 import Prometheus hiding (observeDuration)
 import Prometheus.Metric.GHC
 import Relude

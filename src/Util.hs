@@ -7,7 +7,7 @@ import Config.Config (MaxConcurrency (..))
 import Core.Effects
 import Polysemy
 import Polysemy.Final (withWeavingToFinal)
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Relude
 import UnliftIO.Internals.Async
 

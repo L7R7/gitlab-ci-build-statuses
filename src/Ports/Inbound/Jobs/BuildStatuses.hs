@@ -11,9 +11,9 @@ import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Shared
 import Metrics.Metrics
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Polysemy.Time (Seconds (Seconds), Time)
-import qualified Polysemy.Time as Time
+import Polysemy.Time qualified as Time
 import Relude
 import UseCases.BuildStatuses (updateStatuses)
 

@@ -14,7 +14,7 @@ import Core.Shared (Group, Id, Url (..))
 import Data.Aeson
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Ports.Outbound.Gitlab.Helpers
 import Ports.Outbound.Gitlab.Instances (buildStatusToApiString)
 import Relude

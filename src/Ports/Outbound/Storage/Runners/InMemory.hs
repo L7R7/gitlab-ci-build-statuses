@@ -6,7 +6,7 @@ module Ports.Outbound.Storage.Runners.InMemory (initStorage, runnersJobsApiToIO)
 import Core.Runners
 import Data.Time (getCurrentTime)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Relude
 
 initStorage :: IO (IORef RunnersJobs)

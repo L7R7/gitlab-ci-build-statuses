@@ -16,15 +16,15 @@ import Core.Runners (RunnersJobs, RunnersJobsApi)
 import Core.Shared (DataUpdateIntervalSeconds)
 import Data.Time
 import Metrics.Health (getCurrentHealthStatus)
-import qualified Metrics.Health as Health
+import Metrics.Health qualified as Health
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Gzip (gzip)
 import Network.Wai.Middleware.Prometheus (def, prometheus)
 import Polysemy hiding (run)
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Polysemy.Time (Time, interpretTimeGhc)
-import qualified Ports.Inbound.HTTP.BuildStatuses.Html as BuildStatuses
-import qualified Ports.Inbound.HTTP.Runners.Html as Runners
+import Ports.Inbound.HTTP.BuildStatuses.Html qualified as BuildStatuses
+import Ports.Inbound.HTTP.Runners.Html qualified as Runners
 import Ports.Inbound.HTTP.Util
 import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)

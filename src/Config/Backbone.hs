@@ -22,13 +22,13 @@ import Data.Cache (Cache)
 import GitHash
 import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics
-import qualified Ports.Outbound.Gitlab.Projects as Projects (initCache)
-import qualified Ports.Outbound.Gitlab.Runners as Runners (initCache)
-import qualified Ports.Outbound.Storage.BuildStatuses.InMemory as Statuses (initStorage)
-import qualified Ports.Outbound.Storage.Runners.InMemory as Runners (initStorage)
-import qualified Ports.Outbound.Storage.WaitingJobs.InMemory as WaitingJobs (initStorage)
+import Ports.Outbound.Gitlab.Projects qualified as Projects (initCache)
+import Ports.Outbound.Gitlab.Runners qualified as Runners (initCache)
+import Ports.Outbound.Storage.BuildStatuses.InMemory qualified as Statuses (initStorage)
+import Ports.Outbound.Storage.Runners.InMemory qualified as Runners (initStorage)
+import Ports.Outbound.Storage.WaitingJobs.InMemory qualified as WaitingJobs (initStorage)
 import Relude hiding (lookupEnv)
-import qualified Text.Show (show)
+import Text.Show qualified (show)
 
 initBackbone :: LogEnv -> Config -> IO Backbone
 initBackbone logEnv Config {..} = do

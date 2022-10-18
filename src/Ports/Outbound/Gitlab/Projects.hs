@@ -15,7 +15,7 @@ import Data.Aeson (ToJSON)
 import Data.Cache
 import Metrics.Metrics (CacheResult (..), CacheTag (CacheTag), MetricsApi, OutgoingHttpRequestsHistogram, recordCacheLookupResult)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Ports.Outbound.Gitlab.Helpers
 import Ports.Outbound.Gitlab.Instances ()
 import Relude

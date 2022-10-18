@@ -13,19 +13,19 @@ where
 import Config.Backbone
 import Config.Config
 import Core.Jobs (WaitingJobs (WaitingJobs), WaitingJobsApi)
-import qualified Core.Jobs as J (getJobs)
-import qualified Core.Jobs as W
+import Core.Jobs qualified as J (getJobs)
+import Core.Jobs qualified as W
 import Core.Runners hiding (getJobs)
-import qualified Core.Runners as R (getJobs)
+import Core.Runners qualified as R (getJobs)
 import Core.Shared (DataUpdateIntervalSeconds, Ref (Ref))
 import Data.Map (toList)
-import qualified Data.Map as M
-import qualified Data.Text as T
+import Data.Map qualified as M
+import Data.Text qualified as T
 import Data.Time (UTCTime)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Polysemy.Time (Time)
-import qualified Polysemy.Time as Time
+import Polysemy.Time qualified as Time
 import Ports.Inbound.HTTP.Util (AutoRefresh (Refresh), lastUpdatedToHtml)
 import Relude
 import Servant (Get, QueryFlag, (:>))

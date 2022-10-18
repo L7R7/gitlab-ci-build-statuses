@@ -11,9 +11,9 @@ import Relude
 import Servant (FromHttpApiData (..))
 import Text.Blaze.Html
 import Text.Blaze.Html5
-import qualified Text.Blaze.Html5 as H
+import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes
-import qualified Text.Blaze.Html5.Attributes as A
+import Text.Blaze.Html5.Attributes qualified as A
 
 data AutoRefresh = Refresh | NoRefresh deriving stock (Eq)
 

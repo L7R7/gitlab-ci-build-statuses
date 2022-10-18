@@ -6,7 +6,7 @@ module Core.OverallStatus
 where
 
 import Core.BuildStatuses (BuildStatus, BuildStatuses (..), Result (buildStatus))
-import qualified Core.BuildStatuses as B (BuildStatus (..))
+import Core.BuildStatuses qualified as B (BuildStatus (..))
 import Relude
 
 data OverallStatus

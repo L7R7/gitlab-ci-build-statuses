@@ -6,7 +6,7 @@ module Ports.Outbound.Storage.BuildStatuses.InMemory (initStorage, buildStatuses
 import Core.BuildStatuses (BuildStatuses (..), BuildStatusesApi (..))
 import Data.Time (getCurrentTime)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Relude
 
 initStorage :: IO (IORef BuildStatuses)

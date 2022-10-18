@@ -14,15 +14,15 @@ import Config.Backbone
 import Config.Config
 import Core.BuildStatuses
 import Core.OverallStatus (isRunning, overallStatus)
-import qualified Core.OverallStatus as O (OverallStatus (Successful, Unknown, Warning))
+import Core.OverallStatus qualified as O (OverallStatus (Successful, Unknown, Warning))
 import Core.Shared
-import qualified Data.Map as M
+import Data.Map qualified as M
 import Data.Time (UTCTime)
 import Path (toFilePath)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Polysemy.Time (Time)
-import qualified Polysemy.Time as Time
+import Polysemy.Time qualified as Time
 import Ports.Inbound.HTTP.Util
 import Relude
 import Servant

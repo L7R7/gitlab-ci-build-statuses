@@ -4,8 +4,8 @@ module OverallStatusSpec where
 
 import Core.OverallStatus (OverallStatus (..), isRunning)
 import Hedgehog
-import qualified Hedgehog.Gen as Gen
-import qualified Hedgehog.Range as Range
+import Hedgehog.Gen qualified as Gen
+import Hedgehog.Range qualified as Range
 import Relude
 import Test.Hspec
 import Test.Hspec.Hedgehog

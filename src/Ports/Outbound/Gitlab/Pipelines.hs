@@ -13,7 +13,7 @@ import Core.BuildStatuses (PipelinesApi (..))
 import Core.Shared (Group, Id (Id), Ref (Ref), UpdateError (..), Url (..))
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Ports.Outbound.Gitlab.Helpers
 import Ports.Outbound.Gitlab.Instances ()
 import Relude

@@ -11,7 +11,7 @@ module Core.Shared
   )
 where
 
-import qualified Data.ByteString.Lazy as L
+import Data.ByteString.Lazy qualified as L
 import Network.HTTP.Simple (HttpException, Request, Response)
 import Network.HTTP.Types (Status)
 import Network.URI

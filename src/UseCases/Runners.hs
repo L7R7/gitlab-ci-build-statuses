@@ -12,7 +12,7 @@ import Core.Shared
 import Data.List.Extra (nubOrdOn)
 import Data.Map (fromAscListWith, mapKeys)
 import Polysemy
-import qualified Polysemy.Reader as R
+import Polysemy.Reader qualified as R
 import Relude
 import UseCases.Shared ()
 
