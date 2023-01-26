@@ -6,7 +6,6 @@ module Config.Interpreters (runBackbone, runConfig) where
 import Config.Backbone
 import Config.Config
 import Core.BuildStatuses
-import Core.Jobs
 import Core.Runners
 import Core.Shared
 import Data.Cache (Cache)
@@ -25,7 +24,7 @@ runConfig Config {..} =
     . runReader apiToken
     . runReader includeSharedProjects
 
-runBackbone :: Backbone -> Sem (Reader (IORef WaitingJobs) : Reader (IORef RunnersJobs) : Reader (IORef BuildStatuses) : Reader (Cache (Id Group) [Project]) : Reader (Cache (Id Group) [Runner]) : Reader (Cache (Id Group) [(Id Project, [Runner])]) : Reader LogConfig : Reader WaitingJobsGauge : Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
+runBackbone :: Backbone -> Sem (Reader (IORef RunnersJobs) : Reader (IORef BuildStatuses) : Reader (Cache (Id Group) [Project]) : Reader (Cache (Id Group) [Runner]) : Reader (Cache (Id Group) [(Id Project, [Runner])]) : Reader LogConfig : Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
 runBackbone Backbone {..} =
   runMetrics metrics
     . runReader logConfig
@@ -34,9 +33,8 @@ runBackbone Backbone {..} =
     . runReader projectsCache
     . runReader statuses
     . runReader runners
-    . runReader waitingJobs
 
-runMetrics :: Metrics -> Sem (Reader WaitingJobsGauge : Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
+runMetrics :: Metrics -> Sem (Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a
 runMetrics Metrics {..} =
   runReader cacheResultsCounter
     . runReader updateJobDurationHistogram
@@ -44,4 +42,3 @@ runMetrics Metrics {..} =
     . runReader currentPipelinesOverview
     . runReader onlineRunnersGauge
     . runReader runningJobsGauge
-    . runReader waitingJobsGauge

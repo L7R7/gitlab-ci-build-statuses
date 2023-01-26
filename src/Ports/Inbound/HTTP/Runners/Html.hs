@@ -12,14 +12,10 @@ where
 
 import Config.Backbone
 import Config.Config
-import Core.Jobs (WaitingJobs (WaitingJobs), WaitingJobsApi)
-import Core.Jobs qualified as J (getJobs)
-import Core.Jobs qualified as W
 import Core.Runners hiding (getJobs)
 import Core.Runners qualified as R (getJobs)
 import Core.Shared (DataUpdateIntervalSeconds, Ref (Ref))
 import Data.Map (toList)
-import Data.Map qualified as M
 import Data.Text qualified as T
 import Data.Time (UTCTime)
 import Polysemy
@@ -37,7 +33,6 @@ type API = "jobs" :> QueryFlag "norefresh" :> Get '[HTML] H.Html
 
 template ::
   ( Member RunnersJobsApi r,
-    Member WaitingJobsApi r,
     Member (Time UTCTime d) r,
     Member (R.Reader JobsView) r,
     Member (R.Reader DataUpdateIntervalSeconds) r,
@@ -53,7 +48,7 @@ template autoRefresh = do
   jobsView <- R.ask
   now <- Time.now
   if jobsView == Enabled
-    then template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> R.getJobs <*> J.getJobs
+    then template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> R.getJobs
     else pure $ runnersViewDisabled uiUpdateInterval gitCommit autoRefresh
 
 runnersViewDisabled :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Html
@@ -61,10 +56,10 @@ runnersViewDisabled uiUpdateInterval gitCommit autoRefresh = do
   pageHeader uiUpdateInterval gitCommit autoRefresh Nothing
   H.body $ H.div ! class_ "job no-successful-update" $ p "Runners view is disabled. Update your config to enable it"
 
-template' :: UTCTime -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> RunnersJobs -> WaitingJobs -> Html
-template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh runnersJobs waitingJobs = do
+template' :: UTCTime -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> RunnersJobs -> Html
+template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh runnersJobs = do
   pageHeader uiUpdateInterval gitCommit autoRefresh (Just runnersJobs)
-  pageBody dataUpdateInterval now runnersJobs waitingJobs
+  pageBody dataUpdateInterval now runnersJobs
 
 pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Maybe RunnersJobs -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runnersJobs =
@@ -85,8 +80,8 @@ faviconPrefix (Just (RunnersJobs (_, jobs))) | not (all null jobs) = "running"
 faviconPrefix Nothing = "failed"
 faviconPrefix _ = "idle"
 
-pageBody :: DataUpdateIntervalSeconds -> UTCTime -> RunnersJobs -> WaitingJobs -> Html
-pageBody dataUpdateInterval now runnersJobs waitingJobs = H.body $ runnersJobsToHtml runnersJobs <> (section ! class_ "jobs-meta" $ waitingJobsToHtml waitingJobs <> lastUpdated runnersJobs)
+pageBody :: DataUpdateIntervalSeconds -> UTCTime -> RunnersJobs -> Html
+pageBody dataUpdateInterval now runnersJobs = H.body $ runnersJobsToHtml runnersJobs <> (section ! class_ "jobs-meta" $ lastUpdated runnersJobs)
   where
     lastUpdated :: RunnersJobs -> Html
     lastUpdated NoSuccessfulUpdateYet = mempty
@@ -123,11 +118,3 @@ deriving newtype instance ToMarkup Description
 truncateRef :: Ref -> Html
 truncateRef (Ref ref) | T.length ref <= 26 = toHtml ref
 truncateRef (Ref ref) = toHtml $ T.take 10 ref <> "..." <> T.drop (T.length ref - 13) ref
-
-waitingJobsToHtml :: WaitingJobs -> Html
-waitingJobsToHtml waitingJobs = H.div ! class_ classes $ f waitingJobs
-  where
-    f W.NoSuccessfulUpdateYet = "No info about waiting jobs"
-    f (WaitingJobs (_, jobs)) | not (null jobs) = H.div ! class_ classes $ traverse_ (\(bs, jobs') -> p (toHtml bs <> ": " <> show (length jobs') <> " jobs")) (M.toList jobs)
-    f (WaitingJobs _) = "No waiting jobs"
-    classes = "job status timestamp"

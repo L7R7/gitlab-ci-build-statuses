@@ -16,14 +16,11 @@ import Polysemy.Time (interpretTimeGhc)
 import Ports.Inbound.HTTP.Server (startServer)
 import Ports.Inbound.Jobs.BuildStatuses (updateStatusesRegularly)
 import Ports.Inbound.Jobs.Runners (updateRunnersJobsRegularly)
-import Ports.Inbound.Jobs.WaitingJobs (updateWaitingJobsRegularly)
-import Ports.Outbound.Gitlab.Jobs (jobsApiToIO)
 import Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO)
 import Ports.Outbound.Gitlab.Projects (projectsApiToIO, projectsWithoutExcludesApiInTermsOfProjects)
 import Ports.Outbound.Gitlab.Runners (runnersApiToIO)
 import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
-import Ports.Outbound.Storage.WaitingJobs.InMemory (waitingJobsApiToIO)
 import Relude
 import System.Environment
 import Util (parTraverseToIO)
@@ -34,7 +31,6 @@ startMetricsUpdatingJob config backbone =
   runM
     . runConfig config
     . runBackbone backbone
-    . waitingJobsApiToIO
     . runnersJobsApiToIO
     . metricsApiToIO
     . buildStatusesApiToIO
@@ -79,34 +75,12 @@ startRunnersJobsUpdatingJob config backbone = do
     . observeDurationToIO
     $ updateRunnersJobsRegularly
 
-startWaitingJobsUpdatingJobIfEnabled :: Config -> Backbone -> IO ()
-startWaitingJobsUpdatingJobIfEnabled config _ | jobsView config == Disabled = pass
-startWaitingJobsUpdatingJobIfEnabled config backbone = startWaitingJobsUpdatingJob config backbone
-
-startWaitingJobsUpdatingJob :: Config -> Backbone -> IO ()
-startWaitingJobsUpdatingJob config backbone =
-  runFinal
-    . embedToFinal
-    . runConfig config
-    . runBackbone backbone
-    . waitingJobsApiToIO
-    . metricsApiToIO
-    . jobsApiToIO
-    . projectsApiToIO
-    . parTraverseToIO
-    . interpretTimeGhc
-    . loggerToIO
-    . projectsWithoutExcludesApiInTermsOfProjects
-    . observeDurationToIO
-    $ updateWaitingJobsRegularly
-
 startWithConfig :: Config -> Backbone -> IO ()
 startWithConfig config backbone =
   runConcurrently $
     Concurrently (startMetricsUpdatingJob config backbone)
       *> Concurrently (startStatusUpdatingJob config backbone)
       *> Concurrently (startRunnersJobsUpdatingJobIfEnabled config backbone)
-      *> Concurrently (startWaitingJobsUpdatingJobIfEnabled config backbone)
       *> Concurrently (startServer config backbone)
 
 run :: IO ()
