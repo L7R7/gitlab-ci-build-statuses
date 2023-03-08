@@ -22,7 +22,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('**/stack.yaml','**/stack.yaml.lock','**/package.yaml') }}-v2
           restore-keys: |
             ${{ runner.os }}-${{ matrix.ghc }}-
-      - uses: haskell/actions/setup@v2.3.3
+      - uses: haskell/actions/setup@v2.3.4
         with:
           ghc-version: '8.10.7'
           enable-stack: true
