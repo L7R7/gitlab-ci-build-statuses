@@ -20,7 +20,7 @@ spec = do
   describe "isRunning" $ do
     it "keeps the isRunning property when appending" $ hedgehog isRunningProps
 
-resultToOverallProps :: Monad m => PropertyT m ()
+resultToOverallProps :: (Monad m) => PropertyT m ()
 resultToOverallProps = do
   statuses <- forAll $ Gen.list (Range.linear 0 100) overallStatusGen
   let result = fold statuses
@@ -58,7 +58,7 @@ atLeastOneOf mustIncludes as = or ((`elem` as) <$> mustIncludes)
 noneOf :: (Functor t, Foldable t, Eq a) => t a -> [a] -> Bool
 noneOf mustNotIncludes as = and ((`notElem` as) <$> mustNotIncludes)
 
-isRunningProps :: Monad m => PropertyT m ()
+isRunningProps :: (Monad m) => PropertyT m ()
 isRunningProps = do
   s1 <- forAll overallStatusGen
   s2 <- forAll overallStatusGen

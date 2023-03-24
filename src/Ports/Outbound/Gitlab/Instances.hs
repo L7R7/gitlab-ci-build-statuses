@@ -22,7 +22,7 @@ instance FromJSON DetailedPipeline where
 instance FromJSON BuildStatus where
   parseJSON = withText "BuildStatus" $ \x -> maybe (fail $ mconcat ["couldn't parse build status from '", show x, "'"]) pure (inverseMap buildStatusToApiString x)
 
-buildStatusToApiString :: IsString p => BuildStatus -> p
+buildStatusToApiString :: (IsString p) => BuildStatus -> p
 buildStatusToApiString Unknown = "unknown"
 buildStatusToApiString Cancelled = "canceled"
 buildStatusToApiString Created = "created"

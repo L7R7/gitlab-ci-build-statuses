@@ -22,6 +22,6 @@ parTraverseToIO =
       ins <- getInspectorT
       pureT (catMaybes (inspect ins <$> catMaybes tb))
 
-pooledMapConcurrentlySem :: Member (Final IO) r => MaxConcurrency -> (a -> Sem r b) -> [a] -> Sem r [Maybe b]
+pooledMapConcurrentlySem :: (Member (Final IO) r) => MaxConcurrency -> (a -> Sem r b) -> [a] -> Sem r [Maybe b]
 pooledMapConcurrentlySem (MaxConcurrency i) f t = withWeavingToFinal $ \s wv ins ->
   (<$ s) <$> pooledMapConcurrentlyIO i (\a -> ins <$> wv (f a <$ s)) t

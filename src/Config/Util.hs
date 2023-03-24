@@ -33,10 +33,10 @@ parseConfig envVarNames errorMsgs defaults parsers environment =
 validateConfig :: (ApplicativeB b, TraversableB b) => b (Const ErrorMessage) -> b Maybe -> Validation (NonEmpty Text) (b Identity)
 validateConfig errMsgs mOpts = bsequence' $ bzipWith (\(Const (ErrorMessage errMsg)) -> maybeToSuccess (fromString errMsg :| [])) errMsgs mOpts
 
-parseConfigWithDefaults :: ApplicativeB b => [(EnvVariableName, String)] -> b (Const EnvVariableName) -> b (Compose ((->) String) Maybe) -> b Maybe -> b Maybe
+parseConfigWithDefaults :: (ApplicativeB b) => [(EnvVariableName, String)] -> b (Const EnvVariableName) -> b (Compose ((->) String) Maybe) -> b Maybe -> b Maybe
 parseConfigWithDefaults env envVarNames parse = bzipWith (<|>) (fromEnv env envVarNames parse)
 
-fromEnv :: ApplicativeB b => [(EnvVariableName, String)] -> b (Const EnvVariableName) -> b (Compose ((->) String) Maybe) -> b Maybe
+fromEnv :: (ApplicativeB b) => [(EnvVariableName, String)] -> b (Const EnvVariableName) -> b (Compose ((->) String) Maybe) -> b Maybe
 fromEnv env = bzipWith (\s (Compose f) -> lookupEnv env s >>= f)
 
 lookupEnv :: [(EnvVariableName, String)] -> Const EnvVariableName k -> Maybe String

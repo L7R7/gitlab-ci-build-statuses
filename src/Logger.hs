@@ -16,7 +16,7 @@ import Polysemy
 import Polysemy.Reader (Reader, asks, local)
 import Relude hiding (Reader, asks, local)
 
-loggerToIO :: KatipContext (Sem r) => InterpreterFor Logger r
+loggerToIO :: (KatipContext (Sem r)) => InterpreterFor Logger r
 loggerToIO = do
   interpretH $ \case
     LogDebug msg -> do
