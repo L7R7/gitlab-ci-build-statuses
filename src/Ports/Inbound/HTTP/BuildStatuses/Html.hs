@@ -72,7 +72,7 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
   where
     prefix = faviconPrefix (overallStatus buildStatuses)
 
-faviconPrefix :: IsString p => O.OverallStatus -> p
+faviconPrefix :: (IsString p) => O.OverallStatus -> p
 faviconPrefix status
   | status == O.Successful = "success"
   | isRunning status = "running"

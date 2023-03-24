@@ -31,8 +31,8 @@ data Logger m a where
   LogInfo :: Text -> Logger m ()
   LogWarn :: Text -> Logger m ()
   LogError :: Text -> Logger m ()
-  AddContext :: ToJSON l => Text -> l -> m b -> Logger m b
-  AddContexts :: ToJSON l => [(Text, l)] -> m b -> Logger m b
+  AddContext :: (ToJSON l) => Text -> l -> m b -> Logger m b
+  AddContexts :: (ToJSON l) => [(Text, l)] -> m b -> Logger m b
   AddNamespace :: Text -> m b -> Logger m b
 
 makeSem ''Logger
