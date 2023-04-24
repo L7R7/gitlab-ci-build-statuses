@@ -25,7 +25,7 @@ updateStatuses ::
     Member BuildStatusesApi r,
     Member Logger r,
     Member ParTraverse r,
-    Member (R.Reader (Id Group)) r
+    Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
   Sem r [Result]
 updateStatuses = do
@@ -39,7 +39,7 @@ currentKnownBuildStatuses ::
     Member PipelinesApi r,
     Member Logger r,
     Member ParTraverse r,
-    Member (R.Reader (Id Group)) r
+    Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
   Sem r [Result]
 currentKnownBuildStatuses = filter ((/= Unknown) . buildStatus) <$> currentBuildStatuses
@@ -49,11 +49,15 @@ currentBuildStatuses ::
     Member ProjectsWithoutExcludesApi r,
     Member PipelinesApi r,
     Member Logger r,
-    Member (R.Reader (Id Group)) r
+    Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
   Sem r [Result]
 currentBuildStatuses = do
-  groupId <- R.ask
+  groupIds <- R.ask
+  join <$> traverseP evalGroup (toList groupIds)
+
+evalGroup :: (Member ProjectsWithoutExcludesApi r, Member PipelinesApi r, Member ParTraverse r, Member Logger r) => Id Group -> Sem r [Result]
+evalGroup groupId = do
   projects <- getProjectsNotOnExcludeListOrEmpty groupId
   results <- traverseP evalProject projects
   pure $ sortOn (T.toLower . coerce . name) results

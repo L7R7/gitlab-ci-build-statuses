@@ -36,7 +36,7 @@ import Validation
 
 data Config = Config
   { apiToken :: ApiToken,
-    groupId :: Id Group,
+    groupId :: NonEmpty (Id Group),
     gitlabBaseUrl :: Url GitlabHost,
     dataUpdateIntervalSecs :: DataUpdateIntervalSeconds,
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
@@ -55,7 +55,7 @@ instance Show Config where
     "Config: "
       <> intercalate
         ", "
-        [ "GroupId: " <> show groupId,
+        [ "GroupIds: " <> show groupId,
           "Base URL: " <> show gitlabBaseUrl,
           show dataUpdateIntervalSecs,
           show uiUpdateIntervalSecs,
@@ -141,7 +141,7 @@ parse :: ConfigH (Compose ((->) String) Maybe)
 parse =
   build @Config
     (Compose parseApiToken)
-    (readPositive Id)
+    (Compose parseGroupsList)
     (Compose $ fmap Url . parseAbsoluteURI)
     (readPositive DataUpdateIntervalSeconds)
     (readPositive UiUpdateIntervalSeconds)
@@ -168,6 +168,11 @@ parseLogLevel "INFO" = Just InfoS
 parseLogLevel "WARN" = Just WarningS
 parseLogLevel "ERROR" = Just ErrorS
 parseLogLevel _ = Nothing
+
+parseGroupsList :: String -> Maybe (NonEmpty (Id Group))
+parseGroupsList s = do
+  groups <- traverse (fmap Id . find (> 0) . readMaybe) (splitOn "," s)
+  nonEmpty $ ordNub groups
 
 parseProjectExcludeList :: String -> Maybe [Id Project]
 parseProjectExcludeList s = ordNub <$> traverse (fmap Id . readMaybe) (splitOn "," s)

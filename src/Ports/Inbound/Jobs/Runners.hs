@@ -25,7 +25,7 @@ updateRunnersJobsRegularly ::
     Member Logger r,
     Member (Time t d) r,
     Member ParTraverse r,
-    Member (R.Reader (Id Group)) r,
+    Member (R.Reader (NonEmpty (Id Group))) r,
     Member (R.Reader DataUpdateIntervalSeconds) r,
     Member (R.Reader [Id Project]) r
   ) =>
@@ -40,7 +40,7 @@ updateWithDurationObservation ::
     Member RunnersJobsApi r,
     Member Logger r,
     Member ParTraverse r,
-    Member (R.Reader (Id Group)) r,
+    Member (R.Reader (NonEmpty (Id Group))) r,
     Member (R.Reader [Id Project]) r
   ) =>
   Sem r ()

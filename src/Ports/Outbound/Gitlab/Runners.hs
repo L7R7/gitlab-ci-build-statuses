@@ -74,8 +74,8 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
         (Just runners) -> pure (Right runners, Hit)
         Nothing -> do
           let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online&type=group_type|]
-          runnerIds <- fetchDataPaginated @RunnerId baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
-          result <- fetchRunnersForRunnerIds groupId runnerIds
+          runnerIds <- fetchDataPaginated @RunnerId baseUrl apiToken template [("groupId", (stringValue . show) groupId)] histogram
+          result <- fetchRunnersForRunnerIds runnerIds
           traverse_ (insert groupCache groupId) result
           pure (result, Miss)
     recordCacheLookupResult (CacheTag "runners") cacheResult
@@ -96,20 +96,20 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
       getRunnersForProject projectId = do
         let template = [uriTemplate|/api/v4/projects/{projectId}/runners?type=project_type|]
         embed $ do
-          runnerIds <- fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId)] groupId histogram
-          fetchRunnersForRunnerIds groupId runnerIds
-  GetRunningJobsForRunner groupId runnerId -> do
+          runnerIds <- fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId)] histogram
+          fetchRunnersForRunnerIds runnerIds
+  GetRunningJobsForRunner runnerId -> do
     let template = [uriTemplate|/api/v4/runners/{runnerId}/jobs?status=running|]
-    embed $ fetchDataPaginated baseUrl apiToken template [("runnerId", (stringValue . show) runnerId)] groupId histogram
+    embed $ fetchDataPaginated baseUrl apiToken template [("runnerId", (stringValue . show) runnerId)] histogram
   where
-    fetchRunnersForRunnerIds :: Id Group -> Either UpdateError [RunnerId] -> IO (Either UpdateError [Runner])
-    fetchRunnersForRunnerIds _ (Left err) = pure $ Left err
-    fetchRunnersForRunnerIds groupId (Right runnerIds) =
+    fetchRunnersForRunnerIds :: Either UpdateError [RunnerId] -> IO (Either UpdateError [Runner])
+    fetchRunnersForRunnerIds (Left err) = pure $ Left err
+    fetchRunnersForRunnerIds (Right runnerIds) =
       sequence
         <$> traverse
           ( \(RunnerId runnerId) -> do
               let runnerTemplate = [uriTemplate|/api/v4/runners/{runnerId}|]
-              fetchData @Runner baseUrl apiToken runnerTemplate [("runnerId", (stringValue . show) runnerId)] groupId histogram
+              fetchData @Runner baseUrl apiToken runnerTemplate [("runnerId", (stringValue . show) runnerId)] histogram
           )
           runnerIds
 

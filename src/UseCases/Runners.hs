@@ -14,9 +14,10 @@ import Data.Map (fromAscListWith, mapKeys)
 import Polysemy
 import Polysemy.Reader qualified as R
 import Relude
+import Relude.Extra (traverseToSnd)
 import UseCases.Shared ()
 
-updateRunnersJobs :: (Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (Id Group)) r, Member (R.Reader [Id Project]) r) => Sem r (Map Runner [Job])
+updateRunnersJobs :: (Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (NonEmpty (Id Group))) r, Member (R.Reader [Id Project]) r) => Sem r (Map Runner [Job])
 updateRunnersJobs = do
   currentJobs <- currentKnownRunnersJobs
   setJobs currentJobs
@@ -27,23 +28,32 @@ currentKnownRunnersJobs ::
   ( Member RunnersApi r,
     Member Logger r,
     Member ParTraverse r,
-    Member (R.Reader (Id Group)) r,
+    Member (R.Reader (NonEmpty (Id Group))) r,
     Member (R.Reader [Id Project]) r
   ) =>
   Sem r (Map Runner [Job])
 currentKnownRunnersJobs = do
   runner <- findRunners
-  results <- traverseP evalRunner runner
-  pure $ fromAscListWith (<>) $ catMaybes results
+  results <- traverseP evalRunners (toList runner)
+  pure $ fromAscListWith (<>) $ join results
 
 findRunners ::
   ( Member RunnersApi r,
     Member Logger r,
-    Member (R.Reader (Id Group)) r
+    Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
-  Sem r [Runner]
+  Sem r (NonEmpty (Id Group, [Runner]))
 findRunners = do
-  groupId <- R.ask
+  groups <- R.ask
+  traverse (traverseToSnd findRunnersForGroup) groups
+
+findRunnersForGroup ::
+  ( Member RunnersApi r,
+    Member Logger r
+  ) =>
+  Id Group ->
+  Sem r [Runner]
+findRunnersForGroup groupId =
   addContext "groupId" groupId $ do
     result <- getOnlineRunnersForGroup groupId
     case result of
@@ -69,18 +79,26 @@ logCurrentRunnersJobs = do
         then logDebug "No running jobs found"
         else addContext "jobs" (fmap jobId <$> mapKeys (show @Text . runnerId) jobs) $ logDebug "Running jobs found"
 
+evalRunners ::
+  ( Member RunnersApi r,
+    Member Logger r,
+    Member (R.Reader [Id Project]) r
+  ) =>
+  (Id Group, [Runner]) ->
+  Sem r [(Runner, [Job])]
+evalRunners (groupId, runners) = catMaybes <$> traverse (evalRunner groupId) runners
+
 evalRunner ::
   ( Member RunnersApi r,
     Member Logger r,
-    Member (R.Reader (Id Group)) r,
     Member (R.Reader [Id Project]) r
   ) =>
+  Id Group ->
   Runner ->
   Sem r (Maybe (Runner, [Job]))
-evalRunner r@Runner {..} = addContext "runnerId" runnerId $ do
-  groupId <- R.ask
+evalRunner groupId r@Runner {..} = addContext "groupId" groupId $ addContext "runnerId" runnerId $ do
   excludeList <- R.ask
-  jobs <- getRunningJobsForRunner groupId runnerId
+  jobs <- getRunningJobsForRunner runnerId
   case jobs of
     Left err -> Nothing <$ logWarn (unwords ["Couldn't get jobs for runner. Error was", show err])
     Right js -> pure $ Just (r, filter (\j -> jobProjectId j `notElem` excludeList) js)

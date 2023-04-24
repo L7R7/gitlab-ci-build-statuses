@@ -48,7 +48,7 @@ projectsApiToIO = interpret $ \case
         (Just projects) -> pure (Right projects, Hit)
         Nothing -> do
           let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false{&with_shared}|]
-          result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId), ("with_shared", withShared sharedProjects)] groupId histogram
+          result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId), ("with_shared", withShared sharedProjects)] histogram
           traverse_ (insert cache groupId) result
           pure (result, Miss)
     recordCacheLookupResult (CacheTag "projects") cacheResult

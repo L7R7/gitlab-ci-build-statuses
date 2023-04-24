@@ -59,7 +59,7 @@ data RunnersJobs = NoSuccessfulUpdateYet | RunnersJobs (UTCTime, Map Runner [Job
 data RunnersApi m a where
   GetOnlineRunnersForGroup :: Id Group -> RunnersApi m (Either UpdateError [Runner])
   GetProjectRunnersForGroup :: Id Group -> RunnersApi m (Either UpdateError [(Id Project, [Runner])])
-  GetRunningJobsForRunner :: Id Group -> Id Runner -> RunnersApi m (Either UpdateError [Job])
+  GetRunningJobsForRunner :: Id Runner -> RunnersApi m (Either UpdateError [Job])
 
 makeSem ''RunnersApi
 

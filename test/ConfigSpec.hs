@@ -27,6 +27,10 @@ spec = do
       parseConfigFromEnv mandatoryConfig
         `shouldBe` Success expectedConfig
 
+    it "allows setting several group IDs" $
+      parseConfigFromEnv (("GCB_GITLAB_GROUP_ID", "5,6") : mandatoryConfig)
+        `shouldBe` Success (expectedConfig {groupId = Id 5 :| [Id 6]})
+
     describe "overriding for non-mandatory fields" $ do
       it "should allow overriding data update interval" $
         parseConfigFromEnv (("GCB_DATA_UPDATE_INTERVAL_SECS", "5") : mandatoryConfig)
@@ -87,7 +91,7 @@ spec = do
     expectedConfig =
       Config
         (ApiToken "apitoken")
-        (Id 123)
+        (Id 123 :| [])
         (Url $$(staticURI "https://my.gitlab.com"))
         (DataUpdateIntervalSeconds 60)
         (UiUpdateIntervalSeconds 5)
