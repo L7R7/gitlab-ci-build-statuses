@@ -6,6 +6,7 @@
 module Core.Runners
   ( Runner (..),
     Description (..),
+    Tag (..),
     Job (..),
     Stage (..),
     IpAddress (..),
@@ -30,11 +31,14 @@ data Runner = Runner
   { runnerId :: Id Runner,
     runnerName :: Name Runner,
     runnerDescription :: Description,
-    runnerIpAddress :: IpAddress
+    runnerIpAddress :: IpAddress,
+    runnerTagList :: [Tag]
   }
   deriving stock (Eq, Generic)
 
 newtype Description = Description Text deriving newtype (Eq)
+
+newtype Tag = Tag Text deriving newtype (Eq)
 
 data Job = Job
   { jobId :: Id Job,

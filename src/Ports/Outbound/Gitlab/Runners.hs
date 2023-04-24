@@ -10,8 +10,8 @@ module Ports.Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds))
 import Core.BuildStatuses
-import Core.Runners (Description (..), IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..))
-import Core.Shared (Group, Id, Url (..))
+import Core.Runners (Description (..), IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..), Tag (..))
+import Core.Shared (Group, Id, UpdateError, Url (..))
 import Data.Aeson
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Cache
@@ -45,6 +45,16 @@ runnersApiToIO sem = do
   projectCache <- R.ask
   runnersApiToIO' baseUrl apiToken histogram groupCache projectCache sem
 
+-- | this type acts as an intermediate data structure for first getting a list of active runners and
+--   then fetching the details for each runner.
+--   this is necessary because the list endpoint doesn't include the runner's tag list
+newtype RunnerId = RunnerId (Id Runner)
+
+instance FromJSON RunnerId where
+  parseJSON = withObject "runner" $ \runner -> do
+    runnerId <- runner .: "id"
+    pure $ RunnerId runnerId
+
 runnersApiToIO' ::
   ( Member (Embed IO) r,
     Member MetricsApi r,
@@ -64,7 +74,8 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
         (Just runners) -> pure (Right runners, Hit)
         Nothing -> do
           let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online&type=group_type|]
-          result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
+          runnerIds <- fetchDataPaginated @RunnerId baseUrl apiToken template [("groupId", (stringValue . show) groupId)] groupId histogram
+          result <- fetchRunnersForRunnerIds groupId runnerIds
           traverse_ (insert groupCache groupId) result
           pure (result, Miss)
     recordCacheLookupResult (CacheTag "runners") cacheResult
@@ -84,10 +95,23 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
     where
       getRunnersForProject projectId = do
         let template = [uriTemplate|/api/v4/projects/{projectId}/runners?type=project_type|]
-        embed $ fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId)] groupId histogram
+        embed $ do
+          runnerIds <- fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId)] groupId histogram
+          fetchRunnersForRunnerIds groupId runnerIds
   GetRunningJobsForRunner groupId runnerId -> do
     let template = [uriTemplate|/api/v4/runners/{runnerId}/jobs?status=running|]
     embed $ fetchDataPaginated baseUrl apiToken template [("runnerId", (stringValue . show) runnerId)] groupId histogram
+  where
+    fetchRunnersForRunnerIds :: Id Group -> Either UpdateError [RunnerId] -> IO (Either UpdateError [Runner])
+    fetchRunnersForRunnerIds _ (Left err) = pure $ Left err
+    fetchRunnersForRunnerIds groupId (Right runnerIds) =
+      sequence
+        <$> traverse
+          ( \(RunnerId runnerId) -> do
+              let runnerTemplate = [uriTemplate|/api/v4/runners/{runnerId}|]
+              fetchData @Runner baseUrl apiToken runnerTemplate [("runnerId", (stringValue . show) runnerId)] groupId histogram
+          )
+          runnerIds
 
 instance FromJSON Job where
   parseJSON = withObject "job" $ \job -> do
@@ -108,3 +132,5 @@ instance FromJSON Runner where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
 deriving newtype instance FromJSON Description
+
+deriving newtype instance FromJSON Tag

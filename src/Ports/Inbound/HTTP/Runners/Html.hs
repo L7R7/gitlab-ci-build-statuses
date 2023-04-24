@@ -96,7 +96,16 @@ runnerJobsToHtml :: (Runner, [Job]) -> Html
 runnerJobsToHtml (runner, jobs) = H.div ! class_ "runner-container" $ runnerToHtml runner <> (section ! class_ "jobs" $ jobsToHtml jobs)
 
 runnerToHtml :: Runner -> Html
-runnerToHtml Runner {..} = H.div ! class_ "runner-info" $ "#" <> toHtml runnerId <> " - " <> toHtml runnerDescription <> " - @" <> toHtml runnerIpAddress
+runnerToHtml Runner {..} =
+  H.div ! class_ "runner-info" $
+    "#"
+      <> toHtml runnerId
+      <> " - "
+      <> toHtml runnerDescription
+      <> " - @"
+      <> toHtml runnerIpAddress
+      <> " -"
+      <> foldMap (\t -> " #" <> toHtml t) runnerTagList
 
 jobsToHtml :: [Job] -> Html
 jobsToHtml [] = H.div ! class_ "job empty" $ p "No running jobs"
@@ -114,6 +123,8 @@ deriving newtype instance ToMarkup Stage
 deriving newtype instance ToMarkup IpAddress
 
 deriving newtype instance ToMarkup Description
+
+deriving newtype instance ToMarkup Core.Runners.Tag
 
 truncateRef :: Ref -> Html
 truncateRef (Ref ref) | T.length ref <= 26 = toHtml ref
