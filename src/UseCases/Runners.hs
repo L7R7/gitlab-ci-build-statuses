@@ -17,7 +17,15 @@ import Relude
 import Relude.Extra (traverseToSnd)
 import UseCases.Shared ()
 
-updateRunnersJobs :: (Member RunnersApi r, Member RunnersJobsApi r, Member Logger r, Member ParTraverse r, Member (R.Reader (NonEmpty (Id Group))) r, Member (R.Reader [Id Project]) r) => Sem r (Map Runner [Job])
+updateRunnersJobs ::
+  ( Member RunnersApi r,
+    Member RunnersJobsApi r,
+    Member Logger r,
+    Member ParTraverse r,
+    Member (R.Reader (NonEmpty (Id Group))) r,
+    Member (R.Reader [Id Project]) r
+  ) =>
+  Sem r (Map Runner [Job])
 updateRunnersJobs = do
   currentJobs <- currentKnownRunnersJobs
   setJobs currentJobs
@@ -33,9 +41,10 @@ currentKnownRunnersJobs ::
   ) =>
   Sem r (Map Runner [Job])
 currentKnownRunnersJobs = do
-  runner <- findRunners
-  results <- traverseP evalRunners (toList runner)
-  pure $ fromAscListWith (<>) $ join results
+  runnersWithGroups <- findRunners
+  let runners = ordNub $ toList runnersWithGroups >>= toList . snd
+  results <- catMaybes <$> traverseP evalRunner runners
+  pure $ fromAscListWith (<>) results
 
 findRunners ::
   ( Member RunnersApi r,
@@ -79,24 +88,14 @@ logCurrentRunnersJobs = do
         then logDebug "No running jobs found"
         else addContext "jobs" (fmap jobId <$> mapKeys (show @Text . runnerId) jobs) $ logDebug "Running jobs found"
 
-evalRunners ::
-  ( Member RunnersApi r,
-    Member Logger r,
-    Member (R.Reader [Id Project]) r
-  ) =>
-  (Id Group, [Runner]) ->
-  Sem r [(Runner, [Job])]
-evalRunners (groupId, runners) = catMaybes <$> traverse (evalRunner groupId) runners
-
 evalRunner ::
   ( Member RunnersApi r,
     Member Logger r,
     Member (R.Reader [Id Project]) r
   ) =>
-  Id Group ->
   Runner ->
   Sem r (Maybe (Runner, [Job]))
-evalRunner groupId r@Runner {..} = addContext "groupId" groupId $ addContext "runnerId" runnerId $ do
+evalRunner r@Runner {..} = addContext "runnerId" runnerId $ do
   excludeList <- R.ask
   jobs <- getRunningJobsForRunner runnerId
   case jobs of

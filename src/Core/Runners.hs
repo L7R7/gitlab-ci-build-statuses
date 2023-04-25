@@ -36,6 +36,9 @@ data Runner = Runner
   }
   deriving stock (Eq, Generic)
 
+instance Ord Runner where
+  compare r1 r2 = compare (runnerId r1) (runnerId r2)
+
 newtype Description = Description Text deriving newtype (Eq)
 
 newtype Tag = Tag Text deriving newtype (Eq)
