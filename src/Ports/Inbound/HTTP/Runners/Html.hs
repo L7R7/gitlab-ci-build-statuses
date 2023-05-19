@@ -63,17 +63,18 @@ template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh runnersJ
 
 pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Maybe RunnersJobs -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runnersJobs =
-  docTypeHtml ! lang "en" $
-    H.head $
-      do
-        meta ! charset "UTF-8"
-        when (autoRefresh == Refresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
-        H.title "Running jobs per runner"
-        link ! rel "icon" ! type_ "image/png" ! href ("static/" <> faviconPrefix runnersJobs <> "-favicon.ico")
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/jobs-2e8833d035.css"
-        script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
-        textComment . toText $ ("Version: " <> show gitCommit :: String)
+  docTypeHtml
+    ! lang "en"
+    $ H.head
+    $ do
+      meta ! charset "UTF-8"
+      when (autoRefresh == Refresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
+      H.title "Running jobs per runner"
+      link ! rel "icon" ! type_ "image/png" ! href ("static/" <> faviconPrefix runnersJobs <> "-favicon.ico")
+      link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
+      link ! rel "stylesheet" ! type_ "text/css" ! href "static/jobs-2e8833d035.css"
+      script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
+      textComment . toText $ ("Version: " <> show gitCommit :: String)
 
 faviconPrefix :: Maybe RunnersJobs -> AttributeValue
 faviconPrefix (Just (RunnersJobs (_, jobs))) | not (all null jobs) = "running"
@@ -97,15 +98,16 @@ runnerJobsToHtml (runner, jobs) = H.div ! class_ "runner-container" $ runnerToHt
 
 runnerToHtml :: Runner -> Html
 runnerToHtml Runner {..} =
-  H.div ! class_ "runner-info" $
-    "#"
-      <> toHtml runnerId
-      <> " - "
-      <> toHtml runnerDescription
-      <> " - @"
-      <> toHtml runnerIpAddress
-      <> " -"
-      <> foldMap (\t -> " #" <> toHtml t) runnerTagList
+  H.div
+    ! class_ "runner-info"
+    $ "#"
+    <> toHtml runnerId
+    <> " - "
+    <> toHtml runnerDescription
+    <> " - @"
+    <> toHtml runnerIpAddress
+    <> " -"
+    <> foldMap (\t -> " #" <> toHtml t) runnerTagList
 
 jobsToHtml :: [Job] -> Html
 jobsToHtml [] = H.div ! class_ "job empty" $ p "No running jobs"

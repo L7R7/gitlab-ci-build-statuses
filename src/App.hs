@@ -77,11 +77,11 @@ startRunnersJobsUpdatingJob config backbone = do
 
 startWithConfig :: Config -> Backbone -> IO ()
 startWithConfig config backbone =
-  runConcurrently $
-    Concurrently (startMetricsUpdatingJob config backbone)
-      *> Concurrently (startStatusUpdatingJob config backbone)
-      *> Concurrently (startRunnersJobsUpdatingJobIfEnabled config backbone)
-      *> Concurrently (startServer config backbone)
+  runConcurrently
+    $ Concurrently (startMetricsUpdatingJob config backbone)
+    *> Concurrently (startStatusUpdatingJob config backbone)
+    *> Concurrently (startRunnersJobsUpdatingJobIfEnabled config backbone)
+    *> Concurrently (startServer config backbone)
 
 run :: IO ()
 run = do

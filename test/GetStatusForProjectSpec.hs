@@ -25,12 +25,18 @@ spec = do
 
   describe "getStatusForProject" $ do
     it "returns Nothing when there's no default branch" $ (run . pipelinesApiPure . noOpLogger $ getStatusForProject (Id 5) Nothing) `shouldBe` Nothing
-    it "returns the correct status for a project that doesn't require the detailed status" $
-      fst <$> (run . pipelinesApiPure . noOpLogger $ getStatusForProject (Id 311) (Just $ Ref "main")) `shouldBe` Just Running
-    it "returns the correct status for a project that passed with warnings" $
-      fst <$> (run . pipelinesApiFromMaps projects pipelines . noOpLogger $ getStatusForProject (Id 50) (Just $ Ref "main")) `shouldBe` Just SuccessfulWithWarnings
-    it "returns the correct status for a project that was successful but has no result for the detailed pipeline" $
-      fst <$> (run . pipelinesApiFromMaps projects pipelines . noOpLogger $ getStatusForProject (Id 52) (Just $ Ref "main")) `shouldBe` Just Successful
+    it "returns the correct status for a project that doesn't require the detailed status"
+      $ fst
+      <$> (run . pipelinesApiPure . noOpLogger $ getStatusForProject (Id 311) (Just $ Ref "main"))
+      `shouldBe` Just Running
+    it "returns the correct status for a project that passed with warnings"
+      $ fst
+      <$> (run . pipelinesApiFromMaps projects pipelines . noOpLogger $ getStatusForProject (Id 50) (Just $ Ref "main"))
+      `shouldBe` Just SuccessfulWithWarnings
+    it "returns the correct status for a project that was successful but has no result for the detailed pipeline"
+      $ fst
+      <$> (run . pipelinesApiFromMaps projects pipelines . noOpLogger $ getStatusForProject (Id 52) (Just $ Ref "main"))
+      `shouldBe` Just Successful
   where
     evaluateEffectsPurely =
       noOpLogger

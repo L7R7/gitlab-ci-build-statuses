@@ -102,8 +102,8 @@ type ConfigH f = HKD Config f
 
 envVarNames :: ConfigH (Const EnvVariableName)
 envVarNames =
-  bmap (first EnvVariableName) $
-    build @Config
+  bmap (first EnvVariableName)
+    $ build @Config
       "GCB_GITLAB_API_TOKEN"
       "GCB_GITLAB_GROUP_ID"
       "GCB_GITLAB_BASE_URL"
@@ -122,8 +122,8 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
   where
     msgs :: ConfigH (Const ErrorMessage)
     msgs =
-      bmap (first ErrorMessage) $
-        build @Config
+      bmap (first ErrorMessage)
+        $ build @Config
           "Gitlab API Token is missing"
           "Group ID is missing"
           "Gitlab base URL is missing"

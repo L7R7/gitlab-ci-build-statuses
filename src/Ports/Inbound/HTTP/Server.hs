@@ -37,7 +37,8 @@ type API' =
   Health.API
     :<|> BuildStatuses.API
     :<|> Runners.API
-    :<|> "static" :> Raw
+    :<|> "static"
+    :> Raw
 
 api :: Proxy API
 api = Proxy
@@ -71,7 +72,9 @@ liftServer Config {..} Backbone {..} sem =
     & R.runReader statuses
     & R.runReader runners
     & runM
-    & Handler . ExceptT . try
+    & Handler
+    . ExceptT
+    . try
 
 startServer :: Config -> Backbone -> IO ()
 startServer config backbone =
