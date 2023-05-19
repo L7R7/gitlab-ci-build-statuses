@@ -27,7 +27,8 @@ parseConfig ::
   [(EnvVariableName, String)] ->
   Validation (NonEmpty Text) c
 parseConfig envVarNames errorMsgs defaults parsers environment =
-  runIdentity . construct
+  runIdentity
+    . construct
     <$> validateConfig errorMsgs (parseConfigWithDefaults environment envVarNames parsers defaults)
 
 validateConfig :: (ApplicativeB b, TraversableB b) => b (Const ErrorMessage) -> b Maybe -> Validation (NonEmpty Text) (b Identity)

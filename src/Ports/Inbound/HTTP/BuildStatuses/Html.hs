@@ -58,17 +58,18 @@ template' now jobsView dataUpdateInterval uiUpdateInterval gitCommit autoRefresh
 
 pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
 pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildStatuses =
-  docTypeHtml ! lang "en" $
-    H.head $
-      do
-        meta ! charset "UTF-8"
-        when (autoRefresh == Refresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
-        H.title "Build Statuses"
-        link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-        link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-229a13b850.css"
-        script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
-        textComment . toText $ ("Version: " <> show gitCommit :: String)
+  docTypeHtml
+    ! lang "en"
+    $ H.head
+    $ do
+      meta ! charset "UTF-8"
+      when (autoRefresh == Refresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
+      H.title "Build Statuses"
+      link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
+      link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
+      link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-229a13b850.css"
+      script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
+      textComment . toText $ ("Version: " <> show gitCommit :: String)
   where
     prefix = faviconPrefix (overallStatus buildStatuses)
 

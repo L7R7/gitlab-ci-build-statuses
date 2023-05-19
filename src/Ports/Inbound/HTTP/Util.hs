@@ -34,8 +34,11 @@ deriving newtype instance ToMarkup (Id a)
 deriving newtype instance ToMarkup (Name a)
 
 lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> Html
-lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.div ! class_ classes ! staleDataTitle $
-  H.div $ do
+lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.div
+  ! class_ classes
+  ! staleDataTitle
+  $ H.div
+  $ do
     p "Last Update at:"
     p ! A.id "update-timestamp" $ toHtml (iso8601Show lastUpdate)
   where
