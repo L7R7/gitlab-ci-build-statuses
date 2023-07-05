@@ -38,7 +38,7 @@ type API' =
     :<|> BuildStatuses.API
     :<|> Runners.API
     :<|> "static"
-    :> Raw
+      :> Raw
 
 api :: Proxy API
 api = Proxy
