@@ -13,6 +13,8 @@ module Config.Config
     RunnerCacheTtlSeconds (..),
     SharedProjects (..),
     JobsView (..),
+    ProjectExcludeList (..),
+    ExtraProjectsList (..),
     parseConfigFromEnv,
   )
 where
@@ -45,7 +47,8 @@ data Config = Config
     maxConcurrency :: MaxConcurrency,
     includeSharedProjects :: SharedProjects,
     logLevel :: Severity,
-    projectExcludeList :: [Id Project],
+    extraProjectsList :: ExtraProjectsList,
+    projectExcludeList :: ProjectExcludeList,
     jobsView :: JobsView
   }
   deriving stock (Eq, Generic)
@@ -64,6 +67,7 @@ instance Show Config where
           show maxConcurrency,
           "Shared projects: " <> show includeSharedProjects,
           "Log level: " <> show logLevel,
+          "Extra projects:" <> show extraProjectsList,
           "Excluded projects: " <> show projectExcludeList,
           "Jobs view: " <> show jobsView
         ]
@@ -92,6 +96,12 @@ newtype MaxConcurrency = MaxConcurrency Int
   deriving (Num) via Int
   deriving newtype (Eq)
 
+newtype ProjectExcludeList = ProjectExcludeList {getProjectExcludeList :: [Id Project]}
+  deriving newtype (Eq, Show)
+
+newtype ExtraProjectsList = ExtraProjectsList {getExtraProjectsList :: [Id Project]}
+  deriving newtype (Eq, Show)
+
 newtype GitCommit = GitCommit String deriving stock (Show)
 
 data SharedProjects = Include | Exclude deriving stock (Eq, Show)
@@ -114,6 +124,7 @@ envVarNames =
       "GCB_MAX_CONCURRENCY"
       "GCB_INCLUDE_SHARED_PROJECTS"
       "GCB_LOG_LEVEL"
+      "GCB_EXTRA_PROJECTS"
       "GCB_EXCLUDE_PROJECTS"
       "GCB_JOBS_VIEW"
 
@@ -134,7 +145,8 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
           "Max concurrency is missing. Must be a positive integer"
           "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`"
           "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
-          "List of projects to exclude is missing. Must be a list of comma-separated string of numbers that indicate the project IDs"
+          "List of extra projects to include in the list of prjects. Must be a list of comma-separated string of numberst with the project IDs"
+          "List of projects to exclude is missing. Must be a list of comma-separated string of numbers with the project IDs"
           "Configuration whether to enable runners jobs is missing. Possible values are `enabled`, `disabled`"
 
 parse :: ConfigH (Compose ((->) String) Maybe)
@@ -150,7 +162,8 @@ parse =
     (readPositive MaxConcurrency)
     (Compose parseIncludeSharedProjects)
     (Compose parseLogLevel)
-    (Compose parseProjectExcludeList)
+    (Compose $ fmap ExtraProjectsList . parseProjectIdList)
+    (Compose $ fmap ProjectExcludeList . parseProjectIdList)
     (Compose parseJobsView)
 
 parseApiToken :: String -> Maybe ApiToken
@@ -174,8 +187,8 @@ parseGroupsList s = do
   groups <- traverse (fmap Id . find (> 0) . readMaybe) (splitOn "," s)
   nonEmpty $ ordNub groups
 
-parseProjectExcludeList :: String -> Maybe [Id Project]
-parseProjectExcludeList s = ordNub <$> traverse (fmap Id . readMaybe) (splitOn "," s)
+parseProjectIdList :: String -> Maybe [Id Project]
+parseProjectIdList s = ordNub <$> traverse (fmap Id . readMaybe) (splitOn "," s)
 
 parseJobsView :: String -> Maybe JobsView
 parseJobsView s | (toLower <$> s) == "enabled" = Just Enabled
@@ -195,8 +208,18 @@ defaults =
     & field @"maxConcurrency" .~ Just 2
     & field @"includeSharedProjects" .~ Just Include
     & field @"logLevel" .~ Just InfoS
-    & field @"projectExcludeList" .~ Just []
+    & field @"extraProjectsList" .~ Just (ExtraProjectsList [])
+    & field @"projectExcludeList" .~ Just (ProjectExcludeList [])
     & field @"jobsView" .~ Just Enabled
 
 parseConfigFromEnv :: [(String, String)] -> Validation (NonEmpty Text) Config
-parseConfigFromEnv env = parseConfig envVarNames errorMessages defaults parse (first EnvVariableName <$> env)
+parseConfigFromEnv env = case parseResult of
+  Failure f -> Failure f
+  Success c ->
+    if projectExcludesAndExtraProjectsAreMutuallyExclusive c
+      then Success c
+      else Failure $ pure "The lists for excluded projects and extra projects are not mutually exclusive"
+  where
+    parseResult = parseConfig envVarNames errorMessages defaults parse (first EnvVariableName <$> env)
+    projectExcludesAndExtraProjectsAreMutuallyExclusive :: Config -> Bool
+    projectExcludesAndExtraProjectsAreMutuallyExclusive c = and [e /= x | x <- getProjectExcludeList (projectExcludeList c), e <- getExtraProjectsList (extraProjectsList c)]

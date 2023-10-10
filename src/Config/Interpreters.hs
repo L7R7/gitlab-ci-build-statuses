@@ -14,10 +14,11 @@ import Polysemy
 import Polysemy.Reader
 import Relude hiding (Reader, runReader)
 
-runConfig :: Config -> Sem (Reader SharedProjects : Reader ApiToken : Reader (Url GitlabHost) : Reader MaxConcurrency : Reader DataUpdateIntervalSeconds : Reader [Id Project] : Reader (NonEmpty (Id Group)) ': r) a -> Sem r a
+runConfig :: Config -> Sem (Reader SharedProjects : Reader ApiToken : Reader (Url GitlabHost) : Reader MaxConcurrency : Reader DataUpdateIntervalSeconds : Reader ExtraProjectsList : Reader ProjectExcludeList : Reader (NonEmpty (Id Group)) ': r) a -> Sem r a
 runConfig Config {..} =
   runReader groupId
     . runReader projectExcludeList
+    . runReader extraProjectsList
     . runReader dataUpdateIntervalSecs
     . runReader maxConcurrency
     . runReader gitlabBaseUrl

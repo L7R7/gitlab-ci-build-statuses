@@ -12,7 +12,8 @@ import Relude
 
 projectsApiFromMap :: Map (Id Group) [Project] -> InterpreterFor ProjectsApi r
 projectsApiFromMap inputs = interpret $ \case
-  GetProjects pId -> pure $ maybeToRight EmptyResult (M.lookup pId inputs)
+  GetProject _ -> pure $ Left EmptyResult
+  GetProjects gId -> pure $ maybeToRight EmptyResult (M.lookup gId inputs)
 
 pipelinesApiFromMaps :: Map (Id Project, Ref) Pipeline -> Map (Id Project, Id Pipeline) DetailedPipeline -> InterpreterFor PipelinesApi r
 pipelinesApiFromMaps pipelines detailedPipelines = interpret $ \case

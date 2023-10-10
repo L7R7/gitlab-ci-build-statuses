@@ -8,7 +8,7 @@
 module Ports.Outbound.Gitlab.Projects (initCache, projectsApiToIO, projectsWithoutExcludesApiInTermsOfProjects) where
 
 import Burrito
-import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), SharedProjects (Exclude, Include))
+import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), ProjectExcludeList (ProjectExcludeList), SharedProjects (Exclude, Include))
 import Core.BuildStatuses (Project (projectId), ProjectsApi (..), ProjectsWithoutExcludesApi (..), getProjects)
 import Core.Effects
 import Core.Shared (Group, Id (..), Url (..))
@@ -36,6 +36,12 @@ projectsApiToIO ::
   ) =>
   InterpreterFor ProjectsApi r
 projectsApiToIO = interpret $ \case
+  GetProject projectId -> do
+    baseUrl <- R.ask
+    apiToken <- R.ask
+    histogram <- R.ask
+    let template = [uriTemplate|/api/v4/projects/{projectId}|]
+    embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) projectId)] histogram
   GetProjects groupId -> do
     cache <- R.ask
     baseUrl <- R.ask
@@ -60,12 +66,12 @@ projectsApiToIO = interpret $ \case
 projectsWithoutExcludesApiInTermsOfProjects ::
   ( Member ProjectsApi r,
     Member Logger r,
-    Member (R.Reader [Id Project]) r
+    Member (R.Reader ProjectExcludeList) r
   ) =>
   InterpreterFor ProjectsWithoutExcludesApi r
 projectsWithoutExcludesApiInTermsOfProjects = interpret $ \case
   GetProjectsNotOnExcludeListOrEmpty groupId -> do
-    excludeList <- R.ask
+    (ProjectExcludeList excludeList) <- R.ask
     addContext "groupId" groupId $ do
       result <- getProjects groupId
       case result of

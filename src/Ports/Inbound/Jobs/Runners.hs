@@ -6,7 +6,7 @@ module Ports.Inbound.Jobs.Runners
   )
 where
 
-import Core.BuildStatuses (Project)
+import Config.Config (ProjectExcludeList)
 import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Runners
 import Core.Shared
@@ -27,7 +27,7 @@ updateRunnersJobsRegularly ::
     Member ParTraverse r,
     Member (R.Reader (NonEmpty (Id Group))) r,
     Member (R.Reader DataUpdateIntervalSeconds) r,
-    Member (R.Reader [Id Project]) r
+    Member (R.Reader ProjectExcludeList) r
   ) =>
   Sem r ()
 updateRunnersJobsRegularly = do
@@ -41,7 +41,7 @@ updateWithDurationObservation ::
     Member Logger r,
     Member ParTraverse r,
     Member (R.Reader (NonEmpty (Id Group))) r,
-    Member (R.Reader [Id Project]) r
+    Member (R.Reader ProjectExcludeList) r
   ) =>
   Sem r ()
 updateWithDurationObservation =

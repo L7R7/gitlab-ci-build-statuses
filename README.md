@@ -62,6 +62,9 @@ Default value is `3600` (1h).
   Must be a comma-separated list of integers of project IDs.
   If you specify projects that don't appear in the result from the API, a warning will be logged.
   Defaults to an empty list if the value is not set or can't be parsed.
+* `GCB_EXTRA_PROJECTS` (optional): Set a lits of additional projects that should be included in the list.
+  Must be a comma-separated list of integers of project IDs.
+  Defaults to an empty list if the value is not set or can't be parsed.
 * `GCB_JOBS_VIEW` (optional): Enables/disables whether to fetch the data for the currently running pipeline jobs.
   Possible values are `enabled` and `disabled`.
   Default value is `enabled`.

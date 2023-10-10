@@ -9,6 +9,7 @@ module UseCases.BuildStatuses
   )
 where
 
+import Config.Config (ExtraProjectsList (ExtraProjectsList))
 import Core.BuildStatuses
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
 import Core.Shared
@@ -20,11 +21,13 @@ import Relude
 import UseCases.Shared ()
 
 updateStatuses ::
-  ( Member ProjectsWithoutExcludesApi r,
+  ( Member ProjectsApi r,
+    Member ProjectsWithoutExcludesApi r,
     Member PipelinesApi r,
     Member BuildStatusesApi r,
     Member Logger r,
     Member ParTraverse r,
+    Member (R.Reader ExtraProjectsList) r,
     Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
   Sem r [Result]
@@ -35,32 +38,50 @@ updateStatuses = do
   pure currentStatuses
 
 currentKnownBuildStatuses ::
-  ( Member ProjectsWithoutExcludesApi r,
+  ( Member ProjectsApi r,
+    Member ProjectsWithoutExcludesApi r,
     Member PipelinesApi r,
     Member Logger r,
     Member ParTraverse r,
+    Member (R.Reader ExtraProjectsList) r,
     Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
   Sem r [Result]
 currentKnownBuildStatuses = filter ((/= Unknown) . buildStatus) <$> currentBuildStatuses
 
 currentBuildStatuses ::
-  ( Member ParTraverse r,
+  ( Member ProjectsApi r,
+    Member ParTraverse r,
     Member ProjectsWithoutExcludesApi r,
     Member PipelinesApi r,
     Member Logger r,
+    Member (R.Reader ExtraProjectsList) r,
     Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
   Sem r [Result]
 currentBuildStatuses = do
-  groupIds <- R.ask
-  join <$> traverseP evalGroup (toList groupIds)
-
-evalGroup :: (Member ProjectsWithoutExcludesApi r, Member PipelinesApi r, Member ParTraverse r, Member Logger r) => Id Group -> Sem r [Result]
-evalGroup groupId = do
-  projects <- getProjectsNotOnExcludeListOrEmpty groupId
+  projects <- findProjects
   results <- traverseP evalProject projects
   pure $ sortOn (T.toLower . coerce . name) results
+
+findProjects ::
+  ( Member ProjectsApi r,
+    Member ProjectsWithoutExcludesApi r,
+    Member ParTraverse r,
+    Member Logger r,
+    Member (R.Reader ExtraProjectsList) r,
+    Member (R.Reader (NonEmpty (Id Group))) r
+  ) =>
+  Sem r [Project]
+findProjects = do
+  groupIds <- R.ask
+  groupProjects <- join <$> traverseP getProjectsNotOnExcludeListOrEmpty (toList groupIds)
+  (ExtraProjectsList extraProjectIds) <- R.ask
+  extraProjectsResult <- sequence <$> traverseP getProject extraProjectIds
+  extraProjects <- case extraProjectsResult of
+    Left uErr -> [] <$ logWarn (unwords ["Couldn't fetch information for all extra projects. Skipping the extra projects for now. Error was", show uErr])
+    Right ps -> pure ps
+  pure $ groupProjects <> extraProjects
 
 logCurrentBuildStatuses ::
   ( Member BuildStatusesApi r,

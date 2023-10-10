@@ -56,22 +56,41 @@ spec = do
       it "should allow overriding the log level"
         $ parseConfigFromEnv (("GCB_LOG_LEVEL", "ERROR") : mandatoryConfig)
         `shouldBe` Success (expectedConfig {logLevel = ErrorS})
+      describe "extra projects list" $ do
+        it "should allow overriding a single project ID"
+          $ parseConfigFromEnv (("GCB_EXTRA_PROJECTS", "12") : mandatoryConfig)
+          `shouldBe` Success (expectedConfig {extraProjectsList = ExtraProjectsList [Id 12]})
+        it "should allow overriding multiple project IDs"
+          $ parseConfigFromEnv (("GCB_EXTRA_PROJECTS", "12,13") : mandatoryConfig)
+          `shouldBe` Success (expectedConfig {extraProjectsList = ExtraProjectsList [Id 12, Id 13]})
+        it "should deduplicate the list of IDs"
+          $ parseConfigFromEnv (("GCB_EXTRA_PROJECTS", "12,12") : mandatoryConfig)
+          `shouldBe` Success (expectedConfig {extraProjectsList = ExtraProjectsList [Id 12]})
+        it "should trim leading and trailing whitespace"
+          $ parseConfigFromEnv (("GCB_EXTRA_PROJECTS", " 12,13,14 , 15 ") : mandatoryConfig)
+          `shouldBe` Success (expectedConfig {extraProjectsList = ExtraProjectsList [Id 12, Id 13, Id 14, Id 15]})
+        it "should handle empty values"
+          $ parseConfigFromEnv (("GCB_EXTRA_PROJECTS", "") : mandatoryConfig)
+          `shouldBe` Success expectedConfig
       describe "project exclude list" $ do
         it "should allow overriding a single project ID"
           $ parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12") : mandatoryConfig)
-          `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12]})
+          `shouldBe` Success (expectedConfig {projectExcludeList = ProjectExcludeList [Id 12]})
         it "should allow overriding multiple project IDs"
           $ parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12,13") : mandatoryConfig)
-          `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12, Id 13]})
+          `shouldBe` Success (expectedConfig {projectExcludeList = ProjectExcludeList [Id 12, Id 13]})
         it "should deduplicate the list of IDs"
           $ parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12,12") : mandatoryConfig)
-          `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12]})
+          `shouldBe` Success (expectedConfig {projectExcludeList = ProjectExcludeList [Id 12]})
         it "should trim leading and trailing whitespace"
           $ parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", " 12,13,14 , 15 ") : mandatoryConfig)
-          `shouldBe` Success (expectedConfig {projectExcludeList = [Id 12, Id 13, Id 14, Id 15]})
+          `shouldBe` Success (expectedConfig {projectExcludeList = ProjectExcludeList [Id 12, Id 13, Id 14, Id 15]})
         it "should handle empty values"
           $ parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "") : mandatoryConfig)
           `shouldBe` Success expectedConfig
+      it "doesn't allow the same project id on the exclude list and on the list of extra projects"
+        $ parseConfigFromEnv (("GCB_EXCLUDE_PROJECTS", "12") : ("GCB_EXTRA_PROJECTS", "12") : mandatoryConfig)
+        `shouldBe` Failure ("The lists for excluded projects and extra projects are not mutually exclusive" :| [])
 
     it "expects a non empty API token" $ do
       parseConfigFromEnv [("GCB_GITLAB_API_TOKEN", ""), ("GCB_GITLAB_GROUP_ID", "123"), ("GCB_GITLAB_BASE_URL", "https://my.gitlab.com")]
@@ -100,5 +119,6 @@ spec = do
         (MaxConcurrency 2)
         Include
         InfoS
-        []
+        (ExtraProjectsList [])
+        (ProjectExcludeList [])
         Enabled

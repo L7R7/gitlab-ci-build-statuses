@@ -5,7 +5,7 @@
 
 module UseCases.Runners (updateRunnersJobs) where
 
-import Core.BuildStatuses (Project)
+import Config.Config (ProjectExcludeList (ProjectExcludeList))
 import Core.Effects
 import Core.Runners
 import Core.Shared
@@ -23,7 +23,7 @@ updateRunnersJobs ::
     Member Logger r,
     Member ParTraverse r,
     Member (R.Reader (NonEmpty (Id Group))) r,
-    Member (R.Reader [Id Project]) r
+    Member (R.Reader ProjectExcludeList) r
   ) =>
   Sem r (Map Runner [Job])
 updateRunnersJobs = do
@@ -37,7 +37,7 @@ currentKnownRunnersJobs ::
     Member Logger r,
     Member ParTraverse r,
     Member (R.Reader (NonEmpty (Id Group))) r,
-    Member (R.Reader [Id Project]) r
+    Member (R.Reader ProjectExcludeList) r
   ) =>
   Sem r (Map Runner [Job])
 currentKnownRunnersJobs = do
@@ -91,12 +91,12 @@ logCurrentRunnersJobs = do
 evalRunner ::
   ( Member RunnersApi r,
     Member Logger r,
-    Member (R.Reader [Id Project]) r
+    Member (R.Reader ProjectExcludeList) r
   ) =>
   Runner ->
   Sem r (Maybe (Runner, [Job]))
 evalRunner r@Runner {..} = addContext "runnerId" runnerId $ do
-  excludeList <- R.ask
+  (ProjectExcludeList excludeList) <- R.ask
   jobs <- getRunningJobsForRunner runnerId
   case jobs of
     Left err -> Nothing <$ logWarn (unwords ["Couldn't get jobs for runner. Error was", show err])

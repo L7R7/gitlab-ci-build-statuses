@@ -9,6 +9,7 @@ module Core.BuildStatuses
     BuildStatuses (..),
     Result (..),
     ProjectsApi (..),
+    getProject,
     getProjects,
     ProjectsWithoutExcludesApi (..),
     getProjectsNotOnExcludeListOrEmpty,
@@ -108,6 +109,7 @@ data PipelinesApi m a where
 makeSem ''PipelinesApi
 
 data ProjectsApi m a where
+  GetProject :: Id Project -> ProjectsApi m (Either UpdateError Project)
   GetProjects :: Id Group -> ProjectsApi m (Either UpdateError [Project])
 
 makeSem ''ProjectsApi

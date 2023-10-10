@@ -4,6 +4,7 @@
 
 module GetStatusForProjectSpec where
 
+import Config.Config (ExtraProjectsList (ExtraProjectsList), ProjectExcludeList (ProjectExcludeList))
 import Core.BuildStatuses
 import Core.Shared
 import Data.Map qualified as M
@@ -20,8 +21,8 @@ import UseCases.BuildStatuses
 spec :: Spec
 spec = do
   describe "currentBuildStatuses" $ do
-    it "returns an empty list when there are no projects" $ (run . R.runReader (Id 266 :| []) . R.runReader [] . evaluateEffectsPurely $ currentBuildStatuses) `shouldBe` []
-    it "returns the correct result for a single project" $ (run . R.runReader (Id 42 :| []) . R.runReader [] . evaluateEffectsPurely $ currentBuildStatuses) `shouldBe` result
+    it "returns an empty list when there are no projects" $ (run . R.runReader (Id 266 :| []) . R.runReader (ExtraProjectsList []) . R.runReader (ProjectExcludeList []) . evaluateEffectsPurely $ currentBuildStatuses) `shouldBe` []
+    it "returns the correct result for a single project" $ (run . R.runReader (Id 42 :| []) . R.runReader (ExtraProjectsList []) . R.runReader (ProjectExcludeList []) . evaluateEffectsPurely $ currentBuildStatuses) `shouldBe` result
 
   describe "getStatusForProject" $ do
     it "returns Nothing when there's no default branch" $ (run . pipelinesApiPure . noOpLogger $ getStatusForProject (Id 5) Nothing) `shouldBe` Nothing

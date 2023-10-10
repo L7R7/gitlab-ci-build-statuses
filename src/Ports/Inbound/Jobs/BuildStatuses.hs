@@ -6,7 +6,8 @@ module Ports.Inbound.Jobs.BuildStatuses
   )
 where
 
-import Core.BuildStatuses (BuildStatusesApi, PipelinesApi, ProjectsWithoutExcludesApi)
+import Config.Config (ExtraProjectsList)
+import Core.BuildStatuses (BuildStatusesApi, PipelinesApi, ProjectsApi, ProjectsWithoutExcludesApi)
 import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Shared
 import Metrics.Metrics
@@ -18,13 +19,15 @@ import Relude
 import UseCases.BuildStatuses (updateStatuses)
 
 updateStatusesRegularly ::
-  ( Member ProjectsWithoutExcludesApi r,
+  ( Member ProjectsApi r,
+    Member ProjectsWithoutExcludesApi r,
     Member DurationObservation r,
     Member PipelinesApi r,
     Member BuildStatusesApi r,
     Member Logger r,
     Member (Time t d) r,
     Member ParTraverse r,
+    Member (R.Reader ExtraProjectsList) r,
     Member (R.Reader (NonEmpty (Id Group))) r,
     Member (R.Reader DataUpdateIntervalSeconds) r
   ) =>
@@ -34,12 +37,14 @@ updateStatusesRegularly = do
   addNamespace "update-build-statuses" $ pass <$> infinitely (updateWithDurationObservation >> Time.sleep (Seconds (fromIntegral updateInterval)))
 
 updateWithDurationObservation ::
-  ( Member ProjectsWithoutExcludesApi r,
+  ( Member ProjectsApi r,
+    Member ProjectsWithoutExcludesApi r,
     Member DurationObservation r,
     Member PipelinesApi r,
     Member BuildStatusesApi r,
     Member Logger r,
     Member ParTraverse r,
+    Member (R.Reader ExtraProjectsList) r,
     Member (R.Reader (NonEmpty (Id Group))) r
   ) =>
   Sem r ()
