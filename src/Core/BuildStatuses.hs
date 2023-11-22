@@ -90,13 +90,16 @@ data Project = Project
     projectDefaultBranch :: Maybe Ref,
     projectNamespace :: ProjectNamespace
   }
-  deriving stock (Generic, Show)
+  deriving stock (Eq, Generic, Show)
+
+instance Ord Project where
+  p1 <= p2 = projectId p1 <= projectId p2
 
 data ProjectNamespace = ProjectNamespace
   { projectNamespaceId :: Id ProjectNamespace,
     projectNamespaceFullPath :: ProjectNamespaceFullPath
   }
-  deriving stock (Generic, Show)
+  deriving stock (Eq, Generic, Show)
 
 newtype ProjectNamespaceFullPath = ProjectNamespaceFullPath (Path Rel Dir)
   deriving stock (Generic)

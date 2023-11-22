@@ -81,7 +81,7 @@ findProjects = do
   extraProjects <- case extraProjectsResult of
     Left uErr -> [] <$ logWarn (unwords ["Couldn't fetch information for all extra projects. Skipping the extra projects for now. Error was", show uErr])
     Right ps -> pure ps
-  pure $ groupProjects <> extraProjects
+  pure $ ordNub $ groupProjects <> extraProjects
 
 logCurrentBuildStatuses ::
   ( Member BuildStatusesApi r,
