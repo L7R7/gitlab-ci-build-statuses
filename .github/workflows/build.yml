@@ -34,7 +34,7 @@ jobs:
       - name: Build executable
         run: stack build --system-ghc --test --coverage --copy-bins --local-bin-path .
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: gitlab-ci-build-statuses-exe
           path: gitlab-ci-build-statuses-exe
