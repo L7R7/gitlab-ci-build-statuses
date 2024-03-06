@@ -7,6 +7,7 @@
 module Core.BuildStatuses
   ( BuildStatus (..),
     BuildStatuses (..),
+    filterResults,
     Result (..),
     ProjectsApi (..),
     getProject,
@@ -75,6 +76,10 @@ data BuildStatus
   deriving stock (Bounded, Enum, Eq, Show, Ord)
 
 data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
+
+filterResults :: BuildStatuses -> (Result -> Bool) -> BuildStatuses
+filterResults NoSuccessfulUpdateYet _ = NoSuccessfulUpdateYet
+filterResults (Statuses (t, res)) f = Statuses (t, filter f res)
 
 data DetailedPipeline = DetailedPipeline
   { detailedPipelineId :: Id Pipeline,

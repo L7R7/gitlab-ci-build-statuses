@@ -30,12 +30,13 @@ import Relude
 import Servant
 import Servant.HTML.Lucid
 
-type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> Get '[HTML] (Html ())
+type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> QueryParam "filter" FilterMode :> Get '[HTML] (Html ())
 
 type Frontend = HtmlT (Reader FrontendState) ()
 
 data FrontendState = FrontendState
   { frontendStateViewMode :: ViewMode,
+    frontendStateFilterMode :: FilterMode,
     frontendStateJobsView :: JobsView,
     frontendStateBuildStatuses :: BuildStatuses,
     frontendStateDataUpdateInterval :: DataUpdateIntervalSeconds,
@@ -54,10 +55,11 @@ template ::
     Member (R.Reader JobsView) r
   ) =>
   ViewMode ->
+  FilterMode ->
   AutoRefresh ->
   Sem r (Html ())
-template viewMode autoRefresh = do
-  frontendState <- FrontendState viewMode <$> R.ask <*> getStatuses <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
+template viewMode filterMode autoRefresh = do
+  frontendState <- FrontendState viewMode filterMode <$> R.ask <*> getStatuses <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
   pure $ usingReader frontendState $ commuteHtmlT $ do
     pageHeader
     pageBody
@@ -92,13 +94,18 @@ faviconPrefix status
 pageBody :: Frontend
 pageBody = body_ $ do
   viewMode <- asks frontendStateViewMode
+  filterMode <- asks frontendStateFilterMode
   dataUpdateInterval <- asks frontendStateDataUpdateInterval
   now <- asks frontendStateNow
   buildStatuses <- asks frontendStateBuildStatuses
-  (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ statusesToHtml viewMode dataUpdateInterval now buildStatuses
+  let buildStatusesFiltered = case filterMode of
+        ShowAll -> buildStatuses
+        DontShowSuccessful -> filterResults buildStatuses (\res -> buildStatus res /= Successful)
+  (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ statusesToHtml viewMode dataUpdateInterval now buildStatusesFiltered
   section_ [class_ "statuses"] $ do
     linkToViewToggle
     linkToAutoRefreshToggle
+    linkToFilterModeToggle
     linkToJobs
 
 statusesToHtml :: ViewMode -> DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Frontend
@@ -148,8 +155,13 @@ resultToHtml Result {..} =
     buildStatusToString SuccessfulWithWarnings = "successful with warnings"
     buildStatusToString WaitingForResource = "waiting for resource"
 
-emptyResults :: (Monad m) => HtmlT m ()
-emptyResults = div_ [class_ "status empty-results"] $ p_ "No pipeline results for default branches found"
+emptyResults :: Frontend
+emptyResults = do
+  filterMode <- asks frontendStateFilterMode
+  let txt = case filterMode of
+        ShowAll -> "No pipeline results for default branches found"
+        DontShowSuccessful -> "No pipeline results for default branches that are not successful"
+  div_ [class_ "status empty-results"] $ p_ txt
 
 linkToJobs :: Frontend
 linkToJobs = do
@@ -167,7 +179,7 @@ linkToViewToggle = do
       txt = case viewMode of
         Plain -> "Switch to grouped view"
         Grouped -> "Switch to plain view"
-  div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ (toUrlPiece (linkForState (frontendState {frontendStateViewMode = toggle viewMode})))] txt
+  div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateViewMode = toggle viewMode})))] txt
 
 linkToAutoRefreshToggle :: Frontend
 linkToAutoRefreshToggle = do
@@ -178,7 +190,18 @@ linkToAutoRefreshToggle = do
       txt = case autoRefresh of
         Refresh -> "Disable auto refresh"
         NoRefresh -> "Enable auto refresh"
-  div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-refresh-toggle", href_ (toUrlPiece (linkForState (frontendState {frontendStateAutoRefresh = toggle autoRefresh})))] txt
+  div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateAutoRefresh = toggle autoRefresh})))] txt
+
+linkToFilterModeToggle :: Frontend
+linkToFilterModeToggle = do
+  frontendState <- ask
+  let filterMode = frontendStateFilterMode frontendState
+      toggle ShowAll = DontShowSuccessful
+      toggle DontShowSuccessful = ShowAll
+      txt = case filterMode of
+        ShowAll -> "Don't show successful pipelines"
+        DontShowSuccessful -> "Show all pipelines"
+  div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateFilterMode = toggle filterMode})))] txt
 
 linkForState :: FrontendState -> Link
-linkForState frontendState = safeLink (Proxy @API) (Proxy @API) (Just (frontendStateViewMode frontendState)) (frontendStateAutoRefresh frontendState == NoRefresh)
+linkForState frontendState = safeLink (Proxy @API) (Proxy @API) (Just (frontendStateViewMode frontendState)) (frontendStateAutoRefresh frontendState == NoRefresh) (Just (frontendStateFilterMode frontendState))

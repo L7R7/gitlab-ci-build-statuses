@@ -24,6 +24,18 @@ instance FromHttpApiData ViewMode where
 instance ToHttpApiData ViewMode where
   toQueryParam = viewModeToText
 
+data FilterMode = ShowAll | DontShowSuccessful deriving stock (Bounded, Eq, Enum)
+
+filterModeToText :: FilterMode -> Text
+filterModeToText ShowAll = "all"
+filterModeToText DontShowSuccessful = "no-successful"
+
+instance FromHttpApiData FilterMode where
+  parseQueryParam = maybeToRight "can't parse FilterMode param" . inverseMap filterModeToText
+
+instance ToHttpApiData FilterMode where
+  toQueryParam = filterModeToText
+
 instance ToHtml (Id a) where
   toHtml (Id i) = toHtml @String (show i)
   toHtmlRaw (Id i) = toHtmlRaw @String (show i)

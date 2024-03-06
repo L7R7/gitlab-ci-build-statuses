@@ -48,7 +48,7 @@ server = s :<|> s
   where
     s =
       getCurrentHealthStatus
-        :<|> (\mvm b -> BuildStatuses.template (fromMaybe Plain mvm) (norefreshFlag b))
+        :<|> (\mvm b mfm -> BuildStatuses.template (fromMaybe Plain mvm) (fromMaybe ShowAll mfm) (norefreshFlag b))
         :<|> (Runners.template . norefreshFlag)
         :<|> serveDirectoryWebApp "/service/static"
 
