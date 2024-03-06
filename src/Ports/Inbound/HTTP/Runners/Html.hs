@@ -19,7 +19,7 @@ import Data.Map (toList)
 import Data.Text qualified as T
 import Data.Time (UTCTime)
 import Lucid
-import Lucid.Base (makeAttribute)
+import Lucid.Base (commuteHtmlT, makeAttribute)
 import Polysemy
 import Polysemy.Reader qualified as R
 import Polysemy.Time (Time)
@@ -30,6 +30,17 @@ import Servant (Get, QueryFlag, (:>))
 import Servant.HTML.Lucid
 
 type API = "jobs" :> QueryFlag "norefresh" :> Get '[HTML] (Html ())
+
+type Frontend = HtmlT (Reader FrontendState) ()
+
+data FrontendState = FrontendState
+  { frontendStateRunnersJobs :: RunnersJobs,
+    frontendStateDataUpdateInterval :: DataUpdateIntervalSeconds,
+    frontendStateUiUpdateInterval :: UiUpdateIntervalSeconds,
+    frontendStateAutoRefresh :: AutoRefresh,
+    frontendStateGitCommit :: GitCommit,
+    frontendStateNow :: UTCTime
+  }
 
 template ::
   ( Member RunnersJobsApi r,
@@ -42,27 +53,23 @@ template ::
   AutoRefresh ->
   Sem r (Html ())
 template autoRefresh = do
-  dataUpdateInterval <- R.ask
-  uiUpdateInterval <- R.ask
-  gitCommit <- R.ask
   jobsView <- R.ask
-  now <- Time.now
-  if jobsView == Enabled
-    then template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh <$> R.getJobs
-    else pure $ runnersViewDisabled uiUpdateInterval gitCommit autoRefresh
+  frontendState <- FrontendState <$> R.getJobs <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
+  pure
+    $ usingReader frontendState
+    $ commuteHtmlT
+    $ do
+      pageHeader
+      if jobsView == Enabled
+        then pageBody
+        else body_ $ div_ [class_ "job no-successful-update"] $ p_ "Runners view is disabled. Update your config to enable it"
 
-runnersViewDisabled :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Html ()
-runnersViewDisabled uiUpdateInterval gitCommit autoRefresh = do
-  pageHeader uiUpdateInterval gitCommit autoRefresh Nothing
-  body_ $ div_ [class_ "job no-successful-update"] $ p_ "Runners view is disabled. Update your config to enable it"
-
-template' :: UTCTime -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> RunnersJobs -> Html ()
-template' now dataUpdateInterval uiUpdateInterval gitCommit autoRefresh runnersJobs = do
-  pageHeader uiUpdateInterval gitCommit autoRefresh (Just runnersJobs)
-  pageBody dataUpdateInterval now runnersJobs
-
-pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> Maybe RunnersJobs -> Html ()
-pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runnersJobs = do
+pageHeader :: Frontend
+pageHeader = do
+  autoRefresh <- asks frontendStateAutoRefresh
+  (UiUpdateIntervalSeconds updateInterval) <- asks frontendStateUiUpdateInterval
+  gitCommit <- asks frontendStateGitCommit
+  runnersJobs <- asks frontendStateRunnersJobs
   doctype_
   html_ [lang_ "en"]
     $ head_
@@ -76,27 +83,29 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh runner
       script_ [type_ "text/javascript", src_ "static/script-32964cd17f.js"] ("" :: String)
       meta_ [makeAttribute "version" (show gitCommit)]
 
-faviconPrefix :: (IsString a) => Maybe RunnersJobs -> a
-faviconPrefix (Just (RunnersJobs (_, jobs))) | not (all null jobs) = "running"
-faviconPrefix Nothing = "failed"
+faviconPrefix :: (IsString a) => RunnersJobs -> a
+faviconPrefix ((RunnersJobs (_, jobs))) | not (all null jobs) = "running"
 faviconPrefix _ = "idle"
 
-pageBody :: DataUpdateIntervalSeconds -> UTCTime -> RunnersJobs -> Html ()
-pageBody dataUpdateInterval now runnersJobs = body_ $ runnersJobsToHtml runnersJobs <> section_ [class_ "jobs-meta"] (lastUpdated runnersJobs)
-  where
-    lastUpdated :: RunnersJobs -> Html ()
-    lastUpdated NoSuccessfulUpdateYet = mempty
-    lastUpdated (RunnersJobs (t, _)) = lastUpdatedToHtml dataUpdateInterval now t
+pageBody :: Frontend
+pageBody = do
+  dataUpdateInterval <- asks frontendStateDataUpdateInterval
+  runnersJobs <- asks frontendStateRunnersJobs
+  now <- asks frontendStateNow
+  let lastUpdated :: RunnersJobs -> Frontend
+      lastUpdated NoSuccessfulUpdateYet = mempty
+      lastUpdated (RunnersJobs (t, _)) = lastUpdatedToHtml dataUpdateInterval now t
+  body_ $ runnersJobsToHtml runnersJobs <> section_ [class_ "jobs-meta"] (lastUpdated runnersJobs)
 
-runnersJobsToHtml :: RunnersJobs -> Html ()
+runnersJobsToHtml :: (Monad m) => RunnersJobs -> HtmlT m ()
 runnersJobsToHtml NoSuccessfulUpdateYet = div_ [class_ "job no-successful-update"] $ p_ "There was no successful update yet"
 runnersJobsToHtml (RunnersJobs (_, runners)) | null runners = div_ [class_ "job empty-results"] $ p_ "No online runners found"
 runnersJobsToHtml (RunnersJobs (_, runners)) = traverse_ runnerJobsToHtml (sortOn (\(runner, _) -> runnerId runner) (Data.Map.toList runners))
 
-runnerJobsToHtml :: (Runner, [Job]) -> Html ()
+runnerJobsToHtml :: (Monad m) => (Runner, [Job]) -> HtmlT m ()
 runnerJobsToHtml (runner, jobs) = div_ [class_ "runner-container"] $ runnerToHtml runner <> section_ [class_ "jobs"] (jobsToHtml jobs)
 
-runnerToHtml :: Runner -> Html ()
+runnerToHtml :: (Monad m) => Runner -> HtmlT m ()
 runnerToHtml Runner {..} =
   div_ [class_ "runner-info"]
     $ "#"
@@ -108,11 +117,11 @@ runnerToHtml Runner {..} =
     <> " -"
     <> foldMap (\t -> " #" <> toHtml t) runnerTagList
 
-jobsToHtml :: [Job] -> Html ()
+jobsToHtml :: (Monad m) => [Job] -> HtmlT m ()
 jobsToHtml [] = div_ [class_ "job empty"] $ p_ "No running jobs"
 jobsToHtml jobs = foldl' (\acc j -> acc <> jobToHtml j) mempty jobs
 
-jobToHtml :: Job -> Html ()
+jobToHtml :: (Monad m) => Job -> HtmlT m ()
 jobToHtml Job {..} = a_ [href_ (show jobWebUrl), target_ "_blank", class_ "job"] $ do
   div_ [class_ "job-id"] $ "#" <> toHtml jobId
   div_ [class_ "project-name"] $ toHtml jobProjectName
@@ -127,6 +136,6 @@ deriving newtype instance ToHtml Description
 
 deriving newtype instance ToHtml Core.Runners.Tag
 
-truncateRef :: Ref -> Html ()
+truncateRef :: (Monad m) => Ref -> HtmlT m ()
 truncateRef (Ref ref) | T.length ref <= 26 = toHtml ref
 truncateRef (Ref ref) = toHtml $ T.take 10 ref <> "..." <> T.drop (T.length ref - 13) ref

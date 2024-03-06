@@ -19,7 +19,7 @@ import Core.Shared
 import Data.Map qualified as M
 import Data.Time (UTCTime)
 import Lucid
-import Lucid.Base (makeAttribute)
+import Lucid.Base (commuteHtmlT, makeAttribute)
 import Path (toFilePath)
 import Polysemy
 import Polysemy.Reader qualified as R
@@ -31,6 +31,19 @@ import Servant
 import Servant.HTML.Lucid
 
 type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> Get '[HTML] (Html ())
+
+type Frontend = HtmlT (Reader FrontendState) ()
+
+data FrontendState = FrontendState
+  { frontendStateViewMode :: ViewMode,
+    frontendStateJobsView :: JobsView,
+    frontendStateBuildStatuses :: BuildStatuses,
+    frontendStateDataUpdateInterval :: DataUpdateIntervalSeconds,
+    frontendStateUiUpdateInterval :: UiUpdateIntervalSeconds,
+    frontendStateAutoRefresh :: AutoRefresh,
+    frontendStateGitCommit :: GitCommit,
+    frontendStateNow :: UTCTime
+  }
 
 template ::
   ( Member BuildStatusesApi r,
@@ -44,20 +57,18 @@ template ::
   AutoRefresh ->
   Sem r (Html ())
 template viewMode autoRefresh = do
-  jobsView <- R.ask
-  dataUpdateInterval <- R.ask
-  uiUpdateInterval <- R.ask
-  gitCommit <- R.ask
-  now <- Time.now
-  template' now jobsView dataUpdateInterval uiUpdateInterval gitCommit autoRefresh viewMode <$> getStatuses
+  frontendState <- FrontendState viewMode <$> R.ask <*> getStatuses <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
+  pure $ usingReader frontendState $ commuteHtmlT $ do
+    pageHeader
+    pageBody
 
-template' :: UTCTime -> JobsView -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> ViewMode -> BuildStatuses -> Html ()
-template' now jobsView dataUpdateInterval uiUpdateInterval gitCommit autoRefresh viewMode buildStatuses = do
-  pageHeader uiUpdateInterval gitCommit autoRefresh buildStatuses
-  pageBody viewMode dataUpdateInterval jobsView now buildStatuses
-
-pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html ()
-pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildStatuses = do
+pageHeader :: Frontend
+pageHeader = do
+  autoRefresh <- asks frontendStateAutoRefresh
+  (UiUpdateIntervalSeconds updateInterval) <- asks frontendStateUiUpdateInterval
+  gitCommit <- asks frontendStateGitCommit
+  buildStatuses <- asks frontendStateBuildStatuses
+  let prefix = faviconPrefix (overallStatus buildStatuses)
   doctype_
   html_ [lang_ "en"]
     $ head_
@@ -70,8 +81,6 @@ pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildS
       link_ [rel_ "stylesheet", type_ "text/css", href_ "static/statuses-229a13b850.css"]
       script_ [type_ "text/javascript", src_ "static/script-32964cd17f.js"] ("" :: String)
       meta_ [makeAttribute "version" (show gitCommit)]
-  where
-    prefix = faviconPrefix (overallStatus buildStatuses)
 
 faviconPrefix :: (IsString p) => O.OverallStatus -> p
 faviconPrefix status
@@ -80,15 +89,18 @@ faviconPrefix status
   | status `elem` [O.Warning, O.Unknown] = "warning"
   | otherwise = "failed"
 
-pageBody :: ViewMode -> DataUpdateIntervalSeconds -> JobsView -> UTCTime -> BuildStatuses -> Html ()
-pageBody viewMode dataUpdateInterval jobsView now buildStatuses = body_ $ do
-  (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ do
-    statusesToHtml viewMode dataUpdateInterval now buildStatuses
+pageBody :: Frontend
+pageBody = body_ $ do
+  viewMode <- asks frontendStateViewMode
+  dataUpdateInterval <- asks frontendStateDataUpdateInterval
+  now <- asks frontendStateNow
+  buildStatuses <- asks frontendStateBuildStatuses
+  (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ statusesToHtml viewMode dataUpdateInterval now buildStatuses
   section_ [class_ "statuses"] $ do
-    linkToViewToggle viewMode
-    linkToJobs jobsView
+    linkToViewToggle
+    linkToJobs
 
-statusesToHtml :: ViewMode -> DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Html ()
+statusesToHtml :: ViewMode -> DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Frontend
 statusesToHtml viewMode _ _ NoSuccessfulUpdateYet = (if viewMode == Grouped then section_ [class_ "statuses-grouped"] else Relude.id) $ div_ [class_ "status no-successful-update"] $ p_ "There was no successful update yet"
 statusesToHtml viewMode dataUpdateInterval now (Statuses (lastUpdated, [])) = (if viewMode == Grouped then section_ [class_ "statuses-grouped"] else Relude.id) $ do
   emptyResults
@@ -103,7 +115,7 @@ statusesToHtml Plain dataUpdateInterval now (Statuses (lastUpdated, results)) = 
   traverse_ resultToHtml results
   lastUpdatedToHtml dataUpdateInterval now lastUpdated
 
-resultToHtml :: Result -> Html ()
+resultToHtml :: (Monad m) => Result -> HtmlT m ()
 resultToHtml Result {..} =
   a_ [href_ (either show show url), target_ "_blank", classesForStatus buildStatus, title_ (buildStatusToString buildStatus)] $ div_ (toHtml name)
   where
@@ -135,13 +147,20 @@ resultToHtml Result {..} =
     buildStatusToString SuccessfulWithWarnings = "successful with warnings"
     buildStatusToString WaitingForResource = "waiting for resource"
 
-emptyResults :: Html ()
+emptyResults :: (Monad m) => HtmlT m ()
 emptyResults = div_ [class_ "status empty-results"] $ p_ "No pipeline results for default branches found"
 
-linkToJobs :: JobsView -> Html ()
-linkToJobs Disabled = mempty
-linkToJobs Enabled = div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-jobs", href_ "/builds/jobs"] "Go to the currently running jobs"
+linkToJobs :: Frontend
+linkToJobs = do
+  jobsView <- asks frontendStateJobsView
+  case jobsView of
+    Enabled -> div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-jobs", href_ "/builds/jobs"] "Go to the currently running jobs"
+    Disabled -> mempty
 
-linkToViewToggle :: ViewMode -> Html ()
-linkToViewToggle Grouped = div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ "?view=plain"] "Switch to plain view"
-linkToViewToggle Plain = div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ "?view=grouped"] "Switch to grouped view"
+linkToViewToggle :: Frontend
+linkToViewToggle = do
+  viewMode <- asks frontendStateViewMode
+  let (href, txt) = case viewMode of
+        Plain -> ("?view=grouped", "Switch to grouped view")
+        Grouped -> ("?view=plain", "Switch to plain view")
+  div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ href] txt

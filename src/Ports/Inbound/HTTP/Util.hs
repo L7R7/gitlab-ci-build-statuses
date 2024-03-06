@@ -27,7 +27,7 @@ instance ToHtml (Id a) where
 
 deriving newtype instance ToHtml (Name a)
 
-lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> Html ()
+lastUpdatedToHtml :: (Monad m) => DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> HtmlT m ()
 lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = div_ ([class_ classes] <> staleDataTitle) $ div_ $ do
   p_ "Last Update at:"
   p_ [id_ "update-timestamp"] $ toHtml (iso8601Show lastUpdate)
