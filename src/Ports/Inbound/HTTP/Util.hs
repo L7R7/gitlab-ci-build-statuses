@@ -3,17 +3,12 @@
 
 module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), lastUpdatedToHtml) where
 
-import Core.BuildStatuses (BuildStatus (..))
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
+import Lucid
 import Relude
 import Servant (FromHttpApiData (..))
-import Text.Blaze.Html
-import Text.Blaze.Html5
-import Text.Blaze.Html5 qualified as H
-import Text.Blaze.Html5.Attributes
-import Text.Blaze.Html5.Attributes qualified as A
 
 data AutoRefresh = Refresh | NoRefresh deriving stock (Eq)
 
@@ -26,44 +21,21 @@ viewModeToText Grouped = "grouped"
 instance FromHttpApiData ViewMode where
   parseQueryParam = maybeToRight "can't parse ViewMode param" . inverseMap viewModeToText
 
-instance ToValue (Url a) where
-  toValue (Url url) = toValue @String (show url)
+instance ToHtml (Id a) where
+  toHtml (Id i) = toHtml @String (show i)
+  toHtmlRaw (Id i) = toHtmlRaw @String (show i)
 
-deriving newtype instance ToMarkup (Id a)
+deriving newtype instance ToHtml (Name a)
 
-deriving newtype instance ToMarkup (Name a)
-
-lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> Html
-lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = H.div
-  ! class_ classes
-  ! staleDataTitle
-  $ H.div
-  $ do
-    p "Last Update at:"
-    p ! A.id "update-timestamp" $ toHtml (iso8601Show lastUpdate)
+lastUpdatedToHtml :: DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> Html ()
+lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = div_ ([class_ classes] <> staleDataTitle) $ div_ $ do
+  p_ "Last Update at:"
+  p_ [id_ "update-timestamp"] $ toHtml (iso8601Show lastUpdate)
   where
     lastUpdateTooOld = diffUTCTime now lastUpdate > fromIntegral (3 * updateInterval)
     staleDataTitle
-      | lastUpdateTooOld = A.title "data is stale. Please check the logs"
+      | lastUpdateTooOld = [title_ "data is stale. Please check the logs"]
       | otherwise = mempty
     classes
       | lastUpdateTooOld = "job status timestamp cancelled"
       | otherwise = "job status timestamp"
-
-instance ToMarkup BuildStatus where
-  toMarkup Unknown = string "unknown"
-  toMarkup Cancelled = string "cancelled"
-  toMarkup Created = string "created"
-  toMarkup Failed = string "failed"
-  toMarkup Manual = string "manual"
-  toMarkup Pending = string "pending"
-  toMarkup Preparing = string "preparing"
-  toMarkup Running = string "running"
-  toMarkup Scheduled = string "scheduled"
-  toMarkup Skipped = string "skipped"
-  toMarkup Successful = string "successful"
-  toMarkup SuccessfulWithWarnings = string "successful with warnings"
-  toMarkup WaitingForResource = string "waiting for resource"
-
-instance ToValue BuildStatus where
-  toValue = toValue @String . show

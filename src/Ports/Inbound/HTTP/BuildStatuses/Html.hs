@@ -18,6 +18,8 @@ import Core.OverallStatus qualified as O (OverallStatus (Successful, Unknown, Wa
 import Core.Shared
 import Data.Map qualified as M
 import Data.Time (UTCTime)
+import Lucid
+import Lucid.Base (makeAttribute)
 import Path (toFilePath)
 import Polysemy
 import Polysemy.Reader qualified as R
@@ -26,11 +28,9 @@ import Polysemy.Time qualified as Time
 import Ports.Inbound.HTTP.Util
 import Relude
 import Servant
-import Servant.HTML.Blaze (HTML)
-import Text.Blaze.Html5 as H
-import Text.Blaze.Html5.Attributes as A hiding (icon, name)
+import Servant.HTML.Lucid
 
-type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> Get '[HTML] H.Html
+type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> Get '[HTML] (Html ())
 
 template ::
   ( Member BuildStatusesApi r,
@@ -42,7 +42,7 @@ template ::
   ) =>
   ViewMode ->
   AutoRefresh ->
-  Sem r Html
+  Sem r (Html ())
 template viewMode autoRefresh = do
   jobsView <- R.ask
   dataUpdateInterval <- R.ask
@@ -51,25 +51,25 @@ template viewMode autoRefresh = do
   now <- Time.now
   template' now jobsView dataUpdateInterval uiUpdateInterval gitCommit autoRefresh viewMode <$> getStatuses
 
-template' :: UTCTime -> JobsView -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> ViewMode -> BuildStatuses -> Html
+template' :: UTCTime -> JobsView -> DataUpdateIntervalSeconds -> UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> ViewMode -> BuildStatuses -> Html ()
 template' now jobsView dataUpdateInterval uiUpdateInterval gitCommit autoRefresh viewMode buildStatuses = do
   pageHeader uiUpdateInterval gitCommit autoRefresh buildStatuses
   pageBody viewMode dataUpdateInterval jobsView now buildStatuses
 
-pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html
-pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildStatuses =
-  docTypeHtml
-    ! lang "en"
-    $ H.head
+pageHeader :: UiUpdateIntervalSeconds -> GitCommit -> AutoRefresh -> BuildStatuses -> Html ()
+pageHeader (UiUpdateIntervalSeconds updateInterval) gitCommit autoRefresh buildStatuses = do
+  doctype_
+  html_ [lang_ "en"]
+    $ head_
     $ do
-      meta ! charset "UTF-8"
-      when (autoRefresh == Refresh) $ meta ! httpEquiv "Refresh" ! content (toValue updateInterval)
-      H.title "Build Statuses"
-      link ! rel "icon" ! type_ "image/png" ! href ("static/" <> prefix <> "-favicon.ico")
-      link ! rel "stylesheet" ! type_ "text/css" ! href "static/normalize-d6d444a732.css"
-      link ! rel "stylesheet" ! type_ "text/css" ! href "static/statuses-229a13b850.css"
-      script ! type_ "text/javascript" ! src "static/script-32964cd17f.js" $ mempty
-      textComment . toText $ ("Version: " <> show gitCommit :: String)
+      meta_ [charset_ "UTF-8"]
+      when (autoRefresh == Refresh) $ meta_ [httpEquiv_ "Refresh", content_ (show updateInterval)]
+      title_ "Build Statuses"
+      link_ [rel_ "icon", type_ "image/png", href_ ("static/" <> prefix <> "-favicon.ico")]
+      link_ [rel_ "stylesheet", type_ "text/css", href_ "static/normalize-d6d444a732.css"]
+      link_ [rel_ "stylesheet", type_ "text/css", href_ "static/statuses-229a13b850.css"]
+      script_ [type_ "text/javascript", src_ "static/script-32964cd17f.js"] ("" :: String)
+      meta_ [makeAttribute "version" (show gitCommit)]
   where
     prefix = faviconPrefix (overallStatus buildStatuses)
 
@@ -80,32 +80,32 @@ faviconPrefix status
   | status `elem` [O.Warning, O.Unknown] = "warning"
   | otherwise = "failed"
 
-pageBody :: ViewMode -> DataUpdateIntervalSeconds -> JobsView -> UTCTime -> BuildStatuses -> Html
-pageBody viewMode dataUpdateInterval jobsView now buildStatuses = H.body $ do
-  (if viewMode == Plain then section ! class_ "statuses" else Relude.id) $ do
+pageBody :: ViewMode -> DataUpdateIntervalSeconds -> JobsView -> UTCTime -> BuildStatuses -> Html ()
+pageBody viewMode dataUpdateInterval jobsView now buildStatuses = body_ $ do
+  (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ do
     statusesToHtml viewMode dataUpdateInterval now buildStatuses
-  section ! class_ "statuses" $ do
+  section_ [class_ "statuses"] $ do
     linkToViewToggle viewMode
     linkToJobs jobsView
 
-statusesToHtml :: ViewMode -> DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Html
-statusesToHtml viewMode _ _ NoSuccessfulUpdateYet = (if viewMode == Grouped then section ! class_ "statuses-grouped" else Relude.id) $ H.div ! class_ "status no-successful-update" $ p "There was no successful update yet"
-statusesToHtml viewMode dataUpdateInterval now (Statuses (lastUpdated, [])) = (if viewMode == Grouped then section ! class_ "statuses-grouped" else Relude.id) $ do
+statusesToHtml :: ViewMode -> DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Html ()
+statusesToHtml viewMode _ _ NoSuccessfulUpdateYet = (if viewMode == Grouped then section_ [class_ "statuses-grouped"] else Relude.id) $ div_ [class_ "status no-successful-update"] $ p_ "There was no successful update yet"
+statusesToHtml viewMode dataUpdateInterval now (Statuses (lastUpdated, [])) = (if viewMode == Grouped then section_ [class_ "statuses-grouped"] else Relude.id) $ do
   emptyResults
   lastUpdatedToHtml dataUpdateInterval now lastUpdated
 statusesToHtml Grouped dataUpdateInterval now (Statuses (lastUpdated, results)) = do
   let grouped = M.toAscList $ M.fromListWith (flip (<>)) ((\r -> (namespace r, [r])) <$> results)
-  forM_ grouped $ \(ProjectNamespaceFullPath path, r) -> section ! class_ "statuses-grouped" $ do
-    H.div ! class_ "status subgroup-name" $ H.div $ toHtml (toFilePath path)
-    toHtml (resultToHtml <$> r)
+  forM_ grouped $ \(ProjectNamespaceFullPath path, r) -> section_ [class_ "statuses-grouped"] $ do
+    div_ [class_ "status subgroup-name"] $ div_ $ toHtml (toFilePath path)
+    traverse resultToHtml r
   lastUpdatedToHtml dataUpdateInterval now lastUpdated
 statusesToHtml Plain dataUpdateInterval now (Statuses (lastUpdated, results)) = do
-  toHtml (resultToHtml <$> results)
+  traverse_ resultToHtml results
   lastUpdatedToHtml dataUpdateInterval now lastUpdated
 
-resultToHtml :: Result -> Html
+resultToHtml :: Result -> Html ()
 resultToHtml Result {..} =
-  a ! href (either toValue toValue url) ! target "_blank" ! classesForStatus buildStatus ! A.title (toValue buildStatus) $ H.div (toHtml name)
+  a_ [href_ (either show show url), target_ "_blank", classesForStatus buildStatus, title_ (buildStatusToString buildStatus)] $ div_ (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Cancelled = class_ "status cancelled"
@@ -121,13 +121,27 @@ resultToHtml Result {..} =
     classesForStatus SuccessfulWithWarnings = class_ "status passed-with-warnings"
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
-emptyResults :: Html
-emptyResults = H.div ! class_ "status empty-results" $ p "No pipeline results for default branches found"
+    buildStatusToString Unknown = "unknown"
+    buildStatusToString Cancelled = "cancelled"
+    buildStatusToString Created = "created"
+    buildStatusToString Failed = "failed"
+    buildStatusToString Manual = "manual"
+    buildStatusToString Pending = "pending"
+    buildStatusToString Preparing = "preparing"
+    buildStatusToString Running = "running"
+    buildStatusToString Scheduled = "scheduled"
+    buildStatusToString Skipped = "skipped"
+    buildStatusToString Successful = "successful"
+    buildStatusToString SuccessfulWithWarnings = "successful with warnings"
+    buildStatusToString WaitingForResource = "waiting for resource"
 
-linkToJobs :: JobsView -> Html
+emptyResults :: Html ()
+emptyResults = div_ [class_ "status empty-results"] $ p_ "No pipeline results for default branches found"
+
+linkToJobs :: JobsView -> Html ()
 linkToJobs Disabled = mempty
-linkToJobs Enabled = H.div ! class_ "status" $ H.div $ a ! class_ "link-to-jobs" ! href "/builds/jobs" $ "Go to the currently running jobs"
+linkToJobs Enabled = div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-jobs", href_ "/builds/jobs"] "Go to the currently running jobs"
 
-linkToViewToggle :: ViewMode -> Html
-linkToViewToggle Grouped = H.div ! class_ "status" $ H.div $ a ! class_ "link-to-view-toggle" ! href "?view=plain" $ "Switch to plain view"
-linkToViewToggle Plain = H.div ! class_ "status" $ H.div $ a ! class_ "link-to-view-toggle" ! href "?view=grouped" $ "Switch to grouped view"
+linkToViewToggle :: ViewMode -> Html ()
+linkToViewToggle Grouped = div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ "?view=plain"] "Switch to plain view"
+linkToViewToggle Plain = div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ "?view=grouped"] "Switch to grouped view"
