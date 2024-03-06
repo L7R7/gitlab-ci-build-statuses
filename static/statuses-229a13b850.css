@@ -38,17 +38,17 @@ body {
     margin: auto;
 }
 
-.empty-results, .no-successful-update, .timestamp, .link-to-jobs, .subgroup-name, .link-to-view-toggle {
+.empty-results, .no-successful-update, .timestamp, .link-to-jobs, .subgroup-name, .link-to-view-toggle, .link-to-refresh-toggle {
     background-color: transparent;
     color: white;
 }
 
-.timestamp, .link-to-jobs, .link-to-view-toggle {
+.timestamp, .link-to-jobs, .link-to-view-toggle, .link-to-refresh-toggle {
     line-height: 1.2;
     font-size: smaller;
 }
 
-a.link-to-jobs, a.link-to-view-toggle {
+a.link-to-jobs, a.link-to-view-toggle, a.link-to-refresh-toggle {
     font-weight: normal;
 }
 

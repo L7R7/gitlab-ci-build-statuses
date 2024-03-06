@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), lastUpdatedToHtml) where
+module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), FilterMode (..), lastUpdatedToHtml) where
 
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import Lucid
 import Relude
-import Servant (FromHttpApiData (..))
+import Servant (FromHttpApiData (..), ToHttpApiData (..))
 
 data AutoRefresh = Refresh | NoRefresh deriving stock (Eq)
 
@@ -20,6 +20,9 @@ viewModeToText Grouped = "grouped"
 
 instance FromHttpApiData ViewMode where
   parseQueryParam = maybeToRight "can't parse ViewMode param" . inverseMap viewModeToText
+
+instance ToHttpApiData ViewMode where
+  toQueryParam = viewModeToText
 
 instance ToHtml (Id a) where
   toHtml (Id i) = toHtml @String (show i)

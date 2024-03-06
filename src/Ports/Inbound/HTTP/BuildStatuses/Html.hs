@@ -98,6 +98,7 @@ pageBody = body_ $ do
   (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ statusesToHtml viewMode dataUpdateInterval now buildStatuses
   section_ [class_ "statuses"] $ do
     linkToViewToggle
+    linkToAutoRefreshToggle
     linkToJobs
 
 statusesToHtml :: ViewMode -> DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Frontend
@@ -159,8 +160,25 @@ linkToJobs = do
 
 linkToViewToggle :: Frontend
 linkToViewToggle = do
-  viewMode <- asks frontendStateViewMode
-  let (href, txt) = case viewMode of
-        Plain -> ("?view=grouped", "Switch to grouped view")
-        Grouped -> ("?view=plain", "Switch to plain view")
-  div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ href] txt
+  frontendState <- ask
+  let viewMode = frontendStateViewMode frontendState
+      toggle Grouped = Plain
+      toggle Plain = Grouped
+      txt = case viewMode of
+        Plain -> "Switch to grouped view"
+        Grouped -> "Switch to plain view"
+  div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-view-toggle", href_ (toUrlPiece (linkForState (frontendState {frontendStateViewMode = toggle viewMode})))] txt
+
+linkToAutoRefreshToggle :: Frontend
+linkToAutoRefreshToggle = do
+  frontendState <- ask
+  let autoRefresh = frontendStateAutoRefresh frontendState
+      toggle Refresh = NoRefresh
+      toggle NoRefresh = Refresh
+      txt = case autoRefresh of
+        Refresh -> "Disable auto refresh"
+        NoRefresh -> "Enable auto refresh"
+  div_ [class_ "status"] $ div_ $ a_ [class_ "link-to-refresh-toggle", href_ (toUrlPiece (linkForState (frontendState {frontendStateAutoRefresh = toggle autoRefresh})))] txt
+
+linkForState :: FrontendState -> Link
+linkForState frontendState = safeLink (Proxy @API) (Proxy @API) (Just (frontendStateViewMode frontendState)) (frontendStateAutoRefresh frontendState == NoRefresh)
