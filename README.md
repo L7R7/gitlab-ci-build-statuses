@@ -10,6 +10,7 @@ Optionally, collect information about the pipeline jobs that are running at the 
 * Lightweight UI
     * Plain HTML and CSS, barely any JS involved
     * Refreshes automatically, so you always see the latest statuses
+    * You can filter out successful pipelines, if you only want to see those pipelines that might need some attention.
     * The favicon will show an indicator summarizing all statuses, so you can directly see if everything is fine (this is especially helpful if you pin the tab in your browser)
     * Direct links to the pipeline/job, so you can get to the details fast
 * Production-ready Docker container including Prometheus metrics, health endpoint, and configurable structured JSON logging
@@ -95,10 +96,11 @@ The app exposes the following endpoints:
 This page will automatically refresh using the configured UI update interval.
 You can choose between a plain view of projects and a grouped view, in which the tiles will be arranged according to the subgropus in your group.
 There's a link on the page to toggle the view, you can also use the `view` query parameter to choose. Possible values are `plain` and `grouped`, the former being the default.
-You can use the query flag `norefresh` to disable that (this is probably only helpful for debugging)
+You can use the query flag `norefresh` to disable that (this is helpful if you're using a screen reader or for debugging purposes).
+You can use the `filter` query parameter to switch between all pipelines and only the pipelines that are not successful.
 * `/jobs`: Responds with an HTML page that shows the current running jobs on the online runners.
 This page will automatically refresh using the configured UI update interval.
-You can use the query flag `norefresh` to disable that (this is probably only helpful for debugging)
+You can use the query flag `norefresh` to disable that (this is helpful if you're using a screen reader or for debugging purposes)
 * `/health`: Responds with a status indicating if the app is ready to serve requests.
 The status code will be either 200 or 503, the body will always be JSON and will include a `status` field that's either "HEALTHY" or "UNHEALTHY" alongside a `build` field that shows which version of the code is running
 * `/metrics`: Returns [Prometheus](https://prometheus.io/) application metrics

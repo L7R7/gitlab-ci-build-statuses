@@ -40,6 +40,11 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
+  - github: L7R7/gitlab-api
+    commit: 360a5eefb296a5dab50416280e01f6edac6950de
+    subdirs:
+      - gitlab-api-http-client
+      - gitlab-api-types
   - higgledy-0.4.2.0@sha256:7be6bd61fb75cfd04d0b292b61afe0a0548fe726311bdf5484d446bec3a7bebc,2260
   - polysemy-time-0.2.0.3@sha256:f649a1c9e9c7d59f18a29e8cb48667233376d949e68df68f5db4b08ad6421ae9,4746
   - validation-selective-0.1.0.2@sha256:c878846bfffeba69efa3b4866025f249656e0e0a129fed6d446eb602382d328b,3856

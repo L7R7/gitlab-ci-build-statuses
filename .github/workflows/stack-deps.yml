@@ -1,0 +1,44 @@
+name: Update Haskell Stack dependencies
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  update-stack:
+    permissions:
+      contents: write
+      pull-requests: write
+    name: Update dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-no-global: true
+
+      - name: Update stack dependencies
+        id: bump-deps
+        uses: stevemao/dep-haskell-stack@v2.0.0
+
+      - name: Create Pull Request
+        id: pr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          branch: '${{vars.AL_VERSION}}-${{steps.bump-deps.outputs.new-resolver}}'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message:
+            'Update resolver from ${{steps.bump-deps.outputs.previous-resolver}}
+            to ${{steps.bump-deps.outputs.new-resolver}}'
+          title:
+            'Update resolver from ${{steps.bump-deps.outputs.previous-resolver}}
+            to ${{steps.bump-deps.outputs.new-resolver}}'
