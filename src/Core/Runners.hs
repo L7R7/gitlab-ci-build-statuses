@@ -29,7 +29,7 @@ import Relude
 
 data Runner = Runner
   { runnerId :: Id Runner,
-    runnerName :: Name Runner,
+    runnerName :: Maybe (Name Runner),
     runnerDescription :: Description,
     runnerIpAddress :: IpAddress,
     runnerTagList :: [Tag]
