@@ -93,7 +93,7 @@ library
     , path
     , polysemy >=1.7
     , polysemy-plugin >=0.4.3.0
-    , polysemy-time ==0.2.0.3
+    , polysemy-time
     , prometheus-client
     , prometheus-metrics-ghc
     , relude >=1.0.0.1
