@@ -112,8 +112,7 @@ runnerToHtml Runner {..} =
     <> toHtml runnerId
     <> " - "
     <> toHtml runnerDescription
-    <> " - @"
-    <> toHtml runnerIpAddress
+    <> foldMap (\ip -> " - @" <> toHtml ip) runnerIpAddress
     <> " -"
     <> foldMap (\t -> " #" <> toHtml t) runnerTagList
 

@@ -31,7 +31,7 @@ data Runner = Runner
   { runnerId :: Id Runner,
     runnerName :: Maybe (Name Runner),
     runnerDescription :: Description,
-    runnerIpAddress :: IpAddress,
+    runnerIpAddress :: Maybe IpAddress,
     runnerTagList :: [Tag]
   }
   deriving stock (Eq, Generic)
