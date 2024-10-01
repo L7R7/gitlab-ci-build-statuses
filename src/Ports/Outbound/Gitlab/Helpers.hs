@@ -7,9 +7,10 @@ module Ports.Outbound.Gitlab.Helpers (fetchData, fetchDataPaginated) where
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost)
 import Control.Exception (try)
-import Core.Shared (UpdateError (..), Url (..))
+import Core.Shared (UpdateError (..))
 import Data.Aeson hiding (Result, Value)
 import Data.Either.Combinators (mapLeft)
+import Gitlab.Lib (Url (..))
 import Metrics.Metrics (OutgoingHttpRequestsHistogram (..))
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
 import Network.HTTP.Simple (Request, getResponseBody, getResponseStatus, httpLBS, parseRequest)

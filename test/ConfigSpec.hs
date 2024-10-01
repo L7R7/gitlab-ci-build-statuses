@@ -5,6 +5,7 @@ module ConfigSpec where
 
 import Config.Config
 import Core.Shared
+import Gitlab.Lib (Id (..), Url (..))
 import Katip
 import Network.URI.Static
 import Relude

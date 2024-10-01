@@ -10,11 +10,14 @@ module Ports.Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds))
 import Core.BuildStatuses
-import Core.Runners (Description (..), IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..), Tag (..))
-import Core.Shared (Group, Id, UpdateError, Url (..))
+import Core.Runners (Job (..), RunnersApi (..), Stage (..))
+import Core.Shared (UpdateError)
 import Data.Aeson
-import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Cache
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id (..), Url)
+import Gitlab.Project (Project (..))
+import Gitlab.Runner
 import Metrics.Metrics (CacheResult (..), CacheTag (CacheTag), MetricsApi, OutgoingHttpRequestsHistogram, recordCacheLookupResult)
 import Polysemy
 import Polysemy.Reader qualified as R
@@ -87,7 +90,7 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
         (Just runners) -> pure (Right runners, Hit)
         Nothing -> do
           projects <- getProjectsNotOnExcludeListOrEmpty groupId
-          result <- sequence <$> traverse (\(Project projectId _ _ _ _) -> fmap (projectId,) <$> getRunnersForProject projectId) projects
+          result <- sequence <$> traverse (\project -> let pId = projectId project in fmap (pId,) <$> getRunnersForProject pId) projects
           embed $ traverse_ (insert projectCache groupId) result
           pure (result, Miss)
     recordCacheLookupResult (CacheTag "project-runners") cacheResult
@@ -124,13 +127,17 @@ instance FromJSON Job where
     jobWebUrl <- job .: "web_url"
     pure Job {..}
 
+-- todo derive via codec
 deriving newtype instance FromJSON Stage
 
+-- todo derive via codec
 deriving newtype instance FromJSON IpAddress
 
-instance FromJSON Runner where
-  parseJSON = genericParseJSON $ aesonPrefix snakeCase
-
+-- todo derive via codec
 deriving newtype instance FromJSON Description
 
-deriving newtype instance FromJSON Tag
+-- todo derive via codec
+deriving newtype instance FromJSON RunnerTag
+
+-- todo: move to gitlab-api-types?
+deriving newtype instance Hashable (Id a)

@@ -10,7 +10,8 @@ module Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO) where
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost)
 import Core.BuildStatuses (PipelinesApi (..))
-import Core.Shared (Id (Id), Ref (Ref), UpdateError (..), Url (..))
+import Core.Shared (UpdateError (..))
+import Gitlab.Lib (Id (..), Ref (..), Url (..))
 import Metrics.Metrics (OutgoingHttpRequestsHistogram)
 import Polysemy
 import Polysemy.Reader qualified as R

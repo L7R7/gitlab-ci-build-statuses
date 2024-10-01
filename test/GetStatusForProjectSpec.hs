@@ -6,8 +6,10 @@ module GetStatusForProjectSpec where
 
 import Config.Config (ExtraProjectsList (ExtraProjectsList), ProjectExcludeList (ProjectExcludeList))
 import Core.BuildStatuses
-import Core.Shared
 import Data.Map qualified as M
+import Gitlab.Job (JobStatus (..))
+import Gitlab.Lib (EnabledDisabled (..), Id (..), Name (..), Ref (..), Url (..))
+import Gitlab.Project
 import Network.URI.Static
 import Path
 import Polysemy
@@ -45,8 +47,8 @@ spec = do
         . projectsApiFromMap
           ( M.fromList
               [ ( Id 42,
-                  [ Project (Id 312) (Name "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing (ProjectNamespace (Id 12) (ProjectNamespaceFullPath $(mkRelDir "foo"))),
-                    Project (Id 311) (Name "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main") (ProjectNamespace (Id 13) (ProjectNamespaceFullPath $(mkRelDir "bar")))
+                  [ Project (Id 312) (Name "myProj") (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")) Nothing True Merge (ProjectNamespace (Id 12) (ProjectNamespaceFullPath $(mkRelDir "foo"))) "/foo" ($(mkRelDir "foo")) Nothing Nothing Nothing Nothing "foo.ssh",
+                    Project (Id 311) (Name "my-other-project") (Url $$(staticURI "https://my.gitlab.com/projects/311/bar")) (Just $ Ref "main") True FastForward (ProjectNamespace (Id 13) (ProjectNamespaceFullPath $(mkRelDir "bar"))) "/bar" ($(mkRelDir "bar")) (Just True) (Just False) (Just True) (Just Enabled) "bar.sh"
                   ]
                 )
               ]

@@ -14,10 +14,12 @@ import Config.Backbone
 import Config.Config
 import Core.Runners hiding (getJobs)
 import Core.Runners qualified as R (getJobs)
-import Core.Shared (DataUpdateIntervalSeconds, Ref (Ref))
+import Core.Shared (DataUpdateIntervalSeconds)
 import Data.Map (toList)
 import Data.Text qualified as T
 import Data.Time (UTCTime)
+import Gitlab.Lib (Ref (..))
+import Gitlab.Runner
 import Lucid
 import Lucid.Base (commuteHtmlT, makeAttribute)
 import Polysemy
@@ -133,7 +135,7 @@ deriving newtype instance ToHtml IpAddress
 
 deriving newtype instance ToHtml Description
 
-deriving newtype instance ToHtml Core.Runners.Tag
+deriving newtype instance ToHtml RunnerTag
 
 truncateRef :: (Monad m) => Ref -> HtmlT m ()
 truncateRef (Ref ref) | T.length ref <= 26 = toHtml ref

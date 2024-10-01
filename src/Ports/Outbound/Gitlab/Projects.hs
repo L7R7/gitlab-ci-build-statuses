@@ -9,11 +9,13 @@ module Ports.Outbound.Gitlab.Projects (initCache, projectsApiToIO, projectsWitho
 
 import Burrito
 import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), ProjectExcludeList (ProjectExcludeList), SharedProjects (Exclude, Include))
-import Core.BuildStatuses (Project (projectId), ProjectsApi (..), ProjectsWithoutExcludesApi (..), getProjects)
+import Core.BuildStatuses (ProjectsApi (..), ProjectsWithoutExcludesApi (..), getProjects)
 import Core.Effects
-import Core.Shared (Group, Id (..), Url (..))
 import Data.Aeson (ToJSON)
 import Data.Cache
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id (..), Url (..))
+import Gitlab.Project (Project (..))
 import Metrics.Metrics (CacheResult (..), CacheTag (CacheTag), MetricsApi, OutgoingHttpRequestsHistogram, recordCacheLookupResult)
 import Polysemy
 import Polysemy.Reader qualified as R
@@ -53,7 +55,7 @@ projectsApiToIO = interpret $ \case
       case cached of
         (Just projects) -> pure (Right projects, Hit)
         Nothing -> do
-          let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false{&with_shared}|]
+          let template = [uriTemplate|/api/v4/groups/{groupId}/projects?include_subgroups=true&archived=false{&with_shared}|]
           result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId), ("with_shared", withShared sharedProjects)] histogram
           traverse_ (insert cache groupId) result
           pure (result, Miss)
@@ -82,4 +84,8 @@ projectsWithoutExcludesApiInTermsOfProjects = interpret $ \case
           let filtered = filter (\p -> projectId p `notElem` excludeList) ps
           pure filtered
 
+-- todo derive via codec
 deriving newtype instance ToJSON (Id a)
+
+-- todo: move to gitlab-api-types?
+deriving newtype instance Hashable (Id a)

@@ -10,6 +10,8 @@ import Config.Config (ProjectExcludeList)
 import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Runners
 import Core.Shared
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id)
 import Metrics.Metrics
 import Polysemy
 import Polysemy.Reader qualified as R

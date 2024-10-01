@@ -7,6 +7,12 @@ extra-deps:
   - higgledy-0.4.2.1@sha256:51ed682047dfef1c3640a32adc59f1d350044dbb69ba04264462e7df11bc6c35,2380
   - polysemy-time-0.7.0.0@sha256:da0a87c16fa520710e883e9669d55ea262643783eda492d1a1bc7b1a3cc63786,4123
   - validation-selective-0.2.0.0@sha256:cc847f1a110e3b1bd437a5356f115881b61cafcb11781b570b180efd88bf0907,3917
+  - validity-network-uri-0.0.0.1@sha256:ecb0b4e62b6a4620e1049340371441667a5ccbe5d76b225f74ac6767357da29a,926
+  - validity-path-0.4.0.1@sha256:559046896c92ddb2b1f831c8d6b33a07246d9e98a6e27d226f451ee69af882d0,1432
+  - github: L7R7/gitlab-api
+    commit: e3bd8278e19154adcf17ecad293d8ef07c1f006b
+    subdirs:
+      - gitlab-api-types
 
 ghc-options:
   $everything: -split-sections

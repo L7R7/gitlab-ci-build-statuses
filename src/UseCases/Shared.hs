@@ -2,7 +2,7 @@
 
 module UseCases.Shared () where
 
-import Core.Shared
 import Data.Aeson (ToJSON)
+import Gitlab.Lib (Id (..))
 
 deriving newtype instance ToJSON (Id a)

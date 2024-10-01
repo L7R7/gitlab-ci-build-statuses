@@ -10,17 +10,19 @@ module Core.Jobs
   )
 where
 
-import Core.BuildStatuses (BuildStatus, Project)
 import Core.Shared
+import Gitlab.Job (JobStatus)
+import Gitlab.Lib (Id)
+import Gitlab.Project (Project)
 import Polysemy (makeSem)
 import Relude
 
 data Job = Job
   { jobId :: Id Job,
-    jobStatus :: BuildStatus
+    jobStatus :: JobStatus
   }
 
 data JobsApi m a where
-  GetJobsWithStatuses :: Id Project -> NonEmpty BuildStatus -> JobsApi m (Either UpdateError [Job])
+  GetJobsWithStatuses :: Id Project -> NonEmpty JobStatus -> JobsApi m (Either UpdateError [Job])
 
 makeSem ''JobsApi

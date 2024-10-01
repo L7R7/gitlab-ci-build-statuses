@@ -6,6 +6,7 @@ module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), FilterMode (..)
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
+import Gitlab.Lib (Id (..), Name (..))
 import Lucid
 import Relude
 import Servant (FromHttpApiData (..), ToHttpApiData (..))

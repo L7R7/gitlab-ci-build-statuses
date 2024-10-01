@@ -57,6 +57,7 @@ library:
     - either
     - extra
     - githash
+    - gitlab-api-types
     - higgledy
     - http-conduit
     - http-link-header
@@ -106,6 +107,7 @@ tests:
     dependencies:
       - gitlab-ci-build-statuses
       - containers
+      - gitlab-api-types
       - hedgehog
       - hspec
       - hspec-hedgehog

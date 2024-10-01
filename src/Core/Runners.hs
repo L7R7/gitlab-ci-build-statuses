@@ -2,14 +2,11 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Core.Runners
-  ( Runner (..),
-    Description (..),
-    Tag (..),
-    Job (..),
+  ( Job (..),
     Stage (..),
-    IpAddress (..),
     RunnersJobs (..),
     RunnersApi (..),
     getOnlineRunnersForGroup,
@@ -21,27 +18,17 @@ module Core.Runners
   )
 where
 
-import Core.BuildStatuses (Project)
-import Core.Shared
+import Core.Shared (UpdateError)
 import Data.Time (UTCTime)
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id, Name, Ref, Url)
+import Gitlab.Project (Project)
+import Gitlab.Runner
 import Polysemy (makeSem)
 import Relude
 
-data Runner = Runner
-  { runnerId :: Id Runner,
-    runnerName :: Maybe (Name Runner),
-    runnerDescription :: Description,
-    runnerIpAddress :: Maybe IpAddress,
-    runnerTagList :: [Tag]
-  }
-  deriving stock (Eq, Generic)
-
 instance Ord Runner where
   compare r1 r2 = compare (runnerId r1) (runnerId r2)
-
-newtype Description = Description Text deriving newtype (Eq)
-
-newtype Tag = Tag Text deriving newtype (Eq)
 
 data Job = Job
   { jobId :: Id Job,
@@ -54,8 +41,6 @@ data Job = Job
   }
 
 newtype Stage = Stage Text
-
-newtype IpAddress = IpAddress Text deriving newtype (Eq)
 
 data RunnersJobs = NoSuccessfulUpdateYet | RunnersJobs (UTCTime, Map Runner [Job])
 

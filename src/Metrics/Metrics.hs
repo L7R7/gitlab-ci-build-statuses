@@ -27,7 +27,7 @@ module Metrics.Metrics
   )
 where
 
-import Core.BuildStatuses (BuildStatus, BuildStatusesApi, Result (..), getStatuses, isHealthy)
+import Core.BuildStatuses (BuildStatusesApi, Result (..), getStatuses, isHealthy)
 import Core.BuildStatuses qualified as B (BuildStatuses (..))
 import Core.Runners (RunnersJobsApi, getJobs)
 import Core.Runners qualified as R (RunnersJobs (..))
@@ -36,6 +36,7 @@ import Data.List.Extra (enumerate)
 import Data.Map hiding (partition)
 import Data.Text (toLower)
 import GHC.Clock (getMonotonicTime)
+import Gitlab.Job (JobStatus)
 import Metrics.PrometheusUtils (VectorWithLabel (VectorWithLabel))
 import Polysemy
 import Polysemy.Reader qualified as R
@@ -167,13 +168,13 @@ updatePipelinesOverviewMetricIO :: PipelinesOverviewGauge -> B.BuildStatuses -> 
 updatePipelinesOverviewMetricIO _ B.NoSuccessfulUpdateYet = pass
 updatePipelinesOverviewMetricIO overviewGauge (B.Statuses (_, results)) = traverse_ (updateSingle overviewGauge) (Data.Map.toList (countByBuildStatus results))
 
-updateSingle :: PipelinesOverviewGauge -> (BuildStatus, Double) -> IO ()
+updateSingle :: PipelinesOverviewGauge -> (JobStatus, Double) -> IO ()
 updateSingle (PipelinesOverviewGauge overviewGauge) (status, count) = withLabel overviewGauge ((toLower . show) status) (`setGauge` count)
 
-countByBuildStatus :: [Result] -> Map BuildStatus Double
+countByBuildStatus :: [Result] -> Map JobStatus Double
 countByBuildStatus results = countOccurrences buildStatus results `union` resetValues
 
-resetValues :: Map BuildStatus Double
+resetValues :: Map JobStatus Double
 resetValues = Data.Map.fromList $ (,0) <$> enumerate
 
 updateMetricsRegularly :: (Member BuildStatusesApi r, Member RunnersJobsApi r, Member MetricsApi r, Member (Time t d) r) => Sem r ()

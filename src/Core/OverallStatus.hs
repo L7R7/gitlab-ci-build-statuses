@@ -5,8 +5,9 @@ module Core.OverallStatus
   )
 where
 
-import Core.BuildStatuses (BuildStatus, BuildStatuses (..), Result (buildStatus))
-import Core.BuildStatuses qualified as B (BuildStatus (..))
+import Core.BuildStatuses (BuildStatuses (..), Result (buildStatus))
+import Gitlab.Job (JobStatus)
+import Gitlab.Job qualified as J (JobStatus (..))
 import Relude
 
 data OverallStatus
@@ -54,17 +55,17 @@ overallStatus :: BuildStatuses -> OverallStatus
 overallStatus NoSuccessfulUpdateYet = Unknown
 overallStatus (Statuses (_, statuses)) = foldMap (resultToOverall . buildStatus) statuses
 
-resultToOverall :: BuildStatus -> OverallStatus
-resultToOverall B.Unknown = Unknown
-resultToOverall B.Cancelled = Failed
-resultToOverall B.Created = Running
-resultToOverall B.Failed = Failed
-resultToOverall B.Manual = Warning
-resultToOverall B.Pending = Running
-resultToOverall B.Preparing = Running
-resultToOverall B.Running = Running
-resultToOverall B.Scheduled = Running
-resultToOverall B.Skipped = Warning
-resultToOverall B.Successful = Successful
-resultToOverall B.SuccessfulWithWarnings = Warning
-resultToOverall B.WaitingForResource = Warning
+resultToOverall :: JobStatus -> OverallStatus
+resultToOverall J.Unknown = Unknown
+resultToOverall J.Cancelled = Failed
+resultToOverall J.Created = Running
+resultToOverall J.Failed = Failed
+resultToOverall J.Manual = Warning
+resultToOverall J.Pending = Running
+resultToOverall J.Preparing = Running
+resultToOverall J.Running = Running
+resultToOverall J.Scheduled = Running
+resultToOverall J.Skipped = Warning
+resultToOverall J.Successful = Successful
+resultToOverall J.SuccessfulWithWarnings = Warning
+resultToOverall J.WaitingForResource = Warning

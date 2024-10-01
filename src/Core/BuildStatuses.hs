@@ -3,10 +3,10 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Core.BuildStatuses
-  ( BuildStatus (..),
-    BuildStatuses (..),
+  ( BuildStatuses (..),
     filterResults,
     Result (..),
     ProjectsApi (..),
@@ -22,24 +22,24 @@ module Core.BuildStatuses
     getSinglePipeline,
     DetailedPipeline (..),
     Pipeline (..),
-    Project (..),
-    ProjectNamespace (..),
-    ProjectNamespaceFullPath (..),
     isHealthy,
     toResult,
   )
 where
 
-import Core.Shared
+import Core.Shared (UpdateError)
 import Data.Time (UTCTime (..))
-import Path
+import Gitlab.Group
+import Gitlab.Job (JobStatus (..))
+import Gitlab.Lib (Id, Name, Ref, Url)
+import Gitlab.Project (Project (..), ProjectNamespace (..), ProjectNamespaceFullPath)
 import Polysemy
 import Relude
 
 data Pipeline = Pipeline
   { pipelineId :: Id Pipeline,
     pipelineRef :: Ref,
-    pipelineStatus :: BuildStatus,
+    pipelineStatus :: JobStatus,
     pipelineWebUrl :: Url Pipeline
   }
   deriving stock (Generic, Show)
@@ -54,26 +54,10 @@ data Result = Result
   { projId :: Id Project,
     name :: Name Project,
     namespace :: ProjectNamespaceFullPath,
-    buildStatus :: BuildStatus,
+    buildStatus :: JobStatus,
     url :: Either (Url Project) (Url Pipeline)
   }
   deriving stock (Eq, Show)
-
-data BuildStatus
-  = Unknown
-  | Cancelled
-  | Created
-  | Failed
-  | Manual
-  | Pending
-  | Preparing
-  | Running
-  | Scheduled
-  | Skipped
-  | Successful
-  | SuccessfulWithWarnings
-  | WaitingForResource
-  deriving stock (Bounded, Enum, Eq, Show, Ord)
 
 data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
 
@@ -84,31 +68,13 @@ filterResults (Statuses (t, res)) f = Statuses (t, filter f res)
 data DetailedPipeline = DetailedPipeline
   { detailedPipelineId :: Id Pipeline,
     detailedPipelineRef :: Ref,
-    detailedPipelineStatus :: BuildStatus,
+    detailedPipelineStatus :: JobStatus,
     detailedPipelineWebUrl :: Url Pipeline
   }
 
-data Project = Project
-  { projectId :: Id Project,
-    projectName :: Name Project,
-    projectWebUrl :: Url Project,
-    projectDefaultBranch :: Maybe Ref,
-    projectNamespace :: ProjectNamespace
-  }
-  deriving stock (Eq, Generic, Show)
-
+-- todo: is this right?
 instance Ord Project where
   p1 <= p2 = projectId p1 <= projectId p2
-
-data ProjectNamespace = ProjectNamespace
-  { projectNamespaceId :: Id ProjectNamespace,
-    projectNamespaceFullPath :: ProjectNamespaceFullPath
-  }
-  deriving stock (Eq, Generic, Show)
-
-newtype ProjectNamespaceFullPath = ProjectNamespaceFullPath (Path Rel Dir)
-  deriving stock (Generic)
-  deriving newtype (Eq, Ord, Show)
 
 data PipelinesApi m a where
   GetLatestPipelineForRef :: Id Project -> Ref -> PipelinesApi m (Either UpdateError Pipeline)
@@ -133,7 +99,7 @@ data BuildStatusesApi m a where
 
 makeSem ''BuildStatusesApi
 
-isHealthy :: BuildStatus -> Bool
+isHealthy :: JobStatus -> Bool
 isHealthy Unknown = False
 isHealthy Cancelled = False
 isHealthy Created = True
@@ -148,6 +114,6 @@ isHealthy Successful = True
 isHealthy SuccessfulWithWarnings = False
 isHealthy WaitingForResource = True
 
-toResult :: Project -> Maybe (BuildStatus, Url Pipeline) -> Result
+toResult :: Project -> Maybe (JobStatus, Url Pipeline) -> Result
 toResult Project {..} Nothing = Result projectId projectName (projectNamespaceFullPath projectNamespace) Unknown (Left projectWebUrl)
 toResult Project {..} (Just (status, url)) = Result projectId projectName (projectNamespaceFullPath projectNamespace) status (Right url)

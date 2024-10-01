@@ -8,9 +8,11 @@ module UseCases.Runners (updateRunnersJobs) where
 import Config.Config (ProjectExcludeList (ProjectExcludeList))
 import Core.Effects
 import Core.Runners
-import Core.Shared
 import Data.List.Extra (nubOrdOn)
 import Data.Map (fromAscListWith, mapKeys)
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id)
+import Gitlab.Runner (Runner (..))
 import Polysemy
 import Polysemy.Reader qualified as R
 import Relude

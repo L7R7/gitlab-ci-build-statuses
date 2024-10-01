@@ -14,11 +14,14 @@ where
 
 import Config.Config
 import Control.Lens
-import Core.BuildStatuses (BuildStatuses, Project)
-import Core.Runners (Runner, RunnersJobs)
-import Core.Shared
+import Core.BuildStatuses (BuildStatuses)
+import Core.Runners (RunnersJobs)
 import Data.Cache (Cache)
 import GitHash
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id)
+import Gitlab.Project (Project)
+import Gitlab.Runner (Runner)
 import Katip (LogContexts, LogEnv, Namespace)
 import Metrics.Metrics
 import Ports.Outbound.Gitlab.Projects qualified as Projects (initCache)

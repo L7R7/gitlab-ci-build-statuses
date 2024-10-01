@@ -9,6 +9,10 @@ import Core.BuildStatuses
 import Core.Runners
 import Core.Shared
 import Data.Cache (Cache)
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id, Url)
+import Gitlab.Project (Project)
+import Gitlab.Runner (Runner)
 import Metrics.Metrics
 import Polysemy
 import Polysemy.Reader

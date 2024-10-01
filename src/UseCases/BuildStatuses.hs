@@ -12,9 +12,13 @@ where
 import Config.Config (ExtraProjectsList (ExtraProjectsList))
 import Core.BuildStatuses
 import Core.Effects (Logger, ParTraverse, addContext, logDebug, logWarn, traverseP)
-import Core.Shared
+import Core.Shared (UpdateError (..))
 import Data.List (partition)
 import Data.Text qualified as T (intercalate, toLower)
+import Gitlab.Group (Group)
+import Gitlab.Job (JobStatus (..))
+import Gitlab.Lib (Id, Name (..), Ref, Url)
+import Gitlab.Project (Project (..))
 import Polysemy
 import Polysemy.Reader qualified as R
 import Relude
@@ -62,7 +66,7 @@ currentBuildStatuses ::
 currentBuildStatuses = do
   projects <- findProjects
   results <- traverseP evalProject projects
-  pure $ sortOn (T.toLower . coerce . name) results
+  pure $ sortOn (T.toLower . getName . name) results
 
 findProjects ::
   ( Member ProjectsApi r,
@@ -116,7 +120,7 @@ getStatusForProject ::
   ) =>
   Id Project ->
   Maybe Ref ->
-  Sem r (Maybe (BuildStatus, Url Pipeline))
+  Sem r (Maybe (JobStatus, Url Pipeline))
 getStatusForProject _ Nothing = pure Nothing
 getStatusForProject projectId (Just defaultBranch) = addContext "projectId" projectId $ do
   pipeline <- getLatestPipelineForRef projectId defaultBranch
@@ -134,7 +138,7 @@ detailedStatusForPipeline ::
   ) =>
   Id Project ->
   Id Pipeline ->
-  Sem r (Maybe BuildStatus)
+  Sem r (Maybe JobStatus)
 detailedStatusForPipeline projectId pipelineId =
   addContext "pipelineId" pipelineId $ do
     singlePipelineResult <- getSinglePipeline projectId pipelineId

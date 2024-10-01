@@ -18,6 +18,8 @@ import Core.OverallStatus qualified as O (OverallStatus (Successful, Unknown, Wa
 import Core.Shared
 import Data.Map qualified as M
 import Data.Time (UTCTime)
+import Gitlab.Job (JobStatus (..))
+import Gitlab.Project (ProjectNamespaceFullPath (..))
 import Lucid
 import Lucid.Base (commuteHtmlT, makeAttribute)
 import Path (toFilePath)
@@ -125,7 +127,7 @@ statusesToHtml Plain dataUpdateInterval now (Statuses (lastUpdated, results)) = 
 
 resultToHtml :: (Monad m) => Result -> HtmlT m ()
 resultToHtml Result {..} =
-  a_ [href_ (either show show url), target_ "_blank", classesForStatus buildStatus, title_ (buildStatusToString buildStatus)] $ div_ (toHtml name)
+  a_ [href_ (either show show url), target_ "_blank", classesForStatus buildStatus, title_ (jobStatusToString buildStatus)] $ div_ (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Cancelled = class_ "status cancelled"
@@ -141,19 +143,19 @@ resultToHtml Result {..} =
     classesForStatus SuccessfulWithWarnings = class_ "status passed-with-warnings"
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
-    buildStatusToString Unknown = "unknown"
-    buildStatusToString Cancelled = "cancelled"
-    buildStatusToString Created = "created"
-    buildStatusToString Failed = "failed"
-    buildStatusToString Manual = "manual"
-    buildStatusToString Pending = "pending"
-    buildStatusToString Preparing = "preparing"
-    buildStatusToString Running = "running"
-    buildStatusToString Scheduled = "scheduled"
-    buildStatusToString Skipped = "skipped"
-    buildStatusToString Successful = "successful"
-    buildStatusToString SuccessfulWithWarnings = "successful with warnings"
-    buildStatusToString WaitingForResource = "waiting for resource"
+    jobStatusToString Unknown = "unknown"
+    jobStatusToString Cancelled = "cancelled"
+    jobStatusToString Created = "created"
+    jobStatusToString Failed = "failed"
+    jobStatusToString Manual = "manual"
+    jobStatusToString Pending = "pending"
+    jobStatusToString Preparing = "preparing"
+    jobStatusToString Running = "running"
+    jobStatusToString Scheduled = "scheduled"
+    jobStatusToString Skipped = "skipped"
+    jobStatusToString Successful = "successful"
+    jobStatusToString SuccessfulWithWarnings = "successful with warnings"
+    jobStatusToString WaitingForResource = "waiting for resource"
 
 emptyResults :: Frontend
 emptyResults = do

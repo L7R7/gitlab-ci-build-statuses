@@ -22,13 +22,15 @@ where
 import Barbies
 import Config.Util
 import Control.Lens
-import Core.BuildStatuses (Project)
-import Core.Shared (DataUpdateIntervalSeconds (..), Group, Id (..), Url (..))
+import Core.Shared (DataUpdateIntervalSeconds (..))
 import Data.Biapplicative
 import Data.ByteString qualified as B hiding (pack)
 import Data.Char (toLower)
 import Data.Generic.HKD
 import Data.List.Extra (splitOn)
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id (..), Url (..))
+import Gitlab.Project (Project)
 import Katip (Severity (..))
 import Network.URI (parseAbsoluteURI)
 import Relude hiding (lookupEnv)

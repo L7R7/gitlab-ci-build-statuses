@@ -82,6 +82,7 @@ library
     , either
     , extra
     , githash
+    , gitlab-api-types
     , higgledy
     , http-conduit
     , http-link-header
@@ -142,6 +143,7 @@ test-suite gitlab-ci-build-statuses-test
   build-depends:
       base >=4.7 && <5
     , containers
+    , gitlab-api-types
     , gitlab-ci-build-statuses
     , hedgehog
     , hspec

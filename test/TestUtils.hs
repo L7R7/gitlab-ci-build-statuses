@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module TestUtils where
 
@@ -7,6 +8,9 @@ import Core.BuildStatuses
 import Core.Effects
 import Core.Shared
 import Data.Map qualified as M
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id (..), Ref (..))
+import Gitlab.Project (Project)
 import Polysemy
 import Relude
 
@@ -35,3 +39,6 @@ noOpLogger = do
     AddContext _ _ action -> raise . noOpLogger =<< runT action
     AddContexts _ action -> raise . noOpLogger =<< runT action
     AddNamespace _ action -> raise . noOpLogger =<< runT action
+
+-- todo: ?
+deriving newtype instance Ord (Ref)

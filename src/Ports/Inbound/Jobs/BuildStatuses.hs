@@ -10,6 +10,8 @@ import Config.Config (ExtraProjectsList)
 import Core.BuildStatuses (BuildStatusesApi, PipelinesApi, ProjectsApi, ProjectsWithoutExcludesApi)
 import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Shared
+import Gitlab.Group (Group)
+import Gitlab.Lib (Id)
 import Metrics.Metrics
 import Polysemy
 import Polysemy.Reader qualified as R
