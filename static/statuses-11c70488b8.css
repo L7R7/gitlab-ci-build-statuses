@@ -6,6 +6,21 @@ a {
     color: black;
 }
 
+a.status > div > p:first-child {
+    margin-bottom: 0;
+}
+
+p.textual-status {
+    font-weight: normal;
+    font-size: smaller;
+    margin-top: 0;
+}
+
+a.no-color > div {
+    background-color: white;
+    padding: 5px;
+}
+
 html {
     height: 100%;
     font-family: 'Noto Sans', sans-serif;
@@ -22,6 +37,10 @@ body {
     text-align: center;
     justify-content: center;
     display: grid;
+}
+
+.status.no-color {
+    border: 1px solid white;
 }
 
 .status::before {
@@ -76,6 +95,10 @@ a.link-to-jobs, a.link-control {
     background-color: #8936b2;
 }
 
+.unknown {
+    background-color: white;
+}
+
 .statuses {
     width: 100%;
     display: grid;
@@ -93,4 +116,21 @@ a.link-to-jobs, a.link-control {
     grid-auto-rows: 1fr;
     grid-template-columns: repeat(auto-fill, minmax(11em, 10fr));
     margin-bottom: 0.4em
+}
+
+.icon-box {
+    overflow-y: hidden;
+}
+
+.controls {
+    padding-top: 8px;
+}
+
+.status-content {
+    z-index: 1;
+}
+
+.status-content > p {
+    margin-top: 0;
+    margin-bottom: 0;
 }

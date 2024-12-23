@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), FilterMode (..), lastUpdatedToHtml) where
+module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), FilterMode (..), UiMode (..), lastUpdatedToHtml) where
 
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)
@@ -41,6 +41,18 @@ instance ToHtml (Id a) where
   toHtmlRaw (Id i) = toHtmlRaw @String (show i)
 
 deriving newtype instance ToHtml (Name a)
+
+data UiMode = Colored | NoColor deriving stock (Bounded, Eq, Enum)
+
+uiModeToText :: UiMode -> Text
+uiModeToText Colored = "colored"
+uiModeToText NoColor = "no-color"
+
+instance FromHttpApiData UiMode where
+  parseQueryParam = maybeToRight "can't parse UiMode param" . inverseMap uiModeToText
+
+instance ToHttpApiData UiMode where
+  toQueryParam = uiModeToText
 
 lastUpdatedToHtml :: (Monad m) => DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> HtmlT m ()
 lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = div_ ([class_ classes] <> staleDataTitle) $ div_ $ do
