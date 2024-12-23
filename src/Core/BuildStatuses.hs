@@ -26,6 +26,7 @@ module Core.BuildStatuses
     ProjectNamespace (..),
     ProjectNamespaceFullPath (..),
     isHealthy,
+    isBroken,
     toResult,
   )
 where
@@ -147,6 +148,21 @@ isHealthy Skipped = False
 isHealthy Successful = True
 isHealthy SuccessfulWithWarnings = False
 isHealthy WaitingForResource = True
+
+isBroken :: BuildStatus -> Bool
+isBroken Unknown = True
+isBroken Cancelled = True
+isBroken Created = False
+isBroken Failed = True
+isBroken Manual = False
+isBroken Pending = False
+isBroken Preparing = False
+isBroken Running = False
+isBroken Scheduled = False
+isBroken Skipped = True
+isBroken Successful = False
+isBroken SuccessfulWithWarnings = True
+isBroken WaitingForResource = False
 
 toResult :: Project -> Maybe (BuildStatus, Url Pipeline) -> Result
 toResult Project {..} Nothing = Result projectId projectName (projectNamespaceFullPath projectNamespace) Unknown (Left projectWebUrl)

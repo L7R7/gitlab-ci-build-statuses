@@ -30,13 +30,14 @@ import Relude
 import Servant
 import Servant.HTML.Lucid
 
-type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> QueryParam "filter" FilterMode :> Get '[HTML] (Html ())
+type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> QueryParam "filter" FilterMode :> QueryParam "ui" UiMode :> Get '[HTML] (Html ())
 
 type Frontend = HtmlT (Reader FrontendState) ()
 
 data FrontendState = FrontendState
   { frontendStateViewMode :: ViewMode,
     frontendStateFilterMode :: FilterMode,
+    frontendStateUiMode :: UiMode,
     frontendStateJobsView :: JobsView,
     frontendStateBuildStatuses :: BuildStatuses,
     frontendStateDataUpdateInterval :: DataUpdateIntervalSeconds,
@@ -56,10 +57,11 @@ template ::
   ) =>
   ViewMode ->
   FilterMode ->
+  UiMode ->
   AutoRefresh ->
   Sem r (Html ())
-template viewMode filterMode autoRefresh = do
-  frontendState <- FrontendState viewMode filterMode <$> R.ask <*> getStatuses <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
+template viewMode filterMode uiMode autoRefresh = do
+  frontendState <- FrontendState viewMode filterMode uiMode <$> R.ask <*> getStatuses <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
   pure $ usingReader frontendState $ commuteHtmlT $ do
     pageHeader
     pageBody
@@ -102,10 +104,11 @@ pageBody = body_ $ do
         ShowAll -> buildStatuses
         DontShowSuccessful -> filterResults buildStatuses (\res -> buildStatus res /= Successful)
   (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ statusesToHtml viewMode dataUpdateInterval now buildStatusesFiltered
-  section_ [class_ "statuses"] $ do
+  section_ [classes_ ["statuses", "controls"]] $ do
     linkToViewToggle
     linkToAutoRefreshToggle
     linkToFilterModeToggle
+    linkToUiModeToggle
     linkToJobs
 
 statusesToHtml :: ViewMode -> DataUpdateIntervalSeconds -> UTCTime -> BuildStatuses -> Frontend
@@ -123,9 +126,17 @@ statusesToHtml Plain dataUpdateInterval now (Statuses (lastUpdated, results)) = 
   traverse_ resultToHtml results
   lastUpdatedToHtml dataUpdateInterval now lastUpdated
 
-resultToHtml :: (Monad m) => Result -> HtmlT m ()
-resultToHtml Result {..} =
-  a_ [href_ (either show show url), target_ "_blank", classesForStatus buildStatus, title_ (buildStatusToString buildStatus)] $ div_ (toHtml name)
+resultToHtml :: Result -> Frontend
+resultToHtml result = do
+  uiMode <- asks frontendStateUiMode
+  case uiMode of
+    Colored -> resultToHtml' result
+    NoColor -> resultToHtml'' result
+
+resultToHtml' :: (Monad m) => Result -> HtmlT m ()
+resultToHtml' Result {..} =
+  a_ [href_ (either show show url), target_ "_blank", classesForStatus buildStatus, title_ (buildStatusToString buildStatus)] $ do
+    div_ [class_ "status-content"] $ p_ (toHtml name)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Cancelled = class_ "status cancelled"
@@ -141,19 +152,34 @@ resultToHtml Result {..} =
     classesForStatus SuccessfulWithWarnings = class_ "status passed-with-warnings"
     classesForStatus WaitingForResource = class_ "status waiting-for-resource"
 
-    buildStatusToString Unknown = "unknown"
-    buildStatusToString Cancelled = "cancelled"
-    buildStatusToString Created = "created"
-    buildStatusToString Failed = "failed"
-    buildStatusToString Manual = "manual"
-    buildStatusToString Pending = "pending"
-    buildStatusToString Preparing = "preparing"
-    buildStatusToString Running = "running"
-    buildStatusToString Scheduled = "scheduled"
-    buildStatusToString Skipped = "skipped"
-    buildStatusToString Successful = "successful"
-    buildStatusToString SuccessfulWithWarnings = "successful with warnings"
-    buildStatusToString WaitingForResource = "waiting for resource"
+resultToHtml'' :: (Monad m) => Result -> HtmlT m ()
+resultToHtml'' Result {..} =
+  a_ [href_ (either show show url), target_ "_blank", classes_ ["status", "no-color"], title_ (buildStatusToString buildStatus), style_ "position: relative"] $ do
+    div_ [class_ "status-content"] $ do
+      p_ (toHtml name)
+      p_ [class_ "textual-status"] (buildStatusToString buildStatus)
+    section_ [class_ "icon-box", style_ "position: absolute; height: 100%; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 48px;"] $ do
+      if isBroken buildStatus
+        then replicateM_ 16 (toHtmlRaw ("<svg viewBox=\"0 0 48 48\"><polygon fill=\"#c41934\" points=\"36,0 0,37.4 2.8,40.2 38.8,2.7\"/><polygon fill=\"#c41934\" points=\"0,2.8 2.8,0 38.8,37.4 36,40.2\"/></svg>" :: String))
+        else pure ()
+      if isHealthy buildStatus
+        then replicateM_ 16 (toHtmlRaw ("<svg viewBox=\"0 0 48 48\"><polygon fill=\"#43A047\" points=\"36,0 12.4,23.6 2.8,14.0 0,16.9 12.4,29.1 38.8,2.7\"/></svg>" :: String))
+        else pure ()
+
+buildStatusToString :: (IsString a) => BuildStatus -> a
+buildStatusToString Unknown = "unknown"
+buildStatusToString Cancelled = "cancelled"
+buildStatusToString Created = "created"
+buildStatusToString Failed = "failed"
+buildStatusToString Manual = "manual"
+buildStatusToString Pending = "pending"
+buildStatusToString Preparing = "preparing"
+buildStatusToString Running = "running"
+buildStatusToString Scheduled = "scheduled"
+buildStatusToString Skipped = "skipped"
+buildStatusToString Successful = "successful"
+buildStatusToString SuccessfulWithWarnings = "successful with warnings"
+buildStatusToString WaitingForResource = "waiting for resource"
 
 emptyResults :: Frontend
 emptyResults = do
@@ -203,5 +229,16 @@ linkToFilterModeToggle = do
         DontShowSuccessful -> "Show all pipelines"
   div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateFilterMode = toggle filterMode})))] txt
 
+linkToUiModeToggle :: Frontend
+linkToUiModeToggle = do
+  frontendState <- ask
+  let uiMode = frontendStateUiMode frontendState
+      toggle Colored = NoColor
+      toggle NoColor = Colored
+      txt = case uiMode of
+        Colored -> "Switch to accessibility mode"
+        NoColor -> "Switch to colored mode"
+  div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateUiMode = toggle uiMode})))] txt
+
 linkForState :: FrontendState -> Link
-linkForState frontendState = safeLink (Proxy @API) (Proxy @API) (Just (frontendStateViewMode frontendState)) (frontendStateAutoRefresh frontendState == NoRefresh) (Just (frontendStateFilterMode frontendState))
+linkForState frontendState = safeLink (Proxy @API) (Proxy @API) (Just (frontendStateViewMode frontendState)) (frontendStateAutoRefresh frontendState == NoRefresh) (Just (frontendStateFilterMode frontendState)) (Just (frontendStateUiMode frontendState))
