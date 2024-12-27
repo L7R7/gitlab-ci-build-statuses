@@ -159,12 +159,9 @@ resultToHtml'' Result {..} =
       p_ (toHtml name)
       p_ [class_ "textual-status"] (buildStatusToString buildStatus)
     section_ [class_ "icon-box", style_ "position: absolute; height: 100%; width: 100%; display: grid; grid-template-columns: repeat(8, 1fr); grid-auto-rows: auto;"] $ do
-      if isBroken buildStatus
-        then replicateM_ 40 (toHtmlRaw ("<svg viewBox=\"0 0 38.8 40.2\"><polygon fill=\"#c41934\" points=\"36,0 0,37.4 2.8,40.2 38.8,2.7\"/><polygon fill=\"#c41934\" points=\"0,2.8 2.8,0 38.8,37.4 36,40.2\"/></svg>" :: String))
-        else pure ()
-      if isHealthy buildStatus
-        then replicateM_ 40 (toHtmlRaw ("<svg viewBox=\"0 0 38.8 29.1\"><polygon fill=\"#43A047\" points=\"36,0 12.4,23.6 2.8,14.0 0,16.9 12.4,29.1 38.8,2.7\"/></svg>" :: String))
-        else pure ()
+      replicateM_ 40 $ do
+        when (isBroken buildStatus) $ toHtmlRaw @String "<svg viewBox=\"0 0 38.8 40.2\"><polygon fill=\"#c41934\" points=\"36,0 0,37.4 2.8,40.2 38.8,2.7\"/><polygon fill=\"#c41934\" points=\"0,2.8 2.8,0 38.8,37.4 36,40.2\"/></svg>"
+        when (isHealthy buildStatus) $ toHtmlRaw @String "<svg viewBox=\"0 0 38.8 29.1\"><polygon fill=\"#43A047\" points=\"36,0 12.4,23.6 2.8,14.0 0,16.9 12.4,29.1 38.8,2.7\"/></svg>"
 
 buildStatusToString :: (IsString a) => BuildStatus -> a
 buildStatusToString Unknown = "unknown"
