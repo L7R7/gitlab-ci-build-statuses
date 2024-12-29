@@ -160,8 +160,43 @@ resultToHtml'' Result {..} =
       p_ [class_ "textual-status"] (buildStatusToString buildStatus)
     section_ [class_ "icon-box", style_ "position: absolute; height: 100%; width: 100%; display: grid; grid-template-columns: repeat(8, 1fr); grid-auto-rows: auto;"] $ do
       replicateM_ 40 $ do
-        when (isBroken buildStatus) $ toHtmlRaw @String "<svg viewBox=\"0 0 38.8 40.2\"><polygon fill=\"#c41934\" points=\"36,0 0,37.4 2.8,40.2 38.8,2.7\"/><polygon fill=\"#c41934\" points=\"0,2.8 2.8,0 38.8,37.4 36,40.2\"/></svg>"
-        when (isHealthy buildStatus) $ toHtmlRaw @String "<svg viewBox=\"0 0 38.8 29.1\"><polygon fill=\"#43A047\" points=\"36,0 12.4,23.6 2.8,14.0 0,16.9 12.4,29.1 38.8,2.7\"/></svg>"
+        case buildStatusToAccessibilityStatusAndColor buildStatus of
+          (A11yHealthy, color) -> toHtmlRaw @String ("<svg viewBox=\"0 0 38.8 29.1\"><polygon fill=\"" ++ color ++ "\" points=\"36,0 12.4,23.6 2.8,14.0 0,16.9 12.4,29.1 38.8,2.7\"/></svg>")
+          (A11yPending, color) -> toHtmlRaw @String ("<svg viewBox=\"0 0 40 40\"><polygon fill=\"" ++ color ++ "\" points=\"4,18 4,22 36,22 36,18\"/></svg>")
+          (A11yRunning, color) -> toHtmlRaw @String ("<svg viewBox=\"0 0 40 40\"><circle r=\"10\" cx=\"20\" cy=\"20\" fill=\"none\" stroke=\"" ++ color ++ "\" stroke-width=\"4\"/></svg>")
+          (A11yBroken, color) -> toHtmlRaw @String ("<svg viewBox=\"0 0 38.8 40.2\"><polygon fill=\"" ++ color ++ "\" points=\"32,4 4,33.4 6.8,36.2 34.8,6.7\"/><polygon fill=\"" ++ color ++ "\" points=\"4,6.8 6.8,4 34.8,33.4 32,36.2\"/></svg>")
+
+data AccessibilityStatus = A11yHealthy | A11yPending | A11yRunning | A11yBroken
+
+buildStatusToAccessibilityStatusAndColor :: (IsString b) => BuildStatus -> (AccessibilityStatus, b)
+buildStatusToAccessibilityStatusAndColor Unknown = (A11yBroken, "#000")
+buildStatusToAccessibilityStatusAndColor Cancelled = (A11yBroken, "#e0b400")
+buildStatusToAccessibilityStatusAndColor Created = (A11yRunning, "#8936b2")
+buildStatusToAccessibilityStatusAndColor Failed = (A11yBroken, "#c41934")
+buildStatusToAccessibilityStatusAndColor Manual = (A11yPending, "#fa6400")
+buildStatusToAccessibilityStatusAndColor Pending = (A11yRunning, "#8936b2")
+buildStatusToAccessibilityStatusAndColor Preparing = (A11yRunning, "#8936b2")
+buildStatusToAccessibilityStatusAndColor Running = (A11yRunning, "#1857B8")
+buildStatusToAccessibilityStatusAndColor Scheduled = (A11yRunning, "#8936b2")
+buildStatusToAccessibilityStatusAndColor Skipped = (A11yPending, "#fa6400")
+buildStatusToAccessibilityStatusAndColor Successful = (A11yHealthy, "#388729")
+buildStatusToAccessibilityStatusAndColor SuccessfulWithWarnings = (A11yPending, "#fa6400")
+buildStatusToAccessibilityStatusAndColor WaitingForResource = (A11yRunning, "#8936b2")
+
+buildStatusToColor :: (IsString a) => BuildStatus -> a
+buildStatusToColor Unknown = "#000"
+buildStatusToColor Cancelled = "#e0b400"
+buildStatusToColor Created = "#8936b2"
+buildStatusToColor Failed = "#c41934"
+buildStatusToColor Manual = "#fa6400"
+buildStatusToColor Pending = "#8936b2"
+buildStatusToColor Preparing = "#8936b2"
+buildStatusToColor Running = "#1857B8"
+buildStatusToColor Scheduled = "#8936b2"
+buildStatusToColor Skipped = "#fa6400"
+buildStatusToColor Successful = "#388729"
+buildStatusToColor SuccessfulWithWarnings = "#fa6400"
+buildStatusToColor WaitingForResource = "#8936b2"
 
 buildStatusToString :: (IsString a) => BuildStatus -> a
 buildStatusToString Unknown = "unknown"
