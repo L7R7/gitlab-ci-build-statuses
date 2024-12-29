@@ -83,7 +83,7 @@ pageHeader = do
       link_ [rel_ "icon", type_ "image/png", href_ ("static/" <> prefix <> "-favicon.ico")]
       link_ [rel_ "stylesheet", type_ "text/css", href_ "static/normalize-d6d444a732.css"]
       link_ [rel_ "stylesheet", type_ "text/css", href_ "static/statuses-26a217ef25.css"]
-      script_ [type_ "text/javascript", src_ "static/script-2fad95d80d.js"] ("" :: String)
+      script_ [type_ "text/javascript", src_ "static/script-32964cd17f.js"] ("" :: String)
       meta_ [makeAttribute "version" (show gitCommit)]
 
 faviconPrefix :: (IsString p) => O.OverallStatus -> p
