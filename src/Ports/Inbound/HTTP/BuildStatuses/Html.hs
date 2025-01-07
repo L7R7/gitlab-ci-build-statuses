@@ -183,21 +183,6 @@ buildStatusToAccessibilityStatusAndColor Successful = (A11yHealthy, "#388729")
 buildStatusToAccessibilityStatusAndColor SuccessfulWithWarnings = (A11yPending, "#fa6400")
 buildStatusToAccessibilityStatusAndColor WaitingForResource = (A11yRunning, "#8936b2")
 
-buildStatusToColor :: (IsString a) => BuildStatus -> a
-buildStatusToColor Unknown = "#000"
-buildStatusToColor Cancelled = "#e0b400"
-buildStatusToColor Created = "#8936b2"
-buildStatusToColor Failed = "#c41934"
-buildStatusToColor Manual = "#fa6400"
-buildStatusToColor Pending = "#8936b2"
-buildStatusToColor Preparing = "#8936b2"
-buildStatusToColor Running = "#1857B8"
-buildStatusToColor Scheduled = "#8936b2"
-buildStatusToColor Skipped = "#fa6400"
-buildStatusToColor Successful = "#388729"
-buildStatusToColor SuccessfulWithWarnings = "#fa6400"
-buildStatusToColor WaitingForResource = "#8936b2"
-
 buildStatusToString :: (IsString a) => BuildStatus -> a
 buildStatusToString Unknown = "unknown"
 buildStatusToString Cancelled = "cancelled"
