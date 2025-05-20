@@ -4,13 +4,13 @@ on: push
 
 jobs:
   ormolu:
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
       steps:
         - uses: actions/checkout@v4
         - uses: haskell-actions/run-ormolu@v17
   build:
     name: Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: ormolu
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
   
   markdown:
     name: Markdown lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +55,7 @@ jobs:
     name: Docker build & push
     needs: build
     if: success() && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
