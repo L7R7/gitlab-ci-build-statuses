@@ -53,7 +53,7 @@ jobs:
 
   docker:
     name: Docker build & push
-    needs: build
+    # needs: build
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
