@@ -1,4 +1,19 @@
-FROM ubuntu:24.04
+FROM fpco/stack-build:lts-21.22 as dependencies
+RUN mkdir /opt/build
+WORKDIR /opt/build
+
+COPY stack.yaml package.yaml stack.yaml.lock /opt/build/
+
+RUN stack build --system-ghc --dependencies-only
+
+FROM fpco/stack-build:lts-21.22 as build
+
+COPY --from=dependencies /root/.stack /root/.stack
+COPY . /opt/build/
+WORKDIR /opt/build
+RUN stack build --system-ghc --allow-different-user --copy-bins --local-bin-path .
+
+FROM ubuntu:24.04 as app
 USER root
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y ca-certificates
@@ -13,9 +28,9 @@ WORKDIR /service
 
 COPY static /service/static
 
-COPY gitlab-ci-build-statuses-exe /service/gitlab-ci-build-statuses-exe
+COPY --from=build /service/gitlab-ci-build-statuses-exe .
 RUN chmod +x /service/gitlab-ci-build-statuses-exe
 EXPOSE 8282
 
 USER service
-ENTRYPOINT /service/gitlab-ci-build-statuses-exe
+CMD ["/service/gitlab-ci-build-statuses-exe"]
