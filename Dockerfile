@@ -1,5 +1,5 @@
 FROM fpco/stack-build:lts-21.22 as dependencies
-RUN mkdir /opt/build
+RUN mkdir -p /opt/build
 WORKDIR /opt/build
 
 COPY stack.yaml package.yaml /opt/build/
