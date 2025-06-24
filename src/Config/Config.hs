@@ -5,6 +5,7 @@
 
 module Config.Config
   ( ApiToken (..),
+    UserAgent (..),
     Config (..),
     GitlabHost,
     MaxConcurrency (..),
@@ -40,6 +41,7 @@ data Config = Config
   { apiToken :: ApiToken,
     groupId :: NonEmpty (Id Group),
     gitlabBaseUrl :: Url GitlabHost,
+    userAgent :: UserAgent,
     dataUpdateIntervalSecs :: DataUpdateIntervalSeconds,
     uiUpdateIntervalSecs :: UiUpdateIntervalSeconds,
     projectCacheTtlSecs :: ProjectCacheTtlSeconds,
@@ -60,6 +62,7 @@ instance Show Config where
         ", "
         [ "GroupIds: " <> show groupId,
           "Base URL: " <> show gitlabBaseUrl,
+          "User Agent: " <> show userAgent,
           show dataUpdateIntervalSecs,
           show uiUpdateIntervalSecs,
           show projectCacheTtlSecs,
@@ -104,6 +107,8 @@ newtype ExtraProjectsList = ExtraProjectsList {getExtraProjectsList :: [Id Proje
 
 newtype GitCommit = GitCommit String deriving stock (Show)
 
+newtype UserAgent = UserAgent String deriving stock (Eq, Show)
+
 data SharedProjects = Include | Exclude deriving stock (Eq, Show)
 
 data JobsView = Enabled | Disabled deriving stock (Eq, Show)
@@ -117,6 +122,7 @@ envVarNames =
       "GCB_GITLAB_API_TOKEN"
       "GCB_GITLAB_GROUP_ID"
       "GCB_GITLAB_BASE_URL"
+      "GCB_USER_AGENT"
       "GCB_DATA_UPDATE_INTERVAL_SECS"
       "GCB_UI_UPDATE_INTERVAL_SECS"
       "GCB_PROJECT_CACHE_TTL_SECS"
@@ -138,6 +144,7 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
           "Gitlab API Token is missing"
           "Group ID is missing"
           "Gitlab base URL is missing"
+          "User-Agent is missing"
           "Data Update interval is missing. Must be a positive integer"
           "UI Update interval is missing. Must be a positive integer"
           "Project list cache TTL is missing. Must be a positive integer"
@@ -155,6 +162,7 @@ parse =
     (Compose parseApiToken)
     (Compose parseGroupsList)
     (Compose $ fmap Url . parseAbsoluteURI)
+    (Compose parseUserAgent)
     (readPositive DataUpdateIntervalSeconds)
     (readPositive UiUpdateIntervalSeconds)
     (readPositive ProjectCacheTtlSeconds)
@@ -187,6 +195,10 @@ parseGroupsList s = do
   groups <- traverse (fmap Id . find (> 0) . readMaybe) (splitOn "," s)
   nonEmpty $ ordNub groups
 
+parseUserAgent :: String -> Maybe UserAgent
+parseUserAgent "" = Nothing
+parseUserAgent s = Just $ UserAgent s
+
 parseProjectIdList :: String -> Maybe [Id Project]
 parseProjectIdList s = ordNub <$> traverse (fmap Id . readMaybe) (splitOn "," s)
 
@@ -201,6 +213,7 @@ readPositive f = Compose $ fmap f . find (> 0) . readMaybe
 defaults :: ConfigH Maybe
 defaults =
   bpure empty
+    & field @"userAgent" .~ Just (UserAgent "gitlab-ci-build-statuses")
     & field @"dataUpdateIntervalSecs" .~ Just 60
     & field @"uiUpdateIntervalSecs" .~ Just 5
     & field @"projectCacheTtlSecs" .~ Just 3600

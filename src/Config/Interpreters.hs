@@ -14,7 +14,7 @@ import Polysemy
 import Polysemy.Reader
 import Relude hiding (Reader, runReader)
 
-runConfig :: Config -> Sem (Reader SharedProjects : Reader ApiToken : Reader (Url GitlabHost) : Reader MaxConcurrency : Reader DataUpdateIntervalSeconds : Reader ExtraProjectsList : Reader ProjectExcludeList : Reader (NonEmpty (Id Group)) ': r) a -> Sem r a
+runConfig :: Config -> Sem (Reader SharedProjects : Reader UserAgent : Reader ApiToken : Reader (Url GitlabHost) : Reader MaxConcurrency : Reader DataUpdateIntervalSeconds : Reader ExtraProjectsList : Reader ProjectExcludeList : Reader (NonEmpty (Id Group)) ': r) a -> Sem r a
 runConfig Config {..} =
   runReader groupId
     . runReader projectExcludeList
@@ -23,6 +23,7 @@ runConfig Config {..} =
     . runReader maxConcurrency
     . runReader gitlabBaseUrl
     . runReader apiToken
+    . runReader userAgent
     . runReader includeSharedProjects
 
 runBackbone :: Backbone -> Sem (Reader (IORef RunnersJobs) : Reader (IORef BuildStatuses) : Reader (Cache (Id Group) [Project]) : Reader (Cache (Id Group) [Runner]) : Reader (Cache (Id Group) [(Id Project, [Runner])]) : Reader LogConfig : Reader RunningJobsGauge : Reader OnlineRunnersGauge : Reader PipelinesOverviewGauge : Reader OutgoingHttpRequestsHistogram : Reader UpdateJobDurationHistogram : Reader CacheResultsCounter ': r) a -> Sem r a

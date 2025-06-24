@@ -43,6 +43,7 @@ Some of them are mandatory, others are optional:
 * `GCB_GITLAB_BASE_URL`: The base URL for the Gitlab instance you want to fetch the data from, e.g. `https://www.gitlab.com/`
 * `GCB_GITLAB_GROUP_ID`: The ID of the group in Gitlab for which the build statuses to get.
 * `GCB_GITLAB_API_TOKEN`: The Access Token for the Gitlab API
+* `GCB_USER_AGENT` (optional): Sets the User-Agent that will be used for requests to the Gitlab API. Defaults to `gitlab-ci-build-statuses`.
 * `GCB_DATA_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the cached data should be updated.
   The higher the value, the lower the number of requests to the Gitlab API.
   The lower the value, the less stale will the in-memory data be.
