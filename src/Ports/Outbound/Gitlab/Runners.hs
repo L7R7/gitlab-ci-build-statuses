@@ -8,7 +8,7 @@
 module Ports.Outbound.Gitlab.Runners (initCache, runnersApiToIO) where
 
 import Burrito
-import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds))
+import Config.Config (ApiToken (..), GitlabHost, RunnerCacheTtlSeconds (RunnerCacheTtlSeconds), UserAgent)
 import Core.BuildStatuses
 import Core.Runners (Description (..), IpAddress (..), Job (..), Runner, RunnersApi (..), Stage (..), Tag (..))
 import Core.Shared (Group, Id, UpdateError, Url (..))
@@ -32,6 +32,7 @@ runnersApiToIO ::
     Member ProjectsWithoutExcludesApi r,
     Member (R.Reader (Url GitlabHost)) r,
     Member (R.Reader ApiToken) r,
+    Member (R.Reader UserAgent) r,
     Member (R.Reader OutgoingHttpRequestsHistogram) r,
     Member (R.Reader (Cache (Id Group) [Runner])) r,
     Member (R.Reader (Cache (Id Group) [(Id Project, [Runner])])) r
@@ -40,10 +41,11 @@ runnersApiToIO ::
 runnersApiToIO sem = do
   baseUrl <- R.ask
   apiToken <- R.ask
+  userAgent <- R.ask
   histogram <- R.ask
   groupCache <- R.ask
   projectCache <- R.ask
-  runnersApiToIO' baseUrl apiToken histogram groupCache projectCache sem
+  runnersApiToIO' baseUrl apiToken userAgent histogram groupCache projectCache sem
 
 -- | this type acts as an intermediate data structure for first getting a list of active runners and
 --   then fetching the details for each runner.
@@ -62,11 +64,12 @@ runnersApiToIO' ::
   ) =>
   Url GitlabHost ->
   ApiToken ->
+  UserAgent ->
   OutgoingHttpRequestsHistogram ->
   Cache (Id Group) [Runner] ->
   Cache (Id Group) [(Id Project, [Runner])] ->
   InterpreterFor RunnersApi r
-runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $ \case
+runnersApiToIO' baseUrl apiToken userAgent histogram groupCache projectCache = interpret $ \case
   GetOnlineRunnersForGroup groupId -> do
     (result, cacheResult) <- embed $ do
       cached <- lookup groupCache groupId
@@ -74,7 +77,7 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
         (Just runners) -> pure (Right runners, Hit)
         Nothing -> do
           let template = [uriTemplate|/api/v4/groups/{groupId}/runners?status=online&type=group_type|]
-          runnerIds <- fetchDataPaginated @RunnerId baseUrl apiToken template [("groupId", (stringValue . show) groupId)] histogram
+          runnerIds <- fetchDataPaginated @RunnerId baseUrl apiToken userAgent template [("groupId", (stringValue . show) groupId)] histogram
           result <- fetchRunnersForRunnerIds runnerIds
           traverse_ (insert groupCache groupId) result
           pure (result, Miss)
@@ -96,11 +99,11 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
       getRunnersForProject projectId = do
         let template = [uriTemplate|/api/v4/projects/{projectId}/runners?type=project_type|]
         embed $ do
-          runnerIds <- fetchDataPaginated baseUrl apiToken template [("projectId", (stringValue . show) projectId)] histogram
+          runnerIds <- fetchDataPaginated baseUrl apiToken userAgent template [("projectId", (stringValue . show) projectId)] histogram
           fetchRunnersForRunnerIds runnerIds
   GetRunningJobsForRunner runnerId -> do
     let template = [uriTemplate|/api/v4/runners/{runnerId}/jobs?status=running|]
-    embed $ fetchDataPaginated baseUrl apiToken template [("runnerId", (stringValue . show) runnerId)] histogram
+    embed $ fetchDataPaginated baseUrl apiToken userAgent template [("runnerId", (stringValue . show) runnerId)] histogram
   where
     fetchRunnersForRunnerIds :: Either UpdateError [RunnerId] -> IO (Either UpdateError [Runner])
     fetchRunnersForRunnerIds (Left err) = pure $ Left err
@@ -109,7 +112,7 @@ runnersApiToIO' baseUrl apiToken histogram groupCache projectCache = interpret $
         <$> traverse
           ( \(RunnerId runnerId) -> do
               let runnerTemplate = [uriTemplate|/api/v4/runners/{runnerId}|]
-              fetchData @Runner baseUrl apiToken runnerTemplate [("runnerId", (stringValue . show) runnerId)] histogram
+              fetchData @Runner baseUrl apiToken userAgent runnerTemplate [("runnerId", (stringValue . show) runnerId)] histogram
           )
           runnerIds
 

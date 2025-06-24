@@ -8,7 +8,7 @@
 module Ports.Outbound.Gitlab.Projects (initCache, projectsApiToIO, projectsWithoutExcludesApiInTermsOfProjects) where
 
 import Burrito
-import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), ProjectExcludeList (ProjectExcludeList), SharedProjects (Exclude, Include))
+import Config.Config (ApiToken (..), GitlabHost, ProjectCacheTtlSeconds (ProjectCacheTtlSeconds), ProjectExcludeList (ProjectExcludeList), SharedProjects (Exclude, Include), UserAgent)
 import Core.BuildStatuses (Project (projectId), ProjectsApi (..), ProjectsWithoutExcludesApi (..), getProjects)
 import Core.Effects
 import Core.Shared (Group, Id (..), Url (..))
@@ -30,6 +30,7 @@ projectsApiToIO ::
     Member MetricsApi r,
     Member (R.Reader (Url GitlabHost)) r,
     Member (R.Reader ApiToken) r,
+    Member (R.Reader UserAgent) r,
     Member (R.Reader SharedProjects) r,
     Member (R.Reader OutgoingHttpRequestsHistogram) r,
     Member (R.Reader (Cache (Id Group) [Project])) r
@@ -39,13 +40,15 @@ projectsApiToIO = interpret $ \case
   GetProject projectId -> do
     baseUrl <- R.ask
     apiToken <- R.ask
+    userAgent <- R.ask
     histogram <- R.ask
     let template = [uriTemplate|/api/v4/projects/{projectId}|]
-    embed $ fetchData baseUrl apiToken template [("projectId", (stringValue . show) projectId)] histogram
+    embed $ fetchData baseUrl apiToken userAgent template [("projectId", (stringValue . show) projectId)] histogram
   GetProjects groupId -> do
     cache <- R.ask
     baseUrl <- R.ask
     apiToken <- R.ask
+    userAgent <- R.ask
     sharedProjects <- R.ask
     histogram <- R.ask
     (result, cacheResult) <- embed $ do
@@ -54,7 +57,7 @@ projectsApiToIO = interpret $ \case
         (Just projects) -> pure (Right projects, Hit)
         Nothing -> do
           let template = [uriTemplate|/api/v4/groups/{groupId}/projects?simple=true&include_subgroups=true&archived=false{&with_shared}|]
-          result <- fetchDataPaginated baseUrl apiToken template [("groupId", (stringValue . show) groupId), ("with_shared", withShared sharedProjects)] histogram
+          result <- fetchDataPaginated baseUrl apiToken userAgent template [("groupId", (stringValue . show) groupId), ("with_shared", withShared sharedProjects)] histogram
           traverse_ (insert cache groupId) result
           pure (result, Miss)
     recordCacheLookupResult (CacheTag "projects") cacheResult

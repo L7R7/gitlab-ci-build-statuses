@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Ports.Outbound.Gitlab.RequestResponseUtils (privateToken, removeApiTokenFromUpdateError, parseNextRequest, addToken, setTimeout) where
+module Ports.Outbound.Gitlab.RequestResponseUtils (privateToken, removeApiTokenFromUpdateError, parseNextRequest, addToken, setTimeout, setUserAgent) where
 
 import Config.Config
 import Control.Lens (Lens', Prism', Traversal', filtered, lens, prism', set, _1, _2)
@@ -21,6 +21,9 @@ parseNextHeader response = href <$> find isNextLink (getResponseHeader "link" re
 isNextLink :: Link uri -> Bool
 isNextLink (Link _ [(Rel, "next")]) = True
 isNextLink _ = False
+
+setUserAgent :: UserAgent -> Request -> Request
+setUserAgent (UserAgent userAgent) = setRequestHeader (fromString userAgent) ["Backbone"]
 
 addToken :: ApiToken -> Request -> Request
 addToken (ApiToken token) = setRequestHeader privateToken [token]

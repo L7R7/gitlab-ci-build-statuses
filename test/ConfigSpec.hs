@@ -32,6 +32,9 @@ spec = do
       `shouldBe` Success (expectedConfig {groupId = Id 5 :| [Id 6]})
 
     describe "overriding for non-mandatory fields" $ do
+      it "should allow overriding user agent"
+        $ parseConfigFromEnv (("GCB_USER_AGENT", "my-custom-agent") : mandatoryConfig)
+        `shouldBe` Success (expectedConfig {userAgent = UserAgent "my-custom-agent"})
       it "should allow overriding data update interval"
         $ parseConfigFromEnv (("GCB_DATA_UPDATE_INTERVAL_SECS", "5") : mandatoryConfig)
         `shouldBe` Success (expectedConfig {dataUpdateIntervalSecs = DataUpdateIntervalSeconds 5})
@@ -112,6 +115,7 @@ spec = do
         (ApiToken "apitoken")
         (Id 123 :| [])
         (Url $$(staticURI "https://my.gitlab.com"))
+        (UserAgent "gitlab-ci-build-statuses")
         (DataUpdateIntervalSeconds 60)
         (UiUpdateIntervalSeconds 5)
         (ProjectCacheTtlSeconds 3600)
