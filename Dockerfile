@@ -2,7 +2,7 @@ FROM fpco/stack-build:lts-21.22 as dependencies
 RUN mkdir /opt/build
 WORKDIR /opt/build
 
-COPY stack.yaml package.yaml stack.yaml.lock /opt/build/
+COPY stack.yaml package.yaml /opt/build/
 
 RUN stack build --system-ghc --dependencies-only
 
