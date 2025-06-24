@@ -28,7 +28,7 @@ WORKDIR /service
 
 COPY static /service/static
 
-COPY --from=build /service/gitlab-ci-build-statuses-exe .
+COPY --from=build /opt/build/gitlab-ci-build-statuses-exe .
 RUN chmod +x /service/gitlab-ci-build-statuses-exe
 EXPOSE 8282
 
