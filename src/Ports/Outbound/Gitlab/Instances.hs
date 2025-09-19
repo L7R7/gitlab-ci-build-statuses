@@ -48,7 +48,7 @@ instance FromJSON Project where
     projectId <- project .: "id"
     projectName <- project .: "name"
     projectWebUrl <- project .: "web_url"
-    projectDefaultBranch <- project .: "default_branch"
+    projectDefaultBranch <- project .:? "default_branch"
     projectNamespace <- project .: "namespace"
     pure Project {..}
 
