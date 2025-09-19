@@ -2,7 +2,7 @@
 
 [![build](https://github.com/l7r7/gitlab-ci-build-statuses/actions/workflows/build.yml/badge.svg)](https://github.com/l7r7/gitlab-ci-build-statuses/actions) ![code stats](https://tokei.rs/b1/github/l7r7/gitlab-ci-build-statuses)
 
-Fetch the current statuses of the latest Gitlab CI pipelines for all default branches in a Gitlab group and show them on an HTML page.  
+Fetch the current statuses of the latest Gitlab CI pipelines for the default branches of a list of projects (all projects from one or more groups in GitLab, and/or an explicit list of projects) and show them on an HTML page.
 Optionally, collect information about the pipeline jobs that are running at the moment and show them grouped by the runner that executes the job.
 
 ## Features
@@ -15,8 +15,10 @@ Optionally, collect information about the pipeline jobs that are running at the 
 * Production-ready Docker container including Prometheus metrics, health endpoint, and configurable structured JSON logging
 * Caching for the list of projects of the group to speed up the regular updates as well as reduce the load on the Gitlab API
 * The pipelines will be determined in the following way:
-    * Get all the projects for the given group
-    * For all projects that have a default branch, try to get the latest pipeline run for the default branch
+    * Get all relevant projects
+        * All projects in all provided groups
+        * All extra projects that have been configured
+    * For the projects that have a default branch, try to get the latest pipeline run for the default branch
     * Determine the status of the pipeline and include it in the result
 
 ## UI samples
@@ -41,7 +43,7 @@ The application has to be configured via environment variables.
 Some of them are mandatory, others are optional:
 
 * `GCB_GITLAB_BASE_URL`: The base URL for the Gitlab instance you want to fetch the data from, e.g. `https://www.gitlab.com/`
-* `GCB_GITLAB_GROUP_ID`: The ID of the group in Gitlab for which the build statuses to get.
+* `GCB_GITLAB_GROUP_ID` (optional): Comma-separated list of group IDs for which the build statuses to get.
 * `GCB_GITLAB_API_TOKEN`: The Access Token for the Gitlab API
 * `GCB_USER_AGENT` (optional): Sets the User-Agent that will be used for requests to the Gitlab API. Defaults to `gitlab-ci-build-statuses`.
 * `GCB_DATA_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the cached data should be updated.
@@ -138,6 +140,7 @@ If you do encounter scalability issues, feel free to open an issue and let me kn
 ### How is it possible for a project to have no default branch?
 
 The corresponding [API docs](https://docs.gitlab.com/ee/api/projects.html#list-all-projects) don't say that, but if a project is empty (e.g. if it was just created) it doesn't have a default branch.
+A project might also contain no repository if it just contains issues or a Wiki, see #223.
 
 ### Why do you need an extra call to get the single pipeline to determine the build status?
 
