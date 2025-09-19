@@ -39,7 +39,7 @@ import Validation
 
 data Config = Config
   { apiToken :: ApiToken,
-    groupId :: NonEmpty (Id Group),
+    groupId :: [Id Group],
     gitlabBaseUrl :: Url GitlabHost,
     userAgent :: UserAgent,
     dataUpdateIntervalSecs :: DataUpdateIntervalSeconds,
@@ -190,10 +190,8 @@ parseLogLevel "WARN" = Just WarningS
 parseLogLevel "ERROR" = Just ErrorS
 parseLogLevel _ = Nothing
 
-parseGroupsList :: String -> Maybe (NonEmpty (Id Group))
-parseGroupsList s = do
-  groups <- traverse (fmap Id . find (> 0) . readMaybe) (splitOn "," s)
-  nonEmpty $ ordNub groups
+parseGroupsList :: String -> Maybe [Id Group]
+parseGroupsList s = ordNub <$> traverse (fmap Id . find (> 0) . readMaybe) (splitOn "," s)
 
 parseUserAgent :: String -> Maybe UserAgent
 parseUserAgent "" = Nothing
@@ -214,6 +212,7 @@ defaults :: ConfigH Maybe
 defaults =
   bpure empty
     & field @"userAgent" .~ Just (UserAgent "gitlab-ci-build-statuses")
+    & field @"groupId" .~ Just []
     & field @"dataUpdateIntervalSecs" .~ Just 60
     & field @"uiUpdateIntervalSecs" .~ Just 5
     & field @"projectCacheTtlSecs" .~ Just 3600

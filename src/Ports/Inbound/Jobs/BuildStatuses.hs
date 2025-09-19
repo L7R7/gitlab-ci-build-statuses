@@ -28,7 +28,7 @@ updateStatusesRegularly ::
     Member (Time t d) r,
     Member ParTraverse r,
     Member (R.Reader ExtraProjectsList) r,
-    Member (R.Reader (NonEmpty (Id Group))) r,
+    Member (R.Reader [Id Group]) r,
     Member (R.Reader DataUpdateIntervalSeconds) r
   ) =>
   Sem r ()
@@ -45,7 +45,7 @@ updateWithDurationObservation ::
     Member Logger r,
     Member ParTraverse r,
     Member (R.Reader ExtraProjectsList) r,
-    Member (R.Reader (NonEmpty (Id Group))) r
+    Member (R.Reader [Id Group]) r
   ) =>
   Sem r ()
 updateWithDurationObservation =

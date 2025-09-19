@@ -18,8 +18,7 @@ spec = do
       $ parseConfigFromEnv []
       `shouldBe` Failure
         ( "Gitlab API Token is missing (set it via GCB_GITLAB_API_TOKEN)"
-            :| [ "Group ID is missing (set it via GCB_GITLAB_GROUP_ID)",
-                 "Gitlab base URL is missing (set it via GCB_GITLAB_BASE_URL)"
+            :| [ "Gitlab base URL is missing (set it via GCB_GITLAB_BASE_URL)"
                ]
         )
 
@@ -29,7 +28,7 @@ spec = do
 
     it "allows setting several group IDs"
       $ parseConfigFromEnv (("GCB_GITLAB_GROUP_ID", "5,6") : mandatoryConfig)
-      `shouldBe` Success (expectedConfig {groupId = Id 5 :| [Id 6]})
+      `shouldBe` Success (expectedConfig {groupId = [Id 5, Id 6]})
 
     describe "overriding for non-mandatory fields" $ do
       it "should allow overriding user agent"
@@ -101,10 +100,6 @@ spec = do
       parseConfigFromEnv [("GCB_GITLAB_GROUP_ID", "123"), ("GCB_GITLAB_BASE_URL", "https://my.gitlab.com")]
         `shouldBe` Failure ("Gitlab API Token is missing (set it via GCB_GITLAB_API_TOKEN)" :| [])
 
-    it "expects a positive integer for the group ID"
-      $ parseConfigFromEnv [("GCB_GITLAB_API_TOKEN", "apitoken"), ("GCB_GITLAB_GROUP_ID", "-123"), ("GCB_GITLAB_BASE_URL", "https://my.gitlab.com")]
-      `shouldBe` Failure ("Group ID is missing (set it via GCB_GITLAB_GROUP_ID)" :| [])
-
     it "expects a valid URL for the Gitlab host"
       $ parseConfigFromEnv [("GCB_GITLAB_API_TOKEN", "apitoken"), ("GCB_GITLAB_GROUP_ID", "123"), ("GCB_GITLAB_BASE_URL", "this-is-no-url")]
       `shouldBe` Failure ("Gitlab base URL is missing (set it via GCB_GITLAB_BASE_URL)" :| [])
@@ -113,7 +108,7 @@ spec = do
     expectedConfig =
       Config
         (ApiToken "apitoken")
-        (Id 123 :| [])
+        [Id 123]
         (Url $$(staticURI "https://my.gitlab.com"))
         (UserAgent "gitlab-ci-build-statuses")
         (DataUpdateIntervalSeconds 60)

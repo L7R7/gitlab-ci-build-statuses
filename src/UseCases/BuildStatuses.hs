@@ -28,7 +28,7 @@ updateStatuses ::
     Member Logger r,
     Member ParTraverse r,
     Member (R.Reader ExtraProjectsList) r,
-    Member (R.Reader (NonEmpty (Id Group))) r
+    Member (R.Reader [Id Group]) r
   ) =>
   Sem r [Result]
 updateStatuses = do
@@ -44,7 +44,7 @@ currentKnownBuildStatuses ::
     Member Logger r,
     Member ParTraverse r,
     Member (R.Reader ExtraProjectsList) r,
-    Member (R.Reader (NonEmpty (Id Group))) r
+    Member (R.Reader [Id Group]) r
   ) =>
   Sem r [Result]
 currentKnownBuildStatuses = filter ((/= Unknown) . buildStatus) <$> currentBuildStatuses
@@ -56,7 +56,7 @@ currentBuildStatuses ::
     Member PipelinesApi r,
     Member Logger r,
     Member (R.Reader ExtraProjectsList) r,
-    Member (R.Reader (NonEmpty (Id Group))) r
+    Member (R.Reader [Id Group]) r
   ) =>
   Sem r [Result]
 currentBuildStatuses = do
@@ -70,7 +70,7 @@ findProjects ::
     Member ParTraverse r,
     Member Logger r,
     Member (R.Reader ExtraProjectsList) r,
-    Member (R.Reader (NonEmpty (Id Group))) r
+    Member (R.Reader [Id Group]) r
   ) =>
   Sem r [Project]
 findProjects = do
