@@ -22,7 +22,7 @@ updateRunnersJobs ::
     Member RunnersJobsApi r,
     Member Logger r,
     Member ParTraverse r,
-    Member (R.Reader (NonEmpty (Id Group))) r,
+    Member (R.Reader [Id Group]) r,
     Member (R.Reader ProjectExcludeList) r
   ) =>
   Sem r (Map Runner [Job])
@@ -36,7 +36,7 @@ currentKnownRunnersJobs ::
   ( Member RunnersApi r,
     Member Logger r,
     Member ParTraverse r,
-    Member (R.Reader (NonEmpty (Id Group))) r,
+    Member (R.Reader [Id Group]) r,
     Member (R.Reader ProjectExcludeList) r
   ) =>
   Sem r (Map Runner [Job])
@@ -49,9 +49,9 @@ currentKnownRunnersJobs = do
 findRunners ::
   ( Member RunnersApi r,
     Member Logger r,
-    Member (R.Reader (NonEmpty (Id Group))) r
+    Member (R.Reader [Id Group]) r
   ) =>
-  Sem r (NonEmpty (Id Group, [Runner]))
+  Sem r [(Id Group, [Runner])]
 findRunners = do
   groups <- R.ask
   traverse (traverseToSnd findRunnersForGroup) groups
