@@ -140,7 +140,7 @@ If you do encounter scalability issues, feel free to open an issue and let me kn
 ### How is it possible for a project to have no default branch?
 
 The corresponding [API docs](https://docs.gitlab.com/ee/api/projects.html#list-all-projects) don't say that, but if a project is empty (e.g. if it was just created) it doesn't have a default branch.
-A project might also contain no repository if it just contains issues or a Wiki, see #223.
+A project might also contain no repository if it just contains issues or a Wiki, see [#223](https://github.com/L7R7/gitlab-ci-build-statuses/issues/223).
 
 ### Why do you need an extra call to get the single pipeline to determine the build status?
 
