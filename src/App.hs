@@ -91,6 +91,7 @@ run = do
       withLogEnv logLevel $ \lE -> do
         backbone <- initBackbone lE config
         singleLog lE InfoS $ "Using config: " <> show config
+        when (null groupId && null (getExtraProjectsList extraProjectsList)) $ singleLog lE WarningS "Both the list of group IDs and the list of extra projects are empty. That's probably not what you intended to do"
         singleLog lE InfoS $ "Running version: " <> show (gitCommit backbone)
         startWithConfig config backbone
     Failure errs ->
