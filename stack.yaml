@@ -1,11 +1,11 @@
-resolver: lts-21.22
+resolver: lts-21.25
 
 packages:
   - .
 
 extra-deps:
   - higgledy-0.4.2.1@sha256:51ed682047dfef1c3640a32adc59f1d350044dbb69ba04264462e7df11bc6c35,2380
-  - polysemy-time-0.7.0.0@sha256:da0a87c16fa520710e883e9669d55ea262643783eda492d1a1bc7b1a3cc63786,4123
+  - polysemy-time-0.7.0.1@sha256:d702e9ca40ef76c3ef04845f4290d3d2db9745a82b670d8acef7521d107b1d0f,4123
   - validation-selective-0.2.0.0@sha256:cc847f1a110e3b1bd437a5356f115881b61cafcb11781b570b180efd88bf0907,3917
 
 ghc-options:
