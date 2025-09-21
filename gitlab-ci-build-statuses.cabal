@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.38.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -53,6 +53,7 @@ library
       Ports.Outbound.Gitlab.Projects
       Ports.Outbound.Gitlab.RequestResponseUtils
       Ports.Outbound.Gitlab.Runners
+      Ports.Outbound.Gitlab.Schedules
       Ports.Outbound.Storage.BuildStatuses.InMemory
       Ports.Outbound.Storage.Runners.InMemory
       UseCases.BuildStatuses

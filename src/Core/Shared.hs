@@ -35,6 +35,6 @@ newtype Id a = Id Int deriving newtype (Eq, Hashable, Ord, Show)
 
 newtype Url a = Url URI deriving newtype (Eq, Show)
 
-newtype Ref = Ref Text deriving newtype (Eq, Ord, Show)
+newtype Ref = Ref {getRef :: Text} deriving newtype (Eq, Ord, Show)
 
 newtype Name a = Name Text deriving newtype (Eq, Show)

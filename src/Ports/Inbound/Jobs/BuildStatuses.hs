@@ -7,7 +7,7 @@ module Ports.Inbound.Jobs.BuildStatuses
 where
 
 import Config.Config (ExtraProjectsList)
-import Core.BuildStatuses (BuildStatusesApi, PipelinesApi, ProjectsApi, ProjectsWithoutExcludesApi)
+import Core.BuildStatuses (BuildStatusesApi, PipelinesApi, ProjectsApi, ProjectsWithoutExcludesApi, SchedulesApi)
 import Core.Effects (Logger, ParTraverse, addContext, addNamespace, logDebug)
 import Core.Shared
 import Metrics.Metrics
@@ -23,6 +23,7 @@ updateStatusesRegularly ::
     Member ProjectsWithoutExcludesApi r,
     Member DurationObservation r,
     Member PipelinesApi r,
+    Member SchedulesApi r,
     Member BuildStatusesApi r,
     Member Logger r,
     Member (Time t d) r,
@@ -41,6 +42,7 @@ updateWithDurationObservation ::
     Member ProjectsWithoutExcludesApi r,
     Member DurationObservation r,
     Member PipelinesApi r,
+    Member SchedulesApi r,
     Member BuildStatusesApi r,
     Member Logger r,
     Member ParTraverse r,

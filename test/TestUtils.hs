@@ -20,6 +20,11 @@ pipelinesApiFromMaps pipelines detailedPipelines = interpret $ \case
   GetLatestPipelineForRef pId ref -> pure $ maybeToRight EmptyResult (M.lookup (pId, ref) pipelines)
   GetSinglePipeline pId pipelId -> pure $ maybeToRight EmptyResult (M.lookup (pId, pipelId) detailedPipelines)
 
+emptySchedulesApi :: InterpreterFor SchedulesApi r
+emptySchedulesApi = interpret $ \case
+  GetActiveSchedulesForProject _ -> pure $ Right []
+  GetSchedule _ _ -> pure $ Left EmptyResult
+
 parTraversePure :: InterpreterFor ParTraverse r
 parTraversePure =
   interpretH $ \case

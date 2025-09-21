@@ -19,6 +19,7 @@ import Ports.Inbound.Jobs.Runners (updateRunnersJobsRegularly)
 import Ports.Outbound.Gitlab.Pipelines (pipelinesApiToIO)
 import Ports.Outbound.Gitlab.Projects (projectsApiToIO, projectsWithoutExcludesApiInTermsOfProjects)
 import Ports.Outbound.Gitlab.Runners (runnersApiToIO)
+import Ports.Outbound.Gitlab.Schedules (schedulesApiToIO)
 import Ports.Outbound.Storage.BuildStatuses.InMemory (buildStatusesApiToIO)
 import Ports.Outbound.Storage.Runners.InMemory (runnersJobsApiToIO)
 import Relude
@@ -44,6 +45,7 @@ startStatusUpdatingJob config backbone =
     . runConfig config
     . runBackbone backbone
     . buildStatusesApiToIO
+    . schedulesApiToIO
     . pipelinesApiToIO
     . metricsApiToIO
     . projectsApiToIO

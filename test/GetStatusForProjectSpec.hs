@@ -27,20 +27,21 @@ spec = do
   describe "getStatusForProject" $ do
     it "returns Nothing when there's no default branch" $ (run . pipelinesApiPure . noOpLogger $ getStatusForProject (Id 5) Nothing) `shouldBe` Nothing
     it "returns the correct status for a project that doesn't require the detailed status"
-      $ fst
+      $ (\(bs, _, _, _) -> bs)
       <$> (run . pipelinesApiPure . noOpLogger $ getStatusForProject (Id 311) (Just $ Ref "main"))
       `shouldBe` Just Running
     it "returns the correct status for a project that passed with warnings"
-      $ fst
+      $ (\(bs, _, _, _) -> bs)
       <$> (run . pipelinesApiFromMaps projects pipelines . noOpLogger $ getStatusForProject (Id 50) (Just $ Ref "main"))
       `shouldBe` Just SuccessfulWithWarnings
     it "returns the correct status for a project that was successful but has no result for the detailed pipeline"
-      $ fst
+      $ (\(bs, _, _, _) -> bs)
       <$> (run . pipelinesApiFromMaps projects pipelines . noOpLogger $ getStatusForProject (Id 52) (Just $ Ref "main"))
       `shouldBe` Just Successful
   where
     evaluateEffectsPurely =
       noOpLogger
+        . emptySchedulesApi
         . pipelinesApiPure
         . projectsApiFromMap
           ( M.fromList
@@ -54,14 +55,14 @@ spec = do
         . parTraversePure
         . projectsWithoutExcludesApiInTermsOfProjects
     result = [result1, result2]
-    result1 = Result (Id 311) (Name "my-other-project") (ProjectNamespaceFullPath $(mkRelDir "bar")) Running (Right (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))
-    result2 = Result (Id 312) (Name "myProj") (ProjectNamespaceFullPath $(mkRelDir "foo")) Unknown (Left (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")))
+    result1 = Result (Id 311) (Name "my-other-project") (ProjectNamespaceFullPath $(mkRelDir "bar")) Running (Just PipelineSourcePush) "main" (Right (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))
+    result2 = Result (Id 312) (Name "myProj") (ProjectNamespaceFullPath $(mkRelDir "foo")) Unknown Nothing "" (Left (Url $$(staticURI "https://my.gitlab.com/projects/512/foo")))
     projects =
       M.fromList
-        [ ((Id 50, Ref "main"), Pipeline (Id 151) (Ref "main") Successful (Url $$(staticURI "https://sample.de/50"))),
-          ((Id 52, Ref "main"), Pipeline (Id 152) (Ref "main") Successful (Url $$(staticURI "https://sample.de/52")))
+        [ ((Id 50, Ref "main"), Pipeline (Id 151) (Ref "main") Successful PipelineSourcePush (Url $$(staticURI "https://sample.de/50"))),
+          ((Id 52, Ref "main"), Pipeline (Id 152) (Ref "main") Successful PipelineSourcePush (Url $$(staticURI "https://sample.de/52")))
         ]
     pipelines = M.fromList [((Id 50, Id 151), DetailedPipeline (Id 151) (Ref "main") SuccessfulWithWarnings (Url $$(staticURI "https://detailed.com")))]
 
 pipelinesApiPure :: InterpreterFor PipelinesApi r
-pipelinesApiPure = pipelinesApiFromMaps (M.fromList [((Id 311, Ref "main"), Pipeline (Id 411) (Ref "main") Running (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))]) mempty
+pipelinesApiPure = pipelinesApiFromMaps (M.fromList [((Id 311, Ref "main"), Pipeline (Id 411) (Ref "main") Running PipelineSourcePush (Url $$(staticURI "https://my.gitlab.com/pipelines/411")))]) mempty

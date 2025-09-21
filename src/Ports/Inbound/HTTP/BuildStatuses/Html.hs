@@ -30,13 +30,14 @@ import Relude
 import Servant
 import Servant.HTML.Lucid
 
-type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> QueryParam "filter" FilterMode :> QueryParam "ui" UiMode :> Get '[HTML] (Html ())
+type API = "statuses" :> QueryParam "view" ViewMode :> QueryFlag "norefresh" :> QueryParam "filter" FilterMode :> QueryParam "show" ShowMode :> QueryParam "ui" UiMode :> Get '[HTML] (Html ())
 
 type Frontend = HtmlT (Reader FrontendState) ()
 
 data FrontendState = FrontendState
   { frontendStateViewMode :: ViewMode,
     frontendStateFilterMode :: FilterMode,
+    frontendStateShowMode :: ShowMode,
     frontendStateUiMode :: UiMode,
     frontendStateJobsView :: JobsView,
     frontendStateBuildStatuses :: BuildStatuses,
@@ -57,11 +58,12 @@ template ::
   ) =>
   ViewMode ->
   FilterMode ->
+  ShowMode ->
   UiMode ->
   AutoRefresh ->
   Sem r (Html ())
-template viewMode filterMode uiMode autoRefresh = do
-  frontendState <- FrontendState viewMode filterMode uiMode <$> R.ask <*> getStatuses <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
+template viewMode filterMode showMode uiMode autoRefresh = do
+  frontendState <- FrontendState viewMode filterMode showMode uiMode <$> R.ask <*> getStatuses <*> R.ask <*> R.ask <*> pure autoRefresh <*> R.ask <*> Time.now
   pure $ usingReader frontendState $ commuteHtmlT $ do
     pageHeader
     pageBody
@@ -97,17 +99,24 @@ pageBody :: Frontend
 pageBody = body_ $ do
   viewMode <- asks frontendStateViewMode
   filterMode <- asks frontendStateFilterMode
+  showMode <- asks frontendStateShowMode
   dataUpdateInterval <- asks frontendStateDataUpdateInterval
   now <- asks frontendStateNow
   buildStatuses <- asks frontendStateBuildStatuses
-  let buildStatusesFiltered = case filterMode of
-        ShowAll -> buildStatuses
-        DontShowSuccessful -> filterResults buildStatuses (\res -> buildStatus res /= Successful)
+  let applyFilterModeToBuildStatuses ShowAll bs = bs
+      applyFilterModeToBuildStatuses DontShowSuccessful bs = filterResults bs (\res -> buildStatus res /= Successful)
+
+      applyShowModeToBuildStatuses ScheduledAndNotScheduled bs = bs
+      applyShowModeToBuildStatuses NoScheduled bs = filterResults bs (\res -> source res /= Just PipelineSourceSchedule)
+      applyShowModeToBuildStatuses OnlyScheduled bs = filterResults bs (\res -> source res == Just PipelineSourceSchedule)
+
+      buildStatusesFiltered = (applyShowModeToBuildStatuses showMode . applyFilterModeToBuildStatuses filterMode) buildStatuses
   (if viewMode == Plain then section_ [class_ "statuses"] else Relude.id) $ statusesToHtml viewMode dataUpdateInterval now buildStatusesFiltered
   section_ [classes_ ["statuses", "controls"]] $ do
     linkToViewToggle
     linkToAutoRefreshToggle
     linkToFilterModeToggle
+    linksToShowModeToggle
     linkToUiModeToggle
     linkToJobs
 
@@ -136,7 +145,9 @@ resultToHtml result = do
 resultToHtml' :: (Monad m) => Result -> HtmlT m ()
 resultToHtml' Result {..} =
   a_ [href_ (either show show url), target_ "_blank", classesForStatus buildStatus, title_ (buildStatusToString buildStatus)] $ do
-    div_ [class_ "status-content"] $ p_ (toHtml name)
+    div_ [class_ "status-content"] $ do
+      p_ (toHtml name)
+      p_ [class_ "textual-status"] (toHtml resultDescription)
   where
     classesForStatus Unknown = class_ "status unknown"
     classesForStatus Cancelled = class_ "status cancelled"
@@ -157,6 +168,7 @@ resultToHtml'' Result {..} =
   a_ [href_ (either show show url), target_ "_blank", classes_ ["status", "no-color"], title_ (buildStatusToString buildStatus), style_ "position: relative"] $ do
     div_ [class_ "status-content"] $ do
       p_ (toHtml name)
+      p_ [class_ "textual-status"] (toHtml resultDescription)
       p_ [class_ "textual-status"] (buildStatusToString buildStatus)
     section_ [class_ "icon-box", style_ "position: absolute; height: 100%; width: 100%; display: grid; grid-template-columns: repeat(8, 1fr); grid-auto-rows: auto;"] $ do
       replicateM_ 40 $ do
@@ -243,8 +255,19 @@ linkToFilterModeToggle = do
       toggle DontShowSuccessful = ShowAll
       txt = case filterMode of
         ShowAll -> "Don't show successful pipelines"
-        DontShowSuccessful -> "Show all pipelines"
+        DontShowSuccessful -> "Show successful and failed pipelines"
   div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateFilterMode = toggle filterMode})))] txt
+
+linksToShowModeToggle :: Frontend
+linksToShowModeToggle = do
+  frontendState <- ask
+  let showMode = frontendStateShowMode frontendState
+  when (showMode == ScheduledAndNotScheduled || showMode == OnlyScheduled) $ do
+    div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateShowMode = NoScheduled})))] "Show only non-scheduled pipelines"
+  when (showMode == ScheduledAndNotScheduled || showMode == NoScheduled) $ do
+    div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateShowMode = OnlyScheduled})))] "Show only scheduled pipelines"
+  when (showMode /= ScheduledAndNotScheduled) $ do
+    div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateShowMode = ScheduledAndNotScheduled})))] "Show scheduled and non-scheduled pipelines"
 
 linkToUiModeToggle :: Frontend
 linkToUiModeToggle = do
@@ -258,4 +281,12 @@ linkToUiModeToggle = do
   div_ [class_ "status"] $ div_ $ a_ [class_ "link-control", href_ (toUrlPiece (linkForState (frontendState {frontendStateUiMode = toggle uiMode})))] txt
 
 linkForState :: FrontendState -> Link
-linkForState frontendState = safeLink (Proxy @API) (Proxy @API) (Just (frontendStateViewMode frontendState)) (frontendStateAutoRefresh frontendState == NoRefresh) (Just (frontendStateFilterMode frontendState)) (Just (frontendStateUiMode frontendState))
+linkForState frontendState =
+  safeLink
+    (Proxy @API)
+    (Proxy @API)
+    (Just (frontendStateViewMode frontendState))
+    (frontendStateAutoRefresh frontendState == NoRefresh)
+    (Just (frontendStateFilterMode frontendState))
+    (Just (frontendStateShowMode frontendState))
+    (Just (frontendStateUiMode frontendState))
