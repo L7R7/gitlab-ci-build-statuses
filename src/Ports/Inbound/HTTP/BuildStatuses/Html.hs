@@ -84,7 +84,7 @@ pageHeader = do
       title_ "Build Statuses"
       link_ [rel_ "icon", type_ "image/png", href_ ("static/" <> prefix <> "-favicon.ico")]
       link_ [rel_ "stylesheet", type_ "text/css", href_ "static/normalize-d6d444a732.css"]
-      link_ [rel_ "stylesheet", type_ "text/css", href_ "static/statuses-2fad95d80d.css"]
+      link_ [rel_ "stylesheet", type_ "text/css", href_ "static/statuses-2fad95d80db47bfef29eb84859b463f4.css"]
       script_ [type_ "text/javascript", src_ "static/script-32964cd17f.js"] ("" :: String)
       meta_ [makeAttribute "version" (show gitCommit)]
 
