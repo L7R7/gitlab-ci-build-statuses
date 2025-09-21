@@ -7,7 +7,7 @@ module Ports.Outbound.Gitlab.Instances (buildStatusToApiString) where
 import Core.BuildStatuses
 import Core.Shared
 import Data.Aeson hiding (Result, Value)
-import Data.Aeson.Casing (aesonPrefix, snakeCase)
+import Data.Aeson.Casing (aesonDrop, aesonPrefix, snakeCase)
 import Network.URI (parseURI)
 import Relude
 
@@ -40,6 +40,32 @@ buildStatusToApiString WaitingForResource = "waiting_for_resource"
 instance FromJSON Pipeline where
   parseJSON = genericParseJSON $ aesonPrefix snakeCase
 
+instance FromJSON PipelineSource where
+  parseJSON = withText "PipelineSource" $ \x -> maybe (fail $ mconcat ["couldn't parse pipeline source from '", show x, "'"]) pure (inverseMap pipelineSourceToApiString x)
+
+pipelineSourceToApiString :: (IsString p) => PipelineSource -> p
+pipelineSourceToApiString PipelineSourceApi = "api"
+pipelineSourceToApiString PipelineSourceChat = "chat"
+pipelineSourceToApiString PipelineSourceExternal = "external"
+pipelineSourceToApiString PipelineSourceExternalPullRequestEvent = "external_pull_request_event"
+pipelineSourceToApiString PipelineSourceMergeRequestEvent = "merge_request_event"
+pipelineSourceToApiString PipelineSourceOnDemandDastScan = "ondemand_dast_scan"
+pipelineSourceToApiString PipelineSourceOnDemandDastValidation = "ondemand_dast_validation"
+pipelineSourceToApiString PipelineSourceParentPipeline = "parent_pipeline"
+pipelineSourceToApiString PipelineSourcePipeline = "pipeline"
+pipelineSourceToApiString PipelineSourcePush = "push"
+pipelineSourceToApiString PipelineSourceSchedule = "schedule"
+pipelineSourceToApiString PipelineSourceSecurityOrchestrationPolicy = "security_orchestration_policy"
+pipelineSourceToApiString PipelineSourceTrigger = "trigger"
+pipelineSourceToApiString PipelineSourceWeb = "web"
+pipelineSourceToApiString PipelineSourceWebIDE = "webide"
+
+instance FromJSON Schedule where
+  parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+instance FromJSON DetailedSchedule where
+  parseJSON = genericParseJSON $ aesonDrop (length @[] "DetailedSchedule") snakeCase
+
 instance FromJSON (Url a) where
   parseJSON = withText "URI" $ \v -> Url <$> maybe (fail "Bad URI") pure (parseURI (toString v))
 
@@ -63,5 +89,7 @@ deriving newtype instance FromJSON (Id a)
 deriving newtype instance FromJSON (Name a)
 
 deriving newtype instance FromJSON Ref
+
+deriving newtype instance FromJSON ScheduleDescription
 
 deriving newtype instance FromJSON ProjectNamespaceFullPath

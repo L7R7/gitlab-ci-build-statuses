@@ -1,17 +1,25 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Core.BuildStatuses
   ( BuildStatus (..),
+    PipelineSource (..),
     BuildStatuses (..),
     filterResults,
     Result (..),
     ProjectsApi (..),
     getProject,
     getProjects,
+    ScheduleDescription (..),
+    Schedule (..),
+    DetailedSchedule (..),
+    SchedulesApi (..),
+    getActiveSchedulesForProject,
+    getSchedule,
     ProjectsWithoutExcludesApi (..),
     getProjectsNotOnExcludeListOrEmpty,
     BuildStatusesApi (..),
@@ -41,6 +49,7 @@ data Pipeline = Pipeline
   { pipelineId :: Id Pipeline,
     pipelineRef :: Ref,
     pipelineStatus :: BuildStatus,
+    pipelineSource :: PipelineSource,
     pipelineWebUrl :: Url Pipeline
   }
   deriving stock (Generic, Show)
@@ -56,6 +65,8 @@ data Result = Result
     name :: Name Project,
     namespace :: ProjectNamespaceFullPath,
     buildStatus :: BuildStatus,
+    source :: Maybe PipelineSource,
+    resultDescription :: Text,
     url :: Either (Url Project) (Url Pipeline)
   }
   deriving stock (Eq, Show)
@@ -74,6 +85,25 @@ data BuildStatus
   | Successful
   | SuccessfulWithWarnings
   | WaitingForResource
+  deriving stock (Bounded, Enum, Eq, Show, Ord)
+
+-- see: https://docs.gitlab.com/ci/jobs/job_rules/#ci_pipeline_source-predefined-variable
+data PipelineSource
+  = PipelineSourceApi
+  | PipelineSourceChat
+  | PipelineSourceExternal
+  | PipelineSourceExternalPullRequestEvent
+  | PipelineSourceMergeRequestEvent
+  | PipelineSourceOnDemandDastScan
+  | PipelineSourceOnDemandDastValidation
+  | PipelineSourceParentPipeline
+  | PipelineSourcePipeline
+  | PipelineSourcePush
+  | PipelineSourceSchedule
+  | PipelineSourceSecurityOrchestrationPolicy
+  | PipelineSourceTrigger
+  | PipelineSourceWeb
+  | PipelineSourceWebIDE
   deriving stock (Bounded, Enum, Eq, Show, Ord)
 
 data BuildStatuses = NoSuccessfulUpdateYet | Statuses (UTCTime, [Result])
@@ -123,6 +153,30 @@ data ProjectsApi m a where
 
 makeSem ''ProjectsApi
 
+newtype ScheduleDescription = ScheduleDescription {getScheduleDescription :: Text}
+  deriving stock (Generic)
+  deriving newtype (Eq, Show)
+
+data Schedule = Schedule
+  { scheduleId :: Id Schedule,
+    scheduleDescription :: ScheduleDescription
+  }
+  deriving stock (Eq, Generic, Show)
+
+data DetailedSchedule = DetailedSchedule
+  { detailedScheduleId :: Id Schedule,
+    detailedScheduleDescription :: ScheduleDescription,
+    detailedScheduleActive :: Bool,
+    detailedScheduleLastPipeline :: Maybe Pipeline
+  }
+  deriving stock (Eq, Generic, Show)
+
+data SchedulesApi m a where
+  GetActiveSchedulesForProject :: Id Project -> SchedulesApi m (Either UpdateError [Schedule])
+  GetSchedule :: Id Project -> Id Schedule -> SchedulesApi m (Either UpdateError DetailedSchedule)
+
+makeSem ''SchedulesApi
+
 data ProjectsWithoutExcludesApi m a where
   GetProjectsNotOnExcludeListOrEmpty :: Id Group -> ProjectsWithoutExcludesApi m [Project]
 
@@ -164,6 +218,6 @@ isBroken Successful = False
 isBroken SuccessfulWithWarnings = True
 isBroken WaitingForResource = False
 
-toResult :: Project -> Maybe (BuildStatus, Url Pipeline) -> Result
-toResult Project {..} Nothing = Result projectId projectName (projectNamespaceFullPath projectNamespace) Unknown (Left projectWebUrl)
-toResult Project {..} (Just (status, url)) = Result projectId projectName (projectNamespaceFullPath projectNamespace) status (Right url)
+toResult :: Project -> Maybe (BuildStatus, PipelineSource, Text, Url Pipeline) -> Result
+toResult Project {..} Nothing = Result projectId projectName (projectNamespaceFullPath projectNamespace) Unknown Nothing "" (Left projectWebUrl)
+toResult Project {..} (Just (status, source, resultDescription, url)) = Result projectId projectName (projectNamespaceFullPath projectNamespace) status (Just source) resultDescription (Right url)

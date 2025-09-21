@@ -24,6 +24,7 @@ updateStatuses ::
   ( Member ProjectsApi r,
     Member ProjectsWithoutExcludesApi r,
     Member PipelinesApi r,
+    Member SchedulesApi r,
     Member BuildStatusesApi r,
     Member Logger r,
     Member ParTraverse r,
@@ -41,6 +42,7 @@ currentKnownBuildStatuses ::
   ( Member ProjectsApi r,
     Member ProjectsWithoutExcludesApi r,
     Member PipelinesApi r,
+    Member SchedulesApi r,
     Member Logger r,
     Member ParTraverse r,
     Member (R.Reader ExtraProjectsList) r,
@@ -54,6 +56,7 @@ currentBuildStatuses ::
     Member ParTraverse r,
     Member ProjectsWithoutExcludesApi r,
     Member PipelinesApi r,
+    Member SchedulesApi r,
     Member Logger r,
     Member (R.Reader ExtraProjectsList) r,
     Member (R.Reader [Id Group]) r
@@ -62,7 +65,7 @@ currentBuildStatuses ::
 currentBuildStatuses = do
   projects <- findProjects
   results <- traverseP evalProject projects
-  pure $ sortOn (T.toLower . coerce . name) results
+  pure $ sortOn (T.toLower . coerce . name) (join results)
 
 findProjects ::
   ( Member ProjectsApi r,
@@ -104,11 +107,15 @@ logCurrentBuildStatuses = do
 
 evalProject ::
   ( Member PipelinesApi r,
+    Member SchedulesApi r,
     Member Logger r
   ) =>
   Project ->
-  Sem r Result
-evalProject p@Project {..} = toResult p <$> getStatusForProject projectId projectDefaultBranch
+  Sem r [Result]
+evalProject p@Project {..} = do
+  nonScheduled <- toResult p <$> getStatusForProject projectId projectDefaultBranch
+  scheduledStatuses <- getStatusesForSchedules projectId
+  pure $ nonScheduled : (toResult p . (\(bs, ps, sd, up) -> Just (bs, ps, getScheduleDescription sd, up)) <$> scheduledStatuses) -- todo: improve toResult, maybe get rid of the Unknown status entirely?
 
 getStatusForProject ::
   ( Member PipelinesApi r,
@@ -116,7 +123,7 @@ getStatusForProject ::
   ) =>
   Id Project ->
   Maybe Ref ->
-  Sem r (Maybe (BuildStatus, Url Pipeline))
+  Sem r (Maybe (BuildStatus, PipelineSource, Text, Url Pipeline))
 getStatusForProject _ Nothing = pure Nothing
 getStatusForProject projectId (Just defaultBranch) = addContext "projectId" projectId $ do
   pipeline <- getLatestPipelineForRef projectId defaultBranch
@@ -126,7 +133,21 @@ getStatusForProject projectId (Just defaultBranch) = addContext "projectId" proj
     Right p -> do
       let st = pipelineStatus p
       detailedStatus <- if st == Successful then detailedStatusForPipeline projectId (pipelineId p) else pure Nothing
-      pure $ Just (fromMaybe st detailedStatus, pipelineWebUrl p)
+      pure $ Just (fromMaybe st detailedStatus, pipelineSource p, getRef defaultBranch, pipelineWebUrl p)
+
+getStatusesForSchedules ::
+  ( Member PipelinesApi r,
+    Member SchedulesApi r,
+    Member Logger r
+  ) =>
+  Id Project ->
+  Sem r [(BuildStatus, PipelineSource, ScheduleDescription, Url Pipeline)]
+getStatusesForSchedules projectId = do
+  schedulesResult <- getActiveSchedulesForProject projectId
+  case schedulesResult of
+    Left uError -> [] <$ logWarn (unwords ["Couldn't get schedules for project, error was", show uError])
+    Right schedules -> do
+      catMaybes <$> traverse (resultForSchedule projectId) schedules
 
 detailedStatusForPipeline ::
   ( Member PipelinesApi r,
@@ -141,3 +162,22 @@ detailedStatusForPipeline projectId pipelineId =
     case singlePipelineResult of
       Left uError -> Nothing <$ logWarn (unwords ["Couldn't get details for pipeline, error was", show uError])
       Right dp -> pure . Just $ detailedPipelineStatus dp
+
+resultForSchedule ::
+  ( Member PipelinesApi r,
+    Member SchedulesApi r,
+    Member Logger r
+  ) =>
+  Id Project ->
+  Schedule ->
+  Sem r (Maybe (BuildStatus, PipelineSource, ScheduleDescription, Url Pipeline))
+resultForSchedule projectId schedule = do
+  scheduleResult <- getSchedule projectId (scheduleId schedule)
+  case scheduleResult of
+    Left uError -> Nothing <$ logWarn (unwords ["Couldn't get latest pipeline for schedule", show (scheduleId schedule), "error was", show uError])
+    Right s -> case detailedScheduleLastPipeline s of
+      Nothing -> pure Nothing
+      Just p -> do
+        let st = pipelineStatus p
+        detailedStatus <- if st == Successful then detailedStatusForPipeline projectId (pipelineId p) else pure Nothing
+        pure $ Just (fromMaybe st detailedStatus, pipelineSource p, scheduleDescription schedule, pipelineWebUrl p)

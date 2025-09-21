@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), FilterMode (..), UiMode (..), lastUpdatedToHtml) where
+module Ports.Inbound.HTTP.Util (AutoRefresh (..), ViewMode (..), FilterMode (..), UiMode (..), ShowMode (..), lastUpdatedToHtml) where
 
 import Core.Shared
 import Data.Time (UTCTime, diffUTCTime)
@@ -53,6 +53,19 @@ instance FromHttpApiData UiMode where
 
 instance ToHttpApiData UiMode where
   toQueryParam = uiModeToText
+
+data ShowMode = ScheduledAndNotScheduled | NoScheduled | OnlyScheduled deriving stock (Bounded, Eq, Enum)
+
+showModeToText :: ShowMode -> Text
+showModeToText ScheduledAndNotScheduled = "all"
+showModeToText NoScheduled = "no-scheduled"
+showModeToText OnlyScheduled = "only-scheduled"
+
+instance FromHttpApiData ShowMode where
+  parseQueryParam = maybeToRight "can't parse ShowMode param" . inverseMap showModeToText
+
+instance ToHttpApiData ShowMode where
+  toQueryParam = showModeToText
 
 lastUpdatedToHtml :: (Monad m) => DataUpdateIntervalSeconds -> UTCTime -> UTCTime -> HtmlT m ()
 lastUpdatedToHtml (DataUpdateIntervalSeconds updateInterval) now lastUpdate = div_ ([class_ classes] <> staleDataTitle) $ div_ $ do
