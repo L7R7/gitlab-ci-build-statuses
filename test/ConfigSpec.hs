@@ -46,7 +46,7 @@ spec = do
       it "should allow overriding runner cache TTL"
         $ parseConfigFromEnv (("GCB_RUNNER_CACHE_TTL_SECS", "5") : mandatoryConfig)
         `shouldBe` Success (expectedConfig {runnerCacheTtlSecs = RunnerCacheTtlSeconds 5})
-      it "should allow overriding maximum concurency"
+      it "should allow overriding maximum concurrency"
         $ parseConfigFromEnv (("GCB_MAX_CONCURRENCY", "5") : mandatoryConfig)
         `shouldBe` Success (expectedConfig {maxConcurrency = MaxConcurrency 5})
       it "should allow overriding whether to include shared projects"
