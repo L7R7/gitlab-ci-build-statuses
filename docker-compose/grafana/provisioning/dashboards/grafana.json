@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Grafana Internal Metics Dashboards",
+  "description": "Grafana Internal Metrics Dashboards",
   "editable": true,
   "gnetId": 3590,
   "graphTooltip": 0,
@@ -716,7 +716,7 @@
       "id": 23,
       "panels": [],
       "repeat": null,
-      "title": "Responce Codes and Logins",
+      "title": "Response Codes and Logins",
       "type": "row"
     },
     {

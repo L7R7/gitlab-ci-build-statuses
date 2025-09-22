@@ -152,7 +152,7 @@ errorMessages = bzipWith (biliftA2 (printf "%s (set it via %s)") const) msgs env
           "Max concurrency is missing. Must be a positive integer"
           "Configuration whether to include shared projects is missing. Possible values are `include`, `exclude`"
           "Log level is missing. Possible values are `DEBUG`, `INFO`, `WARN`, `ERROR`"
-          "List of extra projects to include in the list of prjects. Must be a list of comma-separated string of numberst with the project IDs"
+          "List of extra projects to include in the list of projects. Must be a list of comma-separated string of numbers with the project IDs"
           "List of projects to exclude is missing. Must be a list of comma-separated string of numbers with the project IDs"
           "Configuration whether to enable runners jobs is missing. Possible values are `enabled`, `disabled`"
 
