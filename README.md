@@ -44,6 +44,9 @@ Some of them are mandatory, others are optional:
 
 * `GCB_GITLAB_BASE_URL`: The base URL for the Gitlab instance you want to fetch the data from, e.g. `https://www.gitlab.com/`
 * `GCB_GITLAB_GROUP_ID` (optional): Comma-separated list of group IDs for which the build statuses to get.
+* `GCB_EXTRA_PROJECTS` (optional): Set a lists of additional projects that should be included in the list.
+  Must be a comma-separated list of integers of project IDs.
+  Defaults to an empty list if the value is not set or can't be parsed.
 * `GCB_GITLAB_API_TOKEN`: The Access Token for the Gitlab API
 * `GCB_USER_AGENT` (optional): Sets the User-Agent that will be used for requests to the Gitlab API. Defaults to `gitlab-ci-build-statuses`.
 * `GCB_DATA_UPDATE_INTERVAL_SECS` (optional): Sets the interval in seconds that defines how often the cached data should be updated.
@@ -64,9 +67,6 @@ Default value is `3600` (1h).
 * `GCB_EXCLUDE_PROJECTS` (optional): Set a list of projects that should be excluded from the list.
   Must be a comma-separated list of integers of project IDs.
   If you specify projects that don't appear in the result from the API, a warning will be logged.
-  Defaults to an empty list if the value is not set or can't be parsed.
-* `GCB_EXTRA_PROJECTS` (optional): Set a lists of additional projects that should be included in the list.
-  Must be a comma-separated list of integers of project IDs.
   Defaults to an empty list if the value is not set or can't be parsed.
 * `GCB_JOBS_VIEW` (optional): Enables/disables whether to fetch the data for the currently running pipeline jobs.
   Possible values are `enabled` and `disabled`.
