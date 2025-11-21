@@ -6,14 +6,14 @@ jobs:
   ormolu:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: haskell-actions/run-ormolu@v17
   build:
     name: Build
     runs-on: ubuntu-24.04
     needs: ormolu
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/cache@v4
         name: Cache ~/.stack
@@ -43,7 +43,7 @@ jobs:
     name: Markdown lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Markdown Lint
         uses: avto-dev/markdown-lint@v1.5.0
@@ -56,7 +56,7 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/download-artifact@v6
         with:
