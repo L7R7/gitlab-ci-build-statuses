@@ -1,4 +1,4 @@
-FROM fpco/stack-build:lts-21.22 as dependencies
+FROM fpco/stack-build:lts-21.25 as dependencies
 RUN mkdir /opt/build
 WORKDIR /opt/build
 
@@ -6,7 +6,7 @@ COPY stack.yaml package.yaml /opt/build/
 
 RUN stack build --system-ghc --dependencies-only
 
-FROM fpco/stack-build:lts-21.22 as build
+FROM fpco/stack-build:lts-21.25 as build
 
 COPY --from=dependencies /root/.stack /root/.stack
 COPY . /opt/build/
