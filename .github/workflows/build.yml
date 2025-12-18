@@ -56,6 +56,20 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     steps:
+      - name: Free disk space
+        run: |
+          echo '===== Before ====='
+          df -h
+          sudo rm -rf /opt/hostedtoolcache/go
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/lib/google-cloud-sdk
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/dotnet
+          sudo apt-get clean
+          echo '===== After ====='
+          df -h
       - uses: actions/checkout@v6
 
       - uses: actions/download-artifact@v7
